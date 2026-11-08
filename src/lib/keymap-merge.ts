@@ -28,7 +28,9 @@ export function planKeymapMerge(existingValue: unknown, additionsValue: unknown)
   let added = 0;
   let unchanged = 0;
 
-  const orderedSections = Object.entries(additions).sort(([left], [right]) => sectionPriority(left) - sectionPriority(right));
+  const orderedSections = Object.entries(additions).sort(
+    ([left], [right]) => sectionPriority(left) - sectionPriority(right),
+  );
   for (const [incomingSection, value] of orderedSections) {
     if (!isKeySection(incomingSection)) continue;
     const incomingBindings = value as Record<string, KeyAction>;
@@ -172,7 +174,9 @@ function actionsEqual(left: KeyAction, right: KeyAction): boolean {
 function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
   if (isRecord(value)) {
-    const fields = Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`);
+    const fields = Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`);
     return `{${fields.join(",")}}`;
   }
   return JSON.stringify(value) ?? "undefined";

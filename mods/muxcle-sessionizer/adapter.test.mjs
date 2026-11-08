@@ -30,18 +30,25 @@ function createApi(overrides = {}) {
 
 test("native adapter reads only the explicit config and launches Python with argv", async () => {
   const { api, calls } = createApi();
-  const adapter = createSessionizerAdapter(api, "/app/data/muxcle-sessionizer/config.json", "/app/mods/muxcle-sessionizer", "overlay-1");
+  const adapter = createSessionizerAdapter(
+    api,
+    "/app/data/muxcle-sessionizer/config.json",
+    "/app/mods/muxcle-sessionizer",
+    "overlay-1",
+  );
   const roots = ["/workspaces/with spaces; echo unsafe"];
 
   await adapter.readConfig();
   await adapter.discover(roots);
 
   assert.deepEqual(calls.reads, ["/app/data/muxcle-sessionizer/config.json"]);
-  assert.deepEqual(calls.execs, [{
-    command: "python3",
-    args: ["-B", "discover.py", "discover", JSON.stringify(roots)],
-    options: { cwd: "/app/mods/muxcle-sessionizer" },
-  }]);
+  assert.deepEqual(calls.execs, [
+    {
+      command: "python3",
+      args: ["-B", "discover.py", "discover", JSON.stringify(roots)],
+      options: { cwd: "/app/mods/muxcle-sessionizer" },
+    },
+  ]);
 });
 
 test("space lookup sends local paths only and maps empty local folders to home", async () => {

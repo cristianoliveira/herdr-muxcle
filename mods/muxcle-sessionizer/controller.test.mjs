@@ -14,24 +14,32 @@ function createHarness(options = {}) {
   const calls = { discover: [], lookup: [], selected: [], created: [], closed: 0 };
   const adapter = {
     readConfig: options.readConfig ?? (async () => config),
-    discover: options.discover ?? (async (roots) => {
-      calls.discover.push([...roots]);
-      return discovery;
-    }),
+    discover:
+      options.discover ??
+      (async (roots) => {
+        calls.discover.push([...roots]);
+        return discovery;
+      }),
     spaces: () => currentSpaces,
-    findLocalSpace: options.findLocalSpace ?? (async (folder, spaces) => {
-      calls.lookup.push({ folder, spaces: [...spaces] });
-      return '{"spaceId":null}';
-    }),
+    findLocalSpace:
+      options.findLocalSpace ??
+      (async (folder, spaces) => {
+        calls.lookup.push({ folder, spaces: [...spaces] });
+        return '{"spaceId":null}';
+      }),
     selectSpace: (id) => calls.selected.push(id),
     createLocalSpace: (folder) => calls.created.push(folder),
-    close: () => { calls.closed += 1; },
+    close: () => {
+      calls.closed += 1;
+    },
   };
 
   return {
     calls,
     controller: new SessionizerController(adapter, "/app/data/muxcle-sessionizer/config.json"),
-    setSpaces(spaces) { currentSpaces = spaces; },
+    setSpaces(spaces) {
+      currentSpaces = spaces;
+    },
   };
 }
 
@@ -68,9 +76,7 @@ test("invalid config and malformed helper output fail closed", async () => {
 
 test("selects a live local space with the same canonical folder", async () => {
   const harness = createHarness({
-    spaces: [
-      { id: "local-app", folder: "/workspaces/app", machine: null, active: false },
-    ],
+    spaces: [{ id: "local-app", folder: "/workspaces/app", machine: null, active: false }],
     findLocalSpace: async (folder, spaces) => {
       harnessCalls.lookup.push({ folder, spaces: [...spaces] });
       return '{"spaceId":"local-app"}';
@@ -87,9 +93,7 @@ test("selects a live local space with the same canonical folder", async () => {
 
 test("ignores remote folder collisions and creates only one explicit local space", async () => {
   const harness = createHarness({
-    spaces: [
-      { id: "remote-app", folder: "/workspaces/app", machine: "build", active: true },
-    ],
+    spaces: [{ id: "remote-app", folder: "/workspaces/app", machine: "build", active: true }],
     findLocalSpace: async (folder, spaces) => {
       harness.calls.lookup.push({ folder, spaces: [...spaces] });
       return '{"spaceId":null}';
@@ -136,7 +140,9 @@ test("stale row keys cannot launch a project hidden by a changed query", async (
 
 test("duplicate submits dispatch once while the local-space check is pending", async () => {
   let resolveLookup;
-  const lookup = new Promise((resolve) => { resolveLookup = resolve; });
+  const lookup = new Promise((resolve) => {
+    resolveLookup = resolve;
+  });
   const harness = createHarness({
     findLocalSpace: () => lookup,
   });
@@ -154,7 +160,9 @@ test("duplicate submits dispatch once while the local-space check is pending", a
 
 test("cancel during lookup closes once and prevents a later command", async () => {
   let resolveLookup;
-  const lookup = new Promise((resolve) => { resolveLookup = resolve; });
+  const lookup = new Promise((resolve) => {
+    resolveLookup = resolve;
+  });
   const harness = createHarness({ findLocalSpace: () => lookup });
   await loadReady(harness);
 
@@ -171,7 +179,9 @@ test("cancel during lookup closes once and prevents a later command", async () =
 
 test("host disposal prevents a pending selection without closing the host again", async () => {
   let resolveLookup;
-  const lookup = new Promise((resolve) => { resolveLookup = resolve; });
+  const lookup = new Promise((resolve) => {
+    resolveLookup = resolve;
+  });
   const harness = createHarness({ findLocalSpace: () => lookup });
   await loadReady(harness);
 

@@ -128,9 +128,10 @@ export class SessionizerController {
       this.state = {
         ...this.state,
         status: "error",
-        message: error instanceof SessionizerError
-          ? error.message
-          : "Could not load projects. Check the config and Python 3 installation.",
+        message:
+          error instanceof SessionizerError
+            ? error.message
+            : "Could not load projects. Check the config and Python 3 installation.",
       };
     }
   }
@@ -153,9 +154,7 @@ export class SessionizerController {
     if (projects.length === 0) return;
 
     const currentIndex = projects.findIndex((project) => project.key === this.state.selectedKey);
-    const nextIndex = currentIndex < 0
-      ? 0
-      : Math.max(0, Math.min(projects.length - 1, currentIndex + delta));
+    const nextIndex = currentIndex < 0 ? 0 : Math.max(0, Math.min(projects.length - 1, currentIndex + delta));
     this.state = { ...this.state, selectedKey: projects[nextIndex].key };
   }
 
@@ -210,9 +209,10 @@ export class SessionizerController {
       if (!this.cancelled) {
         this.state = {
           ...this.state,
-          message: error instanceof SessionizerError
-            ? error.message
-            : "Could not open that project. Check Herdr and try again.",
+          message:
+            error instanceof SessionizerError
+              ? error.message
+              : "Could not open that project. Check Herdr and try again.",
         };
       }
     } finally {

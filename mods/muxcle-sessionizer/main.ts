@@ -73,12 +73,20 @@ export default class MuxcleSessionizer extends View {
       .gap(10);
 
     surface.child(
-      h_flex().items_center().justify_between()
+      h_flex()
+        .items_center()
+        .justify_between()
         .child(div().font_semibold().text_size(15).text_color(palette.foreground).child("Sessionizer"))
         .child(div().text_size(11).text_color(palette.dim).child("Esc to close")),
     );
     surface.child(
-      h_flex().h(38).items_center().rounded(8).border_1().border_color(palette.border).px(10)
+      h_flex()
+        .h(38)
+        .items_center()
+        .rounded(8)
+        .border_1()
+        .border_color(palette.border)
+        .px(10)
         .child(Input.new(this.input).flex_1().h(32).text_size(13).text_color(palette.foreground)),
     );
 
@@ -102,46 +110,75 @@ export default class MuxcleSessionizer extends View {
         warningText.push(`${state.warnings.length - warningText.length} more root warnings`);
       }
       surface.child(
-        v_flex().gap(3).children(warningText.map((warning) =>
-          div().text_size(11).text_color(palette.dim).child(warning))),
+        v_flex()
+          .gap(3)
+          .children(warningText.map((warning) => div().text_size(11).text_color(palette.dim).child(warning))),
       );
     }
 
     const footer = state.truncated
       ? "Showing the first 500 folders. Narrow the configured roots to see more."
       : `${state.visibleProjects.length} projects · ↑/↓ or Ctrl-J/Ctrl-K · Enter to open`;
-    surface.child(div().text_size(11).text_color(palette.dim).child(state.busy ? "Opening project…" : footer));
+    surface.child(
+      div()
+        .text_size(11)
+        .text_color(palette.dim)
+        .child(state.busy ? "Opening project…" : footer),
+    );
     return surface;
   }
 
-  private projectList(projects: readonly Project[], selectedKey: string | null, palette: SessionizerPalette): NativeElement {
-    return v_flex().h(320).min_h(0).child(
-      v_virtual_list(
-        "muxcle-sessionizer-projects",
-        projects.length,
-        48,
-        (index) => projects[index].key,
-        (range: ItemRange) => projects.slice(range.start, range.end)
-          .map((project) => this.projectRow(project, project.key === selectedKey, palette)),
-      )
-        .track_scroll(this.scroll)
-        .on_item_click((key, cx) => this.launch(key, cx)),
-    );
+  private projectList(
+    projects: readonly Project[],
+    selectedKey: string | null,
+    palette: SessionizerPalette,
+  ): NativeElement {
+    return v_flex()
+      .h(320)
+      .min_h(0)
+      .child(
+        v_virtual_list(
+          "muxcle-sessionizer-projects",
+          projects.length,
+          48,
+          (index) => projects[index].key,
+          (range: ItemRange) =>
+            projects
+              .slice(range.start, range.end)
+              .map((project) => this.projectRow(project, project.key === selectedKey, palette)),
+        )
+          .track_scroll(this.scroll)
+          .on_item_click((key, cx) => this.launch(key, cx)),
+      );
   }
 
   private projectRow(project: Project, selected: boolean, palette: SessionizerPalette): NativeElement {
     const border = selected ? palette.accent : palette.background;
-    return h_flex().h(46).px(9).gap(10).items_center().rounded(7).border_1().border_color(border)
+    return h_flex()
+      .h(46)
+      .px(9)
+      .gap(10)
+      .items_center()
+      .rounded(7)
+      .border_1()
+      .border_color(border)
       .hover((element) => element.bg(palette.hover))
       .child(
-        v_flex().flex_1().min_h(0)
+        v_flex()
+          .flex_1()
+          .min_h(0)
           .child(div().text_size(13).text_color(palette.foreground).child(safeDisplayText(project.name)))
           .child(div().text_size(10).text_color(palette.dim).child(shortPath(project.path))),
       );
   }
 
   private emptyList(message: string, palette: SessionizerPalette): NativeElement {
-    return v_flex().h(180).min_h(0).items_center().justify_between().p(12)
+    return v_flex()
+      .h(180)
+      .min_h(0)
+      .items_center()
+      .justify_between()
+      .p(12)
       .child(div().text_size(12).text_color(palette.dim).child(safeDisplayText(message)));
   }
 
@@ -208,5 +245,8 @@ function shortPath(path: string): string {
 }
 
 function safeDisplayText(value: string): string {
-  return value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+  return value
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }

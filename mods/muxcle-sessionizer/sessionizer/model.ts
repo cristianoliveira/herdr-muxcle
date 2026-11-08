@@ -25,9 +25,7 @@ export interface ProjectDiscovery {
   truncated: boolean;
 }
 
-export type SpaceMatchResult =
-  | { kind: "match"; spaceId: string | null }
-  | { kind: "folder-missing" };
+export type SpaceMatchResult = { kind: "match"; spaceId: string | null } | { kind: "folder-missing" };
 
 export interface SpaceReference {
   id: string;
@@ -83,27 +81,31 @@ export function parseProjectDiscovery(raw: string): ProjectDiscovery {
     throw new SessionizerError("Project discovery returned invalid data.");
   }
 
-  if (!isRecord(value)
-    || !Array.isArray(value.projects)
-    || !Array.isArray(value.warnings)
-    || typeof value.truncated !== "boolean"
-    || value.projects.length > MAX_PROJECTS
-    || value.warnings.length > MAX_ROOTS) {
+  if (
+    !isRecord(value) ||
+    !Array.isArray(value.projects) ||
+    !Array.isArray(value.warnings) ||
+    typeof value.truncated !== "boolean" ||
+    value.projects.length > MAX_PROJECTS ||
+    value.warnings.length > MAX_ROOTS
+  ) {
     throw new SessionizerError("Project discovery returned invalid data.");
   }
 
   const projects: Project[] = [];
   const seen = new Set<string>();
   for (const entry of value.projects) {
-    if (!isRecord(entry)
-      || typeof entry.name !== "string"
-      || typeof entry.path !== "string"
-      || entry.name.length === 0
-      || entry.name.length > 1_024
-      || entry.path.length === 0
-      || entry.path.length > 4_096
-      || entry.path.includes("\0")
-      || !isAbsolutePath(entry.path)) {
+    if (
+      !isRecord(entry) ||
+      typeof entry.name !== "string" ||
+      typeof entry.path !== "string" ||
+      entry.name.length === 0 ||
+      entry.name.length > 1_024 ||
+      entry.path.length === 0 ||
+      entry.path.length > 4_096 ||
+      entry.path.includes("\0") ||
+      !isAbsolutePath(entry.path)
+    ) {
       throw new SessionizerError("Project discovery returned invalid data.");
     }
 
@@ -136,8 +138,11 @@ export function parseSpaceMatch(raw: string): SpaceMatchResult {
 
   if (!isRecord(value)) throw new SessionizerError("Space lookup returned invalid data.");
   if (value.error === "folder_missing" && value.spaceId === null) return { kind: "folder-missing" };
-  if (value.error !== undefined
-    || (value.spaceId !== null && (typeof value.spaceId !== "string" || value.spaceId.length === 0 || value.spaceId.length > 512))) {
+  if (
+    value.error !== undefined ||
+    (value.spaceId !== null &&
+      (typeof value.spaceId !== "string" || value.spaceId.length === 0 || value.spaceId.length > 512))
+  ) {
     throw new SessionizerError("Space lookup returned invalid data.");
   }
   return { kind: "match", spaceId: value.spaceId as string | null };
@@ -151,27 +156,32 @@ export function filterProjects(projects: readonly Project[], rawQuery: string): 
   return projects
     .map((project, order) => ({ project, order, score: scoreProject(project, terms) }))
     .filter((entry): entry is { project: Project; order: number; score: number } => entry.score !== null)
-    .sort((left, right) => left.score - right.score || compareText(left.project.name, right.project.name)
-      || compareText(left.project.path, right.project.path) || left.order - right.order)
+    .sort(
+      (left, right) =>
+        left.score - right.score ||
+        compareText(left.project.name, right.project.name) ||
+        compareText(left.project.path, right.project.path) ||
+        left.order - right.order,
+    )
     .map(({ project }) => project);
 }
 
-export function sameLocalSpaceSnapshot(
-  before: readonly SpaceReference[],
-  after: readonly SpaceReference[],
-): boolean {
-  const localKey = (spaces: readonly SpaceReference[]) => spaces
-    .filter((space) => space.machine === null)
-    .map((space) => `${space.id}\0${space.folder}`)
-    .sort(compareText);
+export function sameLocalSpaceSnapshot(before: readonly SpaceReference[], after: readonly SpaceReference[]): boolean {
+  const localKey = (spaces: readonly SpaceReference[]) =>
+    spaces
+      .filter((space) => space.machine === null)
+      .map((space) => `${space.id}\0${space.folder}`)
+      .sort(compareText);
   const beforeLocal = localKey(before);
   const afterLocal = localKey(after);
-  return beforeLocal.length === afterLocal.length
-    && beforeLocal.every((entry, index) => entry === afterLocal[index]);
+  return beforeLocal.length === afterLocal.length && beforeLocal.every((entry, index) => entry === afterLocal[index]);
 }
 
 export function safeDisplayText(value: string): string {
-  return value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+  return value
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function scoreProject(project: Project, terms: readonly string[]): number | null {
@@ -183,7 +193,10 @@ function scoreProject(project: Project, terms: readonly string[]): number | null
     const nameScore = scoreText(name, term);
     const pathScore = scorePath(path, term);
     if (nameScore === null && pathScore === null) return null;
-    score += Math.min(nameScore ?? Number.POSITIVE_INFINITY, pathScore === null ? Number.POSITIVE_INFINITY : pathScore + 20);
+    score += Math.min(
+      nameScore ?? Number.POSITIVE_INFINITY,
+      pathScore === null ? Number.POSITIVE_INFINITY : pathScore + 20,
+    );
   }
   return score;
 }
@@ -222,9 +235,7 @@ function isAbsolutePath(path: string): boolean {
 
 function pathIdentity(path: string): string {
   const normalized = path.replace(/\\/g, "/").replace(/\/+$/, "") || "/";
-  return /^[A-Za-z]:\//.test(normalized) || normalized.startsWith("//")
-    ? normalized.toLowerCase()
-    : normalized;
+  return /^[A-Za-z]:\//.test(normalized) || normalized.startsWith("//") ? normalized.toLowerCase() : normalized;
 }
 
 function compareText(left: string, right: string): number {

@@ -3,11 +3,11 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { planKeymapMerge } from "../../.build/src/lib/keymap-merge.js";
 
-const packageKeys = JSON.parse(
-  await readFile(new URL("../../packages/tmux-keys/keys.json", import.meta.url), "utf8"),
+const packageKeys = JSON.parse(await readFile(new URL("../../packages/tmux-keys/keys.json", import.meta.url), "utf8"));
+const packageBindingCount = Object.values(packageKeys).reduce(
+  (count, section) => count + Object.keys(section).length,
+  0,
 );
-const packageBindingCount = Object.values(packageKeys)
-  .reduce((count, section) => count + Object.keys(section).length, 0);
 
 test("package snippet maps the requested tmux-inspired keys to native Herdr commands", () => {
   assert.deepEqual(packageKeys, {
@@ -79,14 +79,16 @@ test("rejects exact key conflicts without returning a partial merge", () => {
   const plan = planKeymapMerge(existing, packageKeys);
 
   assert.equal(plan.merged, null);
-  assert.deepEqual(plan.conflicts, [{
-    chord: "ctrl-a c",
-    existingSection: "global",
-    incomingSection: "global",
-    existingAction: "app.palette",
-    incomingAction: "tab.new",
-    reason: "exact",
-  }]);
+  assert.deepEqual(plan.conflicts, [
+    {
+      chord: "ctrl-a c",
+      existingSection: "global",
+      incomingSection: "global",
+      existingAction: "app.palette",
+      incomingAction: "tab.new",
+      reason: "exact",
+    },
+  ]);
   assert.deepEqual(existing.global, { "ctrl-a c": "app.palette" });
 });
 
@@ -114,7 +116,10 @@ test("rejects malformed parsed maps with actionable errors", () => {
   assert.throws(() => planKeymapMerge(null, packageKeys), /existing key map must be a JSON object/);
   assert.throws(() => planKeymapMerge({}, { global: [] }), /section global must be an object/);
   assert.throws(() => planKeymapMerge({}, { global: { "ctrl-a c": 42 } }), /action must be a string or command object/);
-  assert.throws(() => planKeymapMerge({}, { global: { "ctrl-a c": { command: "tab.new", args: [] } } }), /command args must be an object/);
+  assert.throws(
+    () => planKeymapMerge({}, { global: { "ctrl-a c": { command: "tab.new", args: [] } } }),
+    /command args must be an object/,
+  );
   assert.throws(() => planKeymapMerge({}, { global: { "ctrl-a c": "" } }), /action must not be empty/);
   assert.throws(() => planKeymapMerge({ "layout:": {} }, packageKeys), /empty key section name/);
   assert.throws(() => planKeymapMerge({}, { "layout:terminals": {} }), /unsupported section: layout:terminals/);

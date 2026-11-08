@@ -2,25 +2,30 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createReadStream, readFileSync } from "node:fs";
 import {
+  chmod,
   copyFile,
   mkdir,
   mkdtemp,
   readFile,
+  readdir,
   rename,
   rm,
+  utimes,
   writeFile,
 } from "node:fs/promises";
-import { basename, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
 const packagedFiles = [
+  "check-install-targets.sh",
+  "docs/INSTALLATION.md",
   "layouts/muxcle.json",
   "mods/muxcle-compat/main.js",
   "mods/muxcle-compat/mod.json",
   "RECIPE.md",
 ];
-const packageDirectories = ["", "layouts", "mods", "mods/muxcle-compat"];
+const packageDirectories = ["", "docs", "layouts", "mods", "mods/muxcle-compat"];
 
 export async function createPackage({
   repositoryRoot: root = repositoryRoot,
@@ -41,10 +46,13 @@ export async function createPackage({
   const stagedDirectory = join(temporaryDirectory, bundleName);
   const stagedArchive = join(temporaryDirectory, basename(archivePath));
   const stagedChecksum = `${stagedArchive}.sha256`;
+  await mkdir(join(stagedDirectory, "docs"), { recursive: true });
   await mkdir(join(stagedDirectory, "layouts"), { recursive: true });
   await mkdir(join(stagedDirectory, "mods/muxcle-compat"), { recursive: true });
 
   try {
+    await copyFile(join(root, "scripts/check-install-targets.sh"), join(stagedDirectory, "check-install-targets.sh"));
+    await copyFile(join(root, "docs/INSTALLATION.md"), join(stagedDirectory, "docs/INSTALLATION.md"));
     await copyFile(join(root, "layouts/muxcle.json"), join(stagedDirectory, "layouts/muxcle.json"));
     await copyFile(join(root, "mods/muxcle-compat/mod.json"), join(stagedDirectory, "mods/muxcle-compat/mod.json"));
     await copyFile(join(root, ".build/mods/muxcle-compat/main.js"), join(stagedDirectory, "mods/muxcle-compat/main.js"));
@@ -57,7 +65,7 @@ export async function createPackage({
       files: [...packagedFiles, "manifest.json"].sort(),
     };
     await writeFile(join(stagedDirectory, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-    execFileSync("tar", ["-czf", stagedArchive, "-C", temporaryDirectory, bundleName]);
+    await createDeterministicArchive({ packageDirectory: stagedDirectory, archivePath: stagedArchive });
     const digest = await sha256(stagedArchive);
     await writeFile(stagedChecksum, `${digest}  ${basename(archivePath)}\n`);
     verifyPackage({ outputDirectory: temporaryDirectory, version });
@@ -72,6 +80,42 @@ export async function createPackage({
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true });
   }
+}
+
+export async function createDeterministicArchive({ packageDirectory, archivePath }) {
+  const bundleName = basename(packageDirectory);
+  await normalizePackageTree(packageDirectory);
+
+  const files = [...packagedFiles, "manifest.json"].map((path) => `${bundleName}/${path}`);
+  const directories = packageDirectories.map((path) => path
+    ? `${bundleName}/${path}/`
+    : `${bundleName}/`);
+  const entries = [...files, ...directories].sort();
+  execFileSync("tar", [
+    "-czf", archivePath,
+    "--format=ustar",
+    "--uid=0",
+    "--gid=0",
+    "--uname=root",
+    "--gname=root",
+    "--no-recursion",
+    "-C", dirname(packageDirectory),
+    ...entries,
+  ]);
+}
+
+async function normalizePackageTree(directory) {
+  const fixedTime = new Date("2000-01-01T00:00:00.000Z");
+  const entries = await readdir(directory, { withFileTypes: true });
+  for (const entry of entries) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) await normalizePackageTree(path);
+    else if (!entry.isFile()) throw new Error(`unsupported package entry: ${path}`);
+    await chmod(path, entry.isDirectory() ? 0o755 : 0o644);
+    await utimes(path, fixedTime, fixedTime);
+  }
+  await chmod(directory, 0o755);
+  await utimes(directory, fixedTime, fixedTime);
 }
 
 export function verifyPackage({ outputDirectory = join(repositoryRoot, "dist"), version }) {
@@ -98,7 +142,13 @@ export function verifyPackage({ outputDirectory = join(repositoryRoot, "dist"), 
   }).sort();
   const expectedFiles = [...packagedFiles, "manifest.json"].sort();
   const expectedDirectories = [...packageDirectories].sort();
-  if (JSON.stringify(files) !== JSON.stringify(expectedFiles)
+  const expectedEntries = [
+    ...expectedFiles.map((path) => `${bundleName}/${path}`),
+    ...expectedDirectories.map((path) => path ? `${bundleName}/${path}/` : `${bundleName}/`),
+  ].sort();
+  const actualEntries = entries.map((entry) => `${entry.path}${entry.directory ? "/" : ""}`);
+  if (JSON.stringify(actualEntries) !== JSON.stringify(expectedEntries)
+    || JSON.stringify(files) !== JSON.stringify(expectedFiles)
     || JSON.stringify(directories) !== JSON.stringify(expectedDirectories)) {
     throw new Error(`unexpected package contents: ${files.join(", ")}`);
   }

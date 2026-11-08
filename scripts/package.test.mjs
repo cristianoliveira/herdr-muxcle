@@ -1,14 +1,17 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { lstat, mkdtemp, mkdir, readFile, readdir, rm, symlink, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { createPackage, verifyPackage } from "./package.mjs";
+import { createDeterministicArchive, createPackage, verifyPackage } from "./package.mjs";
 import { assertReleaseTag } from "./release-tag.mjs";
 
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
 const expectedFiles = [
+  "check-install-targets.sh",
+  "docs/INSTALLATION.md",
   "layouts/muxcle.json",
   "mods/muxcle-compat/main.js",
   "mods/muxcle-compat/mod.json",
@@ -16,7 +19,7 @@ const expectedFiles = [
   "manifest.json",
 ].sort();
 
-test("packages the native app-home payload and preserves existing settings", async () => {
+test("package generation leaves existing app settings untouched", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "herdr-muxcle-package-test-"));
   const outputDirectory = join(temporary, "dist");
   const appHome = join(temporary, "home");
@@ -45,10 +48,62 @@ test("packages the native app-home payload and preserves existing settings", asy
   }
 });
 
+test("install preflight refuses existing targets, dangling links, and linked containers", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "herdr-muxcle-install-test-"));
+  const outputDirectory = join(temporary, "dist");
+  const appHome = join(temporary, "home");
+
+  try {
+    await mkdir(appHome);
+    const packageInfo = await createPackage({ repositoryRoot, outputDirectory });
+    const checker = join(packageInfo.bundleDirectory, "check-install-targets.sh");
+    const runCheck = (mode = "fresh") => spawnSync("sh", [checker, ...(mode === "update" ? ["--update"] : []), appHome]);
+
+    assert.equal(runCheck().status, 0);
+
+    await mkdir(join(appHome, "layouts"));
+    const existingLayout = join(appHome, "layouts/muxcle.json");
+    await writeFile(existingLayout, "keep existing layout\n");
+    assert.notEqual(runCheck().status, 0);
+    assert.equal(await readFile(existingLayout, "utf8"), "keep existing layout\n");
+    assert.equal(runCheck("update").status, 0);
+
+    await rm(existingLayout);
+    await symlink(join(temporary, "missing-layout"), existingLayout);
+    assert.notEqual(runCheck("update").status, 0);
+    assert.equal((await lstat(existingLayout)).isSymbolicLink(), true);
+
+    await rm(existingLayout);
+    await rm(join(appHome, "layouts"), { recursive: true });
+    const linkedLayouts = join(temporary, "linked-layouts");
+    await mkdir(linkedLayouts);
+    await symlink(linkedLayouts, join(appHome, "layouts"));
+    assert.notEqual(runCheck().status, 0);
+    assert.deepEqual(await readdir(linkedLayouts), []);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
 test("release tags must match the one package version", async () => {
   const { version } = JSON.parse(await readFile(join(repositoryRoot, "package.json"), "utf8"));
   assert.doesNotThrow(() => assertReleaseTag(`v${version}`, version));
   assert.throws(() => assertReleaseTag(`v${version}.1`, version), /must match package version/);
+});
+
+test("archive bytes stay identical when staged file and directory times change", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "herdr-muxcle-repro-test-"));
+  try {
+    const packageInfo = await createPackage({ repositoryRoot, outputDirectory: temporary });
+    const firstArchive = await readFile(packageInfo.archivePath);
+    await changeTimes(packageInfo.bundleDirectory, 1);
+    const secondArchive = join(temporary, "second-build.tar.gz");
+    await createDeterministicArchive({ packageDirectory: packageInfo.bundleDirectory, archivePath: secondArchive });
+
+    assert.deepEqual(await readFile(secondArchive), firstArchive);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
 });
 
 test("verification rejects a modified checksum", async () => {
@@ -82,6 +137,17 @@ test("repackaging the same version updates only its generated bundle", async () 
     await rm(temporary, { recursive: true, force: true });
   }
 });
+
+async function changeTimes(directory, seconds) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  for (const entry of entries) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) await changeTimes(path, seconds + 100);
+    await utimes(path, new Date(seconds * 1000), new Date(seconds * 1000));
+    seconds += 100;
+  }
+  await utimes(directory, new Date(seconds * 1000), new Date(seconds * 1000));
+}
 
 function collectMods(value, result = []) {
   if (Array.isArray(value)) {

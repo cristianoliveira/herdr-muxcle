@@ -9,6 +9,7 @@ trap 'rm -rf "$temporary"' EXIT HUP INT TERM
 mkdir "$temporary/home"
 tar -xzf "dist/$bundle.tar.gz" -C "$temporary"
 printf '%s\n' '{"preserve":"this file"}' > "$temporary/home/settings.json"
+sh "$temporary/$bundle/check-install-targets.sh" "$temporary/home"
 cp -R "$temporary/$bundle/layouts" "$temporary/home/layouts"
 cp -R "$temporary/$bundle/mods" "$temporary/home/mods"
 printf '%s\n' '{"preserve":"this file"}' > "$temporary/expected-settings.json"

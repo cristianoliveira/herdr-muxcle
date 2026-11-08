@@ -14,6 +14,6 @@ This repository provides a small installable scaffold, not tmux behavior. `mods/
 - `infra/`: future adapters to Herdr APIs or external services. Keep those dependencies at the edge.
 - Tests live beside the code they exercise (`*.test.mjs`).
 
-`make package` stages only the app-home paths, compiled JavaScript, recipe, and version manifest into a versioned archive under ignored `dist/`. Installation is manual and refuses existing paths; no installer, key migration, or runtime dependency is added. Add a boundary or abstraction when real code needs it. The package version in `package.json` is canonical.
+`make package` stages an explicit allowlist into a versioned archive under ignored `dist/`: compiled app-home paths, the self-contained installation guide, a no-write install preflight, the recipe, and a manifest/checksum. Archive metadata and entry ordering are normalized so repeated builds are byte-identical when staged mtimes differ. Installation remains manual; the preflight refuses occupied fresh-install paths and symlinked containers. No key migration or runtime dependency is added. Add a boundary or abstraction when real code needs it. The package version in `package.json` is canonical.
 
 No architecture checker is warranted for this empty scaffold. Keep behavior in small modules and review dependency direction as code arrives.

@@ -1,0 +1,6 @@
+#!/bin/sh
+message_file=$1
+if ! grep -Eq '^(feat|fix|docs|style|refactor|test|chore|build|ci|perf|revert)(\([a-zA-Z0-9._/-]+\))?!?: .+' "$message_file"; then
+  echo 'Invalid commit message. Use: type(scope): subject (e.g. feat(mod): add pane shortcut)' >&2
+  exit 1
+fi

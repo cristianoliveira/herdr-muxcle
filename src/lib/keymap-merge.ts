@@ -17,9 +17,9 @@ export interface KeymapMergePlan {
   unchanged: number;
 }
 
-const KEY_SECTIONS = new Set(["global", "terminal"]);
+const PACKAGE_SECTIONS = new Set(["global", "terminal"]);
 
-/** Plan a manual-safe merge without changing either parsed key map. */
+/** Plan a manual-safe merge for this package's global and terminal bindings. */
 export function planKeymapMerge(existingValue: unknown, additionsValue: unknown): KeymapMergePlan {
   const existing = validateKeymap(existingValue, "existing key map", true);
   const additions = validateKeymap(additionsValue, "package key snippet", false);
@@ -87,7 +87,7 @@ function validateKeymap(value: unknown, label: string, allowMetadata: boolean): 
       if (allowMetadata) continue;
       throw new TypeError(`${label} contains unsupported section: ${section}`);
     }
-    if (!allowMetadata && !KEY_SECTIONS.has(section)) {
+    if (!allowMetadata && !PACKAGE_SECTIONS.has(section)) {
       throw new TypeError(`${label} contains unsupported section: ${section}`);
     }
     if (!isRecord(bindings)) throw new TypeError(`${label} section ${section} must be an object`);
@@ -148,7 +148,7 @@ function findPrecedenceOverlaps(
 }
 
 function isKeySection(section: string): boolean {
-  if (KEY_SECTIONS.has(section)) return true;
+  if (PACKAGE_SECTIONS.has(section)) return true;
   if (section.startsWith("layout:")) return section.slice("layout:".length).trim() !== "";
   if (section.startsWith("mod:")) return section.slice("mod:".length).trim() !== "";
   return false;

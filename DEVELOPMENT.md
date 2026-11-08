@@ -4,14 +4,16 @@
 
 - Git
 - GNU Make
-- Node.js 22 (built-in `node:test`; no package install)
+- Node.js 22.23.4 to match CI (built-in `node:test`; no package install)
 - `herdr-app` only for the optional native loader check
 
-The repository deliberately has no package manager lockfile or third-party dependencies yet. See [the Herdr development research](docs/HERDR-RESEARCH.md) for the local API evidence, native-mod boundaries, and safety constraints behind these choices.
+The repository deliberately has no package manager lockfile or third-party dependencies yet. The gate performs JavaScript syntax validation and deterministic behavior tests; it is not a type checker or comprehensive linter. See [the Herdr development research](docs/HERDR-RESEARCH.md) for local API evidence, native-mod boundaries, and safety constraints.
 
 ## One normal quality gate
 
-Run `make gate` locally or while iterating. The same command is run by the versioned hooks, CI, and any watcher (for example, configure `fzz` to invoke `make gate`). It syntax-checks JavaScript with Node and runs deterministic co-located behavior tests. Success prints exactly `true`; failure prints `false` first, then at most 20 diagnostic lines. A `true` gate is the definition of passing automated baseline checks, not proof of complete feature behavior.
+Run `make gate` locally or while iterating. The versioned hooks and CI use this same command. It syntax-checks JavaScript modules under `src/`, `fixtures/`, and `mods/` when present, and runs discovered co-located behavior tests. Success prints exactly `true`; failure prints `false` first, then at most 20 diagnostic lines (including Make's failure summaries). A `true` gate is the definition of passing automated baseline checks, not proof of complete feature behavior.
+
+Run `make watch` to start the configured `fzz` watcher. Its `watch.yaml` job reruns `make gate`, so watcher feedback uses the same gate; install `fzz` separately if it is unavailable.
 
 Install and verify hooks explicitly:
 

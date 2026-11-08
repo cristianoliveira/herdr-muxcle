@@ -12,5 +12,5 @@ else
 fi
 
 printf 'false\n'
-tail -n 20 "$output" >&2
+tail -n 18 "$output" >&2
 exit "${status:-1}"

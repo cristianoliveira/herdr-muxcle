@@ -1,0 +1,10 @@
+on:
+  change: "**/*"
+  respect_gitignore: true
+
+jobs:
+  - name: quality-gate
+    run: "make gate"
+    ignore:
+      - ".git/**"
+      - ".tmp/**"

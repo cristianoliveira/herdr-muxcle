@@ -1,21 +1,25 @@
 SHELL := /bin/sh
 
-.PHONY: gate lint test hooks-install hooks-check format coverage security herdr-check
+.PHONY: gate watch lint test hooks-install hooks-check format coverage security herdr-check
 
 gate:
 	@./scripts/quality-gate.sh
 
 lint:
-	@node --check src/lib/example.js
+	@set -e; files=$$(for root in src fixtures mods; do if test -d "$$root"; then find "$$root" -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) -print; fi; done); for file in $$files; do node --input-type=module --check < "$$file"; done
 
 test:
-	@node --test src/lib/example.test.mjs
+	@set -e; files=$$(for root in src fixtures mods; do if test -d "$$root"; then find "$$root" -type f -name '*.test.mjs' -print; fi; done); if test -n "$$files"; then node --test $$files; fi
+
+watch:
+	@fzz --config watch.yaml watch
 
 hooks-install:
 	@git config core.hooksPath .githooks
 
 hooks-check:
 	@test "$$(git config --get core.hooksPath)" = .githooks || { echo 'Hooks are not installed. Run: make hooks-install' >&2; exit 1; }
+	@for hook in pre-commit pre-push commit-msg; do test -x .githooks/$$hook || { echo "Missing or non-executable hook: .githooks/$$hook" >&2; exit 1; }; done
 
 # Explicit checks, intentionally outside the normal gate.
 format:

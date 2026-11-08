@@ -2,6 +2,7 @@
   "name": "herdr-muxcle",
   "private": true,
   "type": "module",
+  "packageManager": "npm@10.9.9",
   "devDependencies": {
     "typescript": "5.9.3"
   }

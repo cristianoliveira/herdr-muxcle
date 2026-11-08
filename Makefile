@@ -33,7 +33,7 @@ coverage: build
 	@node --test --experimental-test-coverage src/lib/example.test.mjs
 
 security:
-	@echo 'No dependency audit is configured; TypeScript is a pinned development dependency.'
+	@npm audit --package-lock-only
 
 herdr-check: build
 	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT HUP INT TERM; cp -R .build/fixtures/herdr-mod/. "$$tmp/"; cp fixtures/herdr-mod/mod.json "$$tmp/"; herdr-app check "$$tmp"

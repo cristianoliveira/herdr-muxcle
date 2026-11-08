@@ -8,7 +8,7 @@
 - npm for the pinned TypeScript development compiler
 - `herdr-app` only for the optional native loader check
 
-Install locked development tools with `npm ci --ignore-scripts`; TypeScript 5.9.3 is the only development dependency. TypeScript output is written under ignored `.build/`; `node_modules/` and build output are not committed. See [the Herdr development research](docs/HERDR-RESEARCH.md) for local API evidence, native-mod boundaries, and safety constraints.
+The project pins npm 10.9.9 and disables lifecycle scripts in its local `.npmrc`. Install locked development tools with `npm ci --ignore-scripts`; TypeScript 5.9.3 is the only development dependency. TypeScript output is written under ignored `.build/`; `node_modules/` and build output are not committed. See [the Herdr development research](docs/HERDR-RESEARCH.md) for local API evidence, native-mod boundaries, and safety constraints.
 
 ```sh
 make lint          # strict typecheck + syntax-check JavaScript
@@ -37,7 +37,7 @@ Hooks invoke the gate before commit and push. The commit-msg hook enforces `type
 
 - `make format`: formatting is manual until a formatter is selected.
 - `make coverage`: build and report Node test coverage; not a threshold or gate.
-- `make security`: no dependency scanner is configured; TypeScript is a pinned development dependency.
+- `make security`: run `npm audit` against the lockfile, including development tools. This is network-dependent and intentionally outside the normal gate.
 - `make herdr-check`: build and ask the installed Herdr app to load the compiled illustrative fixture in a temporary directory. This checks initial loading only, not UI or asynchronous behavior, and is not required for every edit.
 
 ## Failure and recovery

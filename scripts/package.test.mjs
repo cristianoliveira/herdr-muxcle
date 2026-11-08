@@ -11,6 +11,7 @@ import {
   createPackages,
   createPickerPackage,
   createHistoryPackage,
+  createRotationPackage,
   createSessionizerPackage,
   createTmuxKeysPackage,
   verifyPackage,
@@ -141,6 +142,59 @@ test("history archive is independent, reproducible, and scopes installation to i
     assert.equal(check(["--update"]), 0);
     assert.equal(check(["--remove"]), 0);
     assert.equal(await readFile(join(appHome, "shared.json"), "utf8"), '{"unrelated":"keep"}\n');
+    await rm(target, { recursive: true });
+    await symlink(join(temporary, "missing"), target);
+    assert.notEqual(check(), 0);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("rotation archive is independent, reproducible, and protects existing mod paths", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-rotation-package-"));
+  try {
+    const info = await createRotationPackage({ repositoryRoot, outputDirectory: temporary });
+    const verified = verifyPackage({
+      outputDirectory: temporary,
+      version: info.version,
+      packageName: "muxcle-rotation",
+    });
+    assert.deepEqual(
+      verified.files,
+      [
+        "INSTALLATION.md",
+        "RECIPE.md",
+        "check-install-targets.sh",
+        "keys.json",
+        "manifest.json",
+        "host.json",
+        "mods/muxcle-rotation/main.js",
+        "mods/muxcle-rotation/model.js",
+        "mods/muxcle-rotation/mod.json",
+        "mods/muxcle-rotation/package-owner.json",
+      ].sort(),
+    );
+    const original = await readFile(info.archivePath);
+    await changeTimes(info.bundleDirectory, 1);
+    const repeated = join(temporary, "repeat.tar.gz");
+    await createDeterministicArchive({
+      packageDirectory: info.bundleDirectory,
+      archivePath: repeated,
+      packageName: "muxcle-rotation",
+    });
+    assert.deepEqual(await readFile(repeated), original);
+
+    const appHome = join(temporary, "home");
+    const target = join(appHome, "mods/muxcle-rotation");
+    const checker = join(info.bundleDirectory, "check-install-targets.sh");
+    const check = (mode = []) => spawnSync("sh", [checker, ...mode, appHome]).status;
+    assert.equal(check(), 0);
+    await mkdir(target, { recursive: true });
+    assert.notEqual(check(), 0);
+    assert.notEqual(check(["--update"]), 0);
+    await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-rotation","schema":1}\n');
+    assert.equal(check(["--update"]), 0);
+    assert.equal(check(["--remove"]), 0);
     await rm(target, { recursive: true });
     await symlink(join(temporary, "missing"), target);
     assert.notEqual(check(), 0);

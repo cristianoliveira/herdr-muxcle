@@ -134,7 +134,7 @@ declare module "herdr" {
   export interface SpaceReference {
     id: string;
     name: string;
-    tabs: { id: string; name: string; active: boolean }[];
+    tabs: { id: string; name: string; active: boolean; zoomed: boolean; panes: number }[];
     folder: string;
     machine: string | null;
     active: boolean;
@@ -153,6 +153,20 @@ declare module "herdr" {
     options?: { cwd?: string; on?: string | null },
   ): Promise<ExecResult>;
   export function spaces(): SpaceReference[];
+  export function panes(): {
+    pane: string;
+    terminal: string | null;
+    mod?: string;
+    tab: string;
+    zoomed: boolean;
+  }[];
+  export function focused(): {
+    space: string;
+    tab: string;
+    pane: string | null;
+    terminal: string | null;
+    shown: string | null;
+  } | null;
   export function run(name: string, args?: Record<string, unknown>): null;
   export function closeOverlay(id: string): null;
   export function props(): ModProps;

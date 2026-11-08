@@ -118,12 +118,39 @@ const historyPackage = {
     ["mods/muxcle-history/package-owner.json", "mods/muxcle-history/package-owner.json"],
   ],
 };
+const rotationPackage = {
+  name: "muxcle-rotation",
+  files: [
+    "check-install-targets.sh",
+    "INSTALLATION.md",
+    "keys.json",
+    "host.json",
+    "RECIPE.md",
+    "mods/muxcle-rotation/main.js",
+    "mods/muxcle-rotation/model.js",
+    "mods/muxcle-rotation/mod.json",
+    "mods/muxcle-rotation/package-owner.json",
+  ],
+  directories: ["", "mods", "mods/muxcle-rotation"],
+  sources: [
+    ["packages/rotation/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/rotation/INSTALLATION.md", "INSTALLATION.md"],
+    ["packages/rotation/keys.json", "keys.json"],
+    ["packages/rotation/host.json", "host.json"],
+    ["packages/rotation/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-rotation/main.js", "mods/muxcle-rotation/main.js"],
+    [".build/mods/muxcle-rotation/model.js", "mods/muxcle-rotation/model.js"],
+    ["mods/muxcle-rotation/mod.json", "mods/muxcle-rotation/mod.json"],
+    ["mods/muxcle-rotation/package-owner.json", "mods/muxcle-rotation/package-owner.json"],
+  ],
+};
 const packagesByName = new Map([
   [appPackage.name, appPackage],
   [tmuxKeysPackage.name, tmuxKeysPackage],
   [sessionizerPackage.name, sessionizerPackage],
   [pickerPackage.name, pickerPackage],
   [historyPackage.name, historyPackage],
+  [rotationPackage.name, rotationPackage],
 ]);
 
 export async function createPackage(options = {}) {
@@ -146,6 +173,10 @@ export async function createHistoryPackage(options = {}) {
   return buildPackage(historyPackage, options);
 }
 
+export async function createRotationPackage(options = {}) {
+  return buildPackage(rotationPackage, options);
+}
+
 export async function createPackages(options = {}) {
   return [
     await createPackage(options),
@@ -153,6 +184,7 @@ export async function createPackages(options = {}) {
     await createSessionizerPackage(options),
     await createPickerPackage(options),
     await createHistoryPackage(options),
+    await createRotationPackage(options),
   ];
 }
 

@@ -7,7 +7,7 @@
 - Node.js 22 (built-in `node:test`; no package install)
 - `herdr-app` only for the optional native loader check
 
-The repository deliberately has no package manager lockfile or third-party dependencies yet.
+The repository deliberately has no package manager lockfile or third-party dependencies yet. See [the Herdr development research](docs/HERDR-RESEARCH.md) for the local API evidence, native-mod boundaries, and safety constraints behind these choices.
 
 ## One normal quality gate
 

@@ -2,6 +2,8 @@
 
 You left tmux. Your fingers didn't.
 
+Herdr experience without fighting against your tmux muscle memory.
+
 Bring your familiar tmux workflows, shortcuts, and behaviors into Herdr without starting from scratch.
 
 ## Goals

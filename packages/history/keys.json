@@ -1,0 +1,7 @@
+{
+  "global": {
+    "ctrl-a shift-l": "muxcle-history.last-space",
+    "ctrl-a ctrl-r": "muxcle-history.last-tab",
+    "ctrl-a tab": "muxcle-history.last-tab"
+  }
+}

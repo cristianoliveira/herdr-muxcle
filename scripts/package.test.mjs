@@ -10,6 +10,7 @@ import {
   createPackage,
   createPackages,
   createPickerPackage,
+  createHistoryPackage,
   createSessionizerPackage,
   createTmuxKeysPackage,
   verifyPackage,
@@ -88,6 +89,61 @@ test("picker archive is independent, reproducible, and refuses unowned installat
     await symlink(join(temporary, "missing"), target);
     assert.notEqual(check(), 0);
     assert.notEqual(check(["--update"]), 0);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("history archive is independent, reproducible, and scopes installation to its observer mod", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-history-package-"));
+  try {
+    const info = await createHistoryPackage({ repositoryRoot, outputDirectory: temporary });
+    const verified = verifyPackage({
+      outputDirectory: temporary,
+      version: info.version,
+      packageName: "muxcle-history",
+    });
+    assert.deepEqual(
+      verified.files,
+      [
+        "INSTALLATION.md",
+        "RECIPE.md",
+        "check-install-targets.sh",
+        "keys.json",
+        "manifest.json",
+        "observer.json",
+        "mods/muxcle-history/main.js",
+        "mods/muxcle-history/model.js",
+        "mods/muxcle-history/mod.json",
+        "mods/muxcle-history/package-owner.json",
+      ].sort(),
+    );
+    const original = await readFile(info.archivePath);
+    await changeTimes(info.bundleDirectory, 1);
+    const repeated = join(temporary, "repeat.tar.gz");
+    await createDeterministicArchive({
+      packageDirectory: info.bundleDirectory,
+      archivePath: repeated,
+      packageName: "muxcle-history",
+    });
+    assert.deepEqual(await readFile(repeated), original);
+
+    const appHome = join(temporary, "home");
+    const target = join(appHome, "mods/muxcle-history");
+    const checker = join(info.bundleDirectory, "check-install-targets.sh");
+    const check = (mode = []) => spawnSync("sh", [checker, ...mode, appHome]).status;
+    assert.equal(check(), 0);
+    await mkdir(target, { recursive: true });
+    await writeFile(join(appHome, "shared.json"), '{"unrelated":"keep"}\n');
+    assert.notEqual(check(), 0);
+    assert.notEqual(check(["--remove"]), 0);
+    await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-history","schema":1}\n');
+    assert.equal(check(["--update"]), 0);
+    assert.equal(check(["--remove"]), 0);
+    assert.equal(await readFile(join(appHome, "shared.json"), "utf8"), '{"unrelated":"keep"}\n');
+    await rm(target, { recursive: true });
+    await symlink(join(temporary, "missing"), target);
+    assert.notEqual(check(), 0);
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

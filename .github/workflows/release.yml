@@ -37,4 +37,6 @@ jobs:
             "dist/muxcle-sessionizer-v${version}.tar.gz.sha256" \
             "dist/muxcle-picker-v${version}.tar.gz" \
             "dist/muxcle-picker-v${version}.tar.gz.sha256" \
+            "dist/muxcle-history-v${version}.tar.gz" \
+            "dist/muxcle-history-v${version}.tar.gz.sha256" \
             --title "$GITHUB_REF_NAME" --generate-notes

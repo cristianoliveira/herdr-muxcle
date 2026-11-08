@@ -92,11 +92,38 @@ const pickerPackage = {
     ["mods/muxcle-picker/package-owner.json", "mods/muxcle-picker/package-owner.json"],
   ],
 };
+const historyPackage = {
+  name: "muxcle-history",
+  files: [
+    "check-install-targets.sh",
+    "INSTALLATION.md",
+    "keys.json",
+    "observer.json",
+    "RECIPE.md",
+    "mods/muxcle-history/main.js",
+    "mods/muxcle-history/model.js",
+    "mods/muxcle-history/mod.json",
+    "mods/muxcle-history/package-owner.json",
+  ],
+  directories: ["", "mods", "mods/muxcle-history"],
+  sources: [
+    ["packages/history/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/history/INSTALLATION.md", "INSTALLATION.md"],
+    ["packages/history/keys.json", "keys.json"],
+    ["packages/history/observer.json", "observer.json"],
+    ["packages/history/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-history/main.js", "mods/muxcle-history/main.js"],
+    [".build/mods/muxcle-history/model.js", "mods/muxcle-history/model.js"],
+    ["mods/muxcle-history/mod.json", "mods/muxcle-history/mod.json"],
+    ["mods/muxcle-history/package-owner.json", "mods/muxcle-history/package-owner.json"],
+  ],
+};
 const packagesByName = new Map([
   [appPackage.name, appPackage],
   [tmuxKeysPackage.name, tmuxKeysPackage],
   [sessionizerPackage.name, sessionizerPackage],
   [pickerPackage.name, pickerPackage],
+  [historyPackage.name, historyPackage],
 ]);
 
 export async function createPackage(options = {}) {
@@ -115,12 +142,17 @@ export async function createPickerPackage(options = {}) {
   return buildPackage(pickerPackage, options);
 }
 
+export async function createHistoryPackage(options = {}) {
+  return buildPackage(historyPackage, options);
+}
+
 export async function createPackages(options = {}) {
   return [
     await createPackage(options),
     await createTmuxKeysPackage(options),
     await createSessionizerPackage(options),
     await createPickerPackage(options),
+    await createHistoryPackage(options),
   ];
 }
 

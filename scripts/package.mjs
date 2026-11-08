@@ -47,9 +47,42 @@ const tmuxKeysPackage = {
     ["packages/tmux-keys/RECIPE.md", "RECIPE.md"],
   ],
 };
+const sessionizerPackage = {
+  name: "muxcle-sessionizer",
+  files: [
+    "check-install-targets.sh",
+    "config.example.json",
+    "INSTALLATION.md",
+    "keys.json",
+    "mods/muxcle-sessionizer/discover.py",
+    "mods/muxcle-sessionizer/main.js",
+    "mods/muxcle-sessionizer/mod.json",
+    "mods/muxcle-sessionizer/package-owner.json",
+    "mods/muxcle-sessionizer/sessionizer/adapter.js",
+    "mods/muxcle-sessionizer/sessionizer/controller.js",
+    "mods/muxcle-sessionizer/sessionizer/model.js",
+    "RECIPE.md",
+  ],
+  directories: ["", "mods", "mods/muxcle-sessionizer", "mods/muxcle-sessionizer/sessionizer"],
+  sources: [
+    ["packages/sessionizer/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/sessionizer/config.example.json", "config.example.json"],
+    ["packages/sessionizer/INSTALLATION.md", "INSTALLATION.md"],
+    ["packages/sessionizer/keys.json", "keys.json"],
+    ["mods/muxcle-sessionizer/discover.py", "mods/muxcle-sessionizer/discover.py"],
+    [".build/mods/muxcle-sessionizer/main.js", "mods/muxcle-sessionizer/main.js"],
+    ["mods/muxcle-sessionizer/mod.json", "mods/muxcle-sessionizer/mod.json"],
+    ["mods/muxcle-sessionizer/package-owner.json", "mods/muxcle-sessionizer/package-owner.json"],
+    [".build/mods/muxcle-sessionizer/sessionizer/adapter.js", "mods/muxcle-sessionizer/sessionizer/adapter.js"],
+    [".build/mods/muxcle-sessionizer/sessionizer/controller.js", "mods/muxcle-sessionizer/sessionizer/controller.js"],
+    [".build/mods/muxcle-sessionizer/sessionizer/model.js", "mods/muxcle-sessionizer/sessionizer/model.js"],
+    ["packages/sessionizer/RECIPE.md", "RECIPE.md"],
+  ],
+};
 const packagesByName = new Map([
   [appPackage.name, appPackage],
   [tmuxKeysPackage.name, tmuxKeysPackage],
+  [sessionizerPackage.name, sessionizerPackage],
 ]);
 
 export async function createPackage(options = {}) {
@@ -60,8 +93,16 @@ export async function createTmuxKeysPackage(options = {}) {
   return buildPackage(tmuxKeysPackage, options);
 }
 
+export async function createSessionizerPackage(options = {}) {
+  return buildPackage(sessionizerPackage, options);
+}
+
 export async function createPackages(options = {}) {
-  return [await createPackage(options), await createTmuxKeysPackage(options)];
+  return [
+    await createPackage(options),
+    await createTmuxKeysPackage(options),
+    await createSessionizerPackage(options),
+  ];
 }
 
 async function buildPackage(definition, {
@@ -135,14 +176,16 @@ export async function createDeterministicArchive({ packageDirectory, archivePath
     ? ["--owner=root:0", "--group=root:0"]
     : ["--uid=0", "--gid=0", "--uname=root", "--gname=root"];
 
-  execFileSync("tar", [
-    "-czf", archivePath,
+  const tarBytes = execFileSync("tar", [
+    "-cf", "-",
     "--format=ustar",
     ...ownership,
     "--no-recursion",
     "-C", dirname(packageDirectory),
     ...entries,
   ]);
+  const compressed = execFileSync("gzip", ["-n", "-c"], { input: tarBytes });
+  await writeFile(archivePath, compressed);
 }
 
 async function normalizePackageTree(directory) {

@@ -33,4 +33,6 @@ jobs:
             "dist/herdr-muxcle-v${version}.tar.gz.sha256" \
             "dist/muxcle-tmux-keys-v${version}.tar.gz" \
             "dist/muxcle-tmux-keys-v${version}.tar.gz.sha256" \
+            "dist/muxcle-sessionizer-v${version}.tar.gz" \
+            "dist/muxcle-sessionizer-v${version}.tar.gz.sha256" \
             --title "$GITHUB_REF_NAME" --generate-notes

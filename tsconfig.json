@@ -10,5 +10,5 @@
     "lib": ["ES2022"],
     "types": []
   },
-  "include": ["src/**/*.ts", "mods/**/*.ts", "fixtures/herdr-mod/**/*.ts"]
+  "include": ["src/**/*.ts", "mods/**/*.ts", "fixtures/herdr-mod/**/*.ts", "types/**/*.d.ts"]
 }

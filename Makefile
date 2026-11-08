@@ -1,19 +1,19 @@
 SHELL := /bin/sh
 
-.PHONY: gate watch lint build test hooks-install hooks-check format coverage security herdr-check
+.PHONY: gate watch lint build test package release-tag release-ci release-check hooks-install hooks-check format coverage security herdr-check
 
 gate:
 	@./scripts/quality-gate.sh
 
 lint:
 	@./node_modules/.bin/tsc --noEmit --project tsconfig.json
-	@set -e; files=$$(for root in src fixtures mods; do if test -d "$$root"; then find "$$root" -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) -print; fi; done); for file in $$files; do node --input-type=module --check < "$$file"; done
+	@set -e; files=$$(for root in src fixtures mods scripts; do if test -d "$$root"; then find "$$root" -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) -print; fi; done); for file in $$files; do node --input-type=module --check < "$$file"; done
 
 build:
 	@./node_modules/.bin/tsc --project tsconfig.json
 
 test: build
-	@set -e; files=$$(for root in src fixtures mods; do if test -d "$$root"; then find "$$root" -type f -name '*.test.mjs' -print; fi; done); if test -n "$$files"; then node --test $$files; fi
+	@set -e; files=$$(for root in src fixtures mods scripts; do if test -d "$$root"; then find "$$root" -type f -name '*.test.mjs' -print; fi; done); if test -n "$$files"; then node --test $$files; fi
 
 watch:
 	@fzz --config watch.yaml watch
@@ -35,5 +35,20 @@ coverage: build
 security:
 	@npm audit --package-lock-only
 
-herdr-check: build
-	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT HUP INT TERM; cp -R .build/fixtures/herdr-mod/. "$$tmp/"; cp fixtures/herdr-mod/mod.json "$$tmp/"; herdr-app check "$$tmp"
+package: build
+	@node scripts/package.mjs
+
+herdr-check: package
+	@./scripts/check-package-install.sh
+
+release-tag:
+	@test -n "$(TAG)" || { echo 'Set TAG, for example: make release-tag TAG=v0.1.0' >&2; exit 1; }
+	@node scripts/release-tag.mjs "$(TAG)"
+
+release-ci:
+	@make gate
+	@make security
+	@make package
+
+release-check: release-ci
+	@make herdr-check

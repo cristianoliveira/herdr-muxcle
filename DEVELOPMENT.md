@@ -5,8 +5,9 @@
 - Git
 - GNU Make
 - Node.js 22.23.4 to match CI (built-in `node:test`)
-- npm for the pinned TypeScript development compiler
-- `herdr-app` only for the optional native loader check
+- npm 10.9.9 for the pinned TypeScript development compiler
+- `tar` for package archives
+- `herdr-app` for native package verification and release checks
 
 The project pins npm 10.9.9 and disables lifecycle scripts in its local `.npmrc`. Install locked development tools with `npm ci --ignore-scripts`; TypeScript 5.9.3 is the only development dependency. TypeScript output is written under ignored `.build/`; `node_modules/` and build output are not committed. See [the Herdr development research](docs/HERDR-RESEARCH.md) for local API evidence, native-mod boundaries, and safety constraints.
 
@@ -15,7 +16,11 @@ make lint          # strict typecheck + syntax-check JavaScript
 make build         # emit ESM JavaScript to .build/
 make test          # build, then run co-located Node tests
 make gate          # canonical typecheck/build/test gate
-make herdr-check   # compile and load the fixture in a temporary directory
+make herdr-check   # package, install into a temporary app home, preserve settings, native-check
+make package       # build a versioned app-home archive and SHA-256
+make release-check # release CI checks plus isolated native check
+make release-ci    # checks available on the hosted release runner
+make release-tag TAG=v0.1.0  # verify tag matches package.json; does not publish
 ```
 
 ## One normal quality gate
@@ -38,7 +43,10 @@ Hooks invoke the gate before commit and push. The commit-msg hook enforces `type
 - `make format`: formatting is manual until a formatter is selected.
 - `make coverage`: build and report Node test coverage; not a threshold or gate.
 - `make security`: run `npm audit` against the lockfile, including development tools. This is network-dependent and intentionally outside the normal gate.
-- `make herdr-check`: build and ask the installed Herdr app to load the compiled illustrative fixture in a temporary directory. This checks initial loading only, not UI or asynchronous behavior, and is not required for every edit.
+- `make package`: create the precompiled app-home archive and checksum; does not install it.
+- `make herdr-check`: unpack into a clean temporary app home, preserve a sentinel settings file, and ask Herdr to load the packaged mod. This checks initial mod loading only, not layout activation or interactive behavior.
+- `make release-ci`: gate, network-dependent audit, and package build/verification; this is what hosted tag automation can run.
+- `make release-check`: `make release-ci` plus a native check in a clean temporary app home. Run this locally before creating a release tag; GitHub-hosted runners do not have Herdr installed.
 
 ## Failure and recovery
 
@@ -48,7 +56,7 @@ Hooks invoke the gate before commit and push. The commit-msg hook enforces `type
 - `make herdr-check` cannot find `herdr-app` → install/enter the environment that provides Herdr, then rerun it.
 - Hook blocks a commit message → use a conventional message such as `fix(mod): handle missing pane`.
 
-Do not write to live `~/.config/herdr-app` state, copy personal configuration into fixtures, or treat the example helper as product functionality. `HERDR_APP_HOME` alone does not isolate the separate Herdr core state; do not launch a development app against a live core. `herdr-app check` validates initial loading only, and may generate helper files, so the target copies the fixture to a temporary directory and removes it afterward.
+Do not write to live `~/.config/herdr-app` state, copy personal configuration into fixtures, or treat the helper as product functionality. `HERDR_APP_HOME` alone does not isolate the separate Herdr core state; do not launch a development app against a live core. `herdr-app check` validates initial loading only and may generate helper files, so the target checks the extracted package in a temporary app home and removes it afterward. See [Installation](docs/INSTALLATION.md) for manual no-overwrite install, reviewed update, scoped uninstall, and tagged release instructions.
 
 ## Completion
 

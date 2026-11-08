@@ -1,0 +1,47 @@
+{
+  "id": "root",
+  "type": "row",
+  "children": [
+    {
+      "id": "spaces",
+      "type": "block",
+      "size": { "px": 240 },
+      "content": { "mod": "spaces" }
+    },
+    {
+      "id": "workspace",
+      "type": "column",
+      "children": [
+        {
+          "id": "tabs",
+          "type": "block",
+          "size": { "px": 42 },
+          "content": { "mod": "tabs" }
+        },
+        {
+          "id": "active-tab",
+          "type": "block",
+          "content": {
+            "tab": "active",
+            "pane": {
+              "gap": 8,
+              "lone": true,
+              "header": {
+                "content": { "mod": "pane" },
+                "height": 30,
+                "position": "top",
+                "reveal": "always"
+              }
+            }
+          }
+        },
+        {
+          "id": "muxcle-status",
+          "type": "block",
+          "size": { "px": 28 },
+          "content": { "mod": "muxcle-compat" }
+        }
+      ]
+    }
+  ]
+}

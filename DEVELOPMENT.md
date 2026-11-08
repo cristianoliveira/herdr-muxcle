@@ -10,7 +10,7 @@
 - `tar` for package archives
 - `herdr-app` for native package verification and release checks
 
-The project pins npm 10.9.9 and disables lifecycle scripts in its local `.npmrc`. Install locked development tools with `npm ci --ignore-scripts`; TypeScript 5.9.3 is the only development dependency. TypeScript output is written under ignored `.build/`; `node_modules/` and build output are not committed. See [the Herdr development research](docs/HERDR-RESEARCH.md) for local API evidence, native-mod boundaries, and safety constraints.
+The project pins npm 10.9.9 and disables lifecycle scripts in its local `.npmrc`. Install locked development tools with `npm ci --ignore-scripts`; TypeScript 5.9.3 is the only development dependency. TypeScript output is written under ignored `.build/`; `node_modules/` and build output are not committed.
 
 ```sh
 make lint          # strict typecheck + syntax-check JavaScript
@@ -18,7 +18,7 @@ make build         # emit ESM JavaScript to .build/
 make test          # build, then run co-located Node tests
 make gate          # canonical typecheck/build/test gate
 make herdr-check   # package, install into a temporary app home, preserve settings, native-check
-make package       # build a versioned app-home archive and SHA-256
+make package       # build separate versioned scaffold and Tmux keys archives with SHA-256
 make release-check # release CI checks plus isolated native check
 make release-ci    # checks available on the hosted release runner
 make release-tag TAG=v0.1.0  # verify tag matches package.json; does not publish
@@ -44,7 +44,7 @@ Hooks invoke the gate before commit and push. The commit-msg hook enforces `type
 - `make format`: formatting is manual until a formatter is selected.
 - `make coverage`: build and report Node test coverage; not a threshold or gate.
 - `make security`: run `npm audit` against the lockfile, including development tools. This is network-dependent and intentionally outside the normal gate.
-- `make package`: create the precompiled app-home archive and checksum; does not install it.
+- `make package`: create separate precompiled scaffold and Tmux keys archives and checksums; does not install or merge either package.
 - `make herdr-check`: unpack into a clean temporary app home, preserve a sentinel settings file, and ask Herdr to load the packaged mod. This checks initial mod loading only, not layout activation or interactive behavior.
 - `make release-ci`: gate, network-dependent audit, and package build/verification; this is what hosted tag automation can run.
 - `make release-check`: `make release-ci` plus a native check in a clean temporary app home. Run this locally before creating a release tag; GitHub-hosted runners do not have Herdr installed.

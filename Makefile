@@ -32,7 +32,7 @@ format:
 	@echo 'No formatter is configured yet.'
 
 coverage: build
-	@node --test --experimental-test-coverage src/lib/example.test.mjs scripts/package.test.mjs
+	@node --test --experimental-test-coverage src/lib/example.test.mjs src/lib/keymap-merge.test.mjs scripts/package.test.mjs
 
 security:
 	@npm audit --package-lock-only

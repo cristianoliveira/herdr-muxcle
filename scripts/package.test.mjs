@@ -5,7 +5,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { createDeterministicArchive, createPackage, verifyPackage } from "./package.mjs";
+import {
+  createDeterministicArchive,
+  createPackage,
+  createPackages,
+  createTmuxKeysPackage,
+  verifyPackage,
+} from "./package.mjs";
 import { assertReleaseTag } from "./release-tag.mjs";
 
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
@@ -18,6 +24,7 @@ const expectedFiles = [
   "RECIPE.md",
   "manifest.json",
 ].sort();
+const expectedTmuxKeysFiles = ["INSTALLATION.md", "keys.json", "RECIPE.md", "manifest.json"].sort();
 
 test("package generation leaves existing app settings untouched", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "herdr-muxcle-package-test-"));
@@ -44,6 +51,32 @@ test("package generation leaves existing app settings untouched", async () => {
   } finally {
     if (previousHome === undefined) delete process.env.HERDR_APP_HOME;
     else process.env.HERDR_APP_HOME = previousHome;
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("builds independent archives for the scaffold and Tmux keys packages", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "herdr-muxcle-packages-test-"));
+  try {
+    const [scaffold, tmuxKeys] = await createPackages({ repositoryRoot, outputDirectory: temporary });
+    const scaffoldCheck = verifyPackage({ outputDirectory: temporary, version: scaffold.version });
+    const keysCheck = verifyPackage({
+      outputDirectory: temporary,
+      version: tmuxKeys.version,
+      packageName: "muxcle-tmux-keys",
+    });
+    const manifest = JSON.parse(await readFile(join(tmuxKeys.bundleDirectory, "manifest.json"), "utf8"));
+    const snippet = JSON.parse(await readFile(join(tmuxKeys.bundleDirectory, "keys.json"), "utf8"));
+
+    assert.equal(scaffold.name, "herdr-muxcle");
+    assert.equal(tmuxKeys.name, "muxcle-tmux-keys");
+    assert.deepEqual(scaffoldCheck.files, expectedFiles);
+    assert.deepEqual(keysCheck.files, expectedTmuxKeysFiles);
+    assert.equal(manifest.name, "muxcle-tmux-keys");
+    assert.equal(snippet.global["ctrl-a c"], "tab.new");
+    assert.equal(snippet.terminal["ctrl-a ctrl-a"], `send:${String.fromCharCode(1)}`);
+    assert.ok(!keysCheck.files.some((path) => path.startsWith("layouts/") || path.startsWith("mods/")));
+  } finally {
     await rm(temporary, { recursive: true, force: true });
   }
 });
@@ -99,6 +132,25 @@ test("archive bytes stay identical when staged file and directory times change",
     await changeTimes(packageInfo.bundleDirectory, 1);
     const secondArchive = join(temporary, "second-build.tar.gz");
     await createDeterministicArchive({ packageDirectory: packageInfo.bundleDirectory, archivePath: secondArchive });
+
+    assert.deepEqual(await readFile(secondArchive), firstArchive);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("Tmux keys archives are reproducible after staged timestamps change", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "herdr-muxcle-tmux-repro-test-"));
+  try {
+    const packageInfo = await createTmuxKeysPackage({ repositoryRoot, outputDirectory: temporary });
+    const firstArchive = await readFile(packageInfo.archivePath);
+    await changeTimes(packageInfo.bundleDirectory, 1);
+    const secondArchive = join(temporary, "second-tmux-build.tar.gz");
+    await createDeterministicArchive({
+      packageDirectory: packageInfo.bundleDirectory,
+      archivePath: secondArchive,
+      packageName: "muxcle-tmux-keys",
+    });
 
     assert.deepEqual(await readFile(secondArchive), firstArchive);
   } finally {

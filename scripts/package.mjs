@@ -17,17 +17,54 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
-const packagedFiles = [
-  "check-install-targets.sh",
-  "docs/INSTALLATION.md",
-  "layouts/muxcle.json",
-  "mods/muxcle-compat/main.js",
-  "mods/muxcle-compat/mod.json",
-  "RECIPE.md",
-];
-const packageDirectories = ["", "docs", "layouts", "mods", "mods/muxcle-compat"];
+const appPackage = {
+  name: "herdr-muxcle",
+  files: [
+    "check-install-targets.sh",
+    "docs/INSTALLATION.md",
+    "layouts/muxcle.json",
+    "mods/muxcle-compat/main.js",
+    "mods/muxcle-compat/mod.json",
+    "RECIPE.md",
+  ],
+  directories: ["", "docs", "layouts", "mods", "mods/muxcle-compat"],
+  sources: [
+    ["scripts/check-install-targets.sh", "check-install-targets.sh"],
+    ["docs/INSTALLATION.md", "docs/INSTALLATION.md"],
+    ["layouts/muxcle.json", "layouts/muxcle.json"],
+    ["mods/muxcle-compat/mod.json", "mods/muxcle-compat/mod.json"],
+    [".build/mods/muxcle-compat/main.js", "mods/muxcle-compat/main.js"],
+    ["RECIPE.md", "RECIPE.md"],
+  ],
+};
+const tmuxKeysPackage = {
+  name: "muxcle-tmux-keys",
+  files: ["INSTALLATION.md", "keys.json", "RECIPE.md"],
+  directories: [""],
+  sources: [
+    ["packages/tmux-keys/INSTALLATION.md", "INSTALLATION.md"],
+    ["packages/tmux-keys/keys.json", "keys.json"],
+    ["packages/tmux-keys/RECIPE.md", "RECIPE.md"],
+  ],
+};
+const packagesByName = new Map([
+  [appPackage.name, appPackage],
+  [tmuxKeysPackage.name, tmuxKeysPackage],
+]);
 
-export async function createPackage({
+export async function createPackage(options = {}) {
+  return buildPackage(appPackage, options);
+}
+
+export async function createTmuxKeysPackage(options = {}) {
+  return buildPackage(tmuxKeysPackage, options);
+}
+
+export async function createPackages(options = {}) {
+  return [await createPackage(options), await createTmuxKeysPackage(options)];
+}
+
+async function buildPackage(definition, {
   repositoryRoot: root = repositoryRoot,
   outputDirectory = join(root, "dist"),
 } = {}) {
@@ -37,7 +74,7 @@ export async function createPackage({
     throw new Error("package.json must define a stable semantic version");
   }
 
-  const bundleName = `herdr-muxcle-v${version}`;
+  const bundleName = `${definition.name}-v${version}`;
   const bundleDirectory = join(outputDirectory, bundleName);
   const archivePath = join(outputDirectory, `${bundleName}.tar.gz`);
   const checksumPath = `${archivePath}.sha256`;
@@ -46,29 +83,30 @@ export async function createPackage({
   const stagedDirectory = join(temporaryDirectory, bundleName);
   const stagedArchive = join(temporaryDirectory, basename(archivePath));
   const stagedChecksum = `${stagedArchive}.sha256`;
-  await mkdir(join(stagedDirectory, "docs"), { recursive: true });
-  await mkdir(join(stagedDirectory, "layouts"), { recursive: true });
-  await mkdir(join(stagedDirectory, "mods/muxcle-compat"), { recursive: true });
+  await mkdir(stagedDirectory, { recursive: true });
 
   try {
-    await copyFile(join(root, "scripts/check-install-targets.sh"), join(stagedDirectory, "check-install-targets.sh"));
-    await copyFile(join(root, "docs/INSTALLATION.md"), join(stagedDirectory, "docs/INSTALLATION.md"));
-    await copyFile(join(root, "layouts/muxcle.json"), join(stagedDirectory, "layouts/muxcle.json"));
-    await copyFile(join(root, "mods/muxcle-compat/mod.json"), join(stagedDirectory, "mods/muxcle-compat/mod.json"));
-    await copyFile(join(root, ".build/mods/muxcle-compat/main.js"), join(stagedDirectory, "mods/muxcle-compat/main.js"));
-    await copyFile(join(root, "RECIPE.md"), join(stagedDirectory, "RECIPE.md"));
+    for (const [source, target] of definition.sources) {
+      const targetPath = join(stagedDirectory, target);
+      await mkdir(dirname(targetPath), { recursive: true });
+      await copyFile(join(root, source), targetPath);
+    }
 
     const manifest = {
-      name: "herdr-muxcle",
+      name: definition.name,
       version,
       testedHerdrAppVersion: "0.1.13",
-      files: [...packagedFiles, "manifest.json"].sort(),
+      files: [...definition.files, "manifest.json"].sort(),
     };
     await writeFile(join(stagedDirectory, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-    await createDeterministicArchive({ packageDirectory: stagedDirectory, archivePath: stagedArchive });
+    await createDeterministicArchive({
+      packageDirectory: stagedDirectory,
+      archivePath: stagedArchive,
+      packageName: definition.name,
+    });
     const digest = await sha256(stagedArchive);
     await writeFile(stagedChecksum, `${digest}  ${basename(archivePath)}\n`);
-    verifyPackage({ outputDirectory: temporaryDirectory, version });
+    verifyPackage({ outputDirectory: temporaryDirectory, version, packageName: definition.name });
 
     await rm(bundleDirectory, { recursive: true, force: true });
     await rm(archivePath, { force: true });
@@ -76,18 +114,19 @@ export async function createPackage({
     await rename(stagedDirectory, bundleDirectory);
     await rename(stagedArchive, archivePath);
     await rename(stagedChecksum, checksumPath);
-    return { version, bundleDirectory, archivePath, checksumPath };
+    return { name: definition.name, version, bundleDirectory, archivePath, checksumPath };
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true });
   }
 }
 
-export async function createDeterministicArchive({ packageDirectory, archivePath }) {
+export async function createDeterministicArchive({ packageDirectory, archivePath, packageName = appPackage.name }) {
+  const definition = getPackageDefinition(packageName);
   const bundleName = basename(packageDirectory);
   await normalizePackageTree(packageDirectory);
 
-  const files = [...packagedFiles, "manifest.json"].map((path) => `${bundleName}/${path}`);
-  const directories = packageDirectories.map((path) => path
+  const files = [...definition.files, "manifest.json"].map((path) => `${bundleName}/${path}`);
+  const directories = definition.directories.map((path) => path
     ? `${bundleName}/${path}/`
     : `${bundleName}/`);
   const entries = [...files, ...directories].sort();
@@ -120,10 +159,14 @@ async function normalizePackageTree(directory) {
   await utimes(directory, fixedTime, fixedTime);
 }
 
-export function verifyPackage({ outputDirectory = join(repositoryRoot, "dist"), version }) {
+export function verifyPackage({
+  outputDirectory = join(repositoryRoot, "dist"),
+  version,
+  packageName = appPackage.name,
+}) {
   if (!version) throw new Error("package version is required");
-
-  const bundleName = `herdr-muxcle-v${version}`;
+  const definition = getPackageDefinition(packageName);
+  const bundleName = `${definition.name}-v${version}`;
   const archivePath = join(outputDirectory, `${bundleName}.tar.gz`);
   const checksumPath = `${archivePath}.sha256`;
   const entries = execFileSync("tar", ["-tzf", archivePath], { encoding: "utf8" })
@@ -142,8 +185,8 @@ export function verifyPackage({ outputDirectory = join(repositoryRoot, "dist"), 
     if (!entry.path.startsWith(bundleName)) throw new Error("archive contains an unexpected directory");
     return entry.path.slice(bundleName.length).replace(/^\//, "");
   }).sort();
-  const expectedFiles = [...packagedFiles, "manifest.json"].sort();
-  const expectedDirectories = [...packageDirectories].sort();
+  const expectedFiles = [...definition.files, "manifest.json"].sort();
+  const expectedDirectories = [...definition.directories].sort();
   const expectedEntries = [
     ...expectedFiles.map((path) => `${bundleName}/${path}`),
     ...expectedDirectories.map((path) => path ? `${bundleName}/${path}/` : `${bundleName}/`),
@@ -156,14 +199,22 @@ export function verifyPackage({ outputDirectory = join(repositoryRoot, "dist"), 
   }
 
   const manifest = JSON.parse(execFileSync("tar", ["-xOf", archivePath, `${bundleName}/manifest.json`], { encoding: "utf8" }));
-  if (manifest.version !== version || JSON.stringify(manifest.files) !== JSON.stringify(expectedFiles)) {
+  if (manifest.name !== definition.name
+    || manifest.version !== version
+    || JSON.stringify(manifest.files) !== JSON.stringify(expectedFiles)) {
     throw new Error("package manifest does not match the package contents");
   }
 
   const checksum = readFileSync(checksumPath, "utf8").trim();
   const expectedChecksum = `${sha256Sync(archivePath)}  ${basename(archivePath)}`;
   if (checksum !== expectedChecksum) throw new Error("package checksum does not match the archive");
-  return { version, files };
+  return { name: definition.name, version, files };
+}
+
+function getPackageDefinition(name) {
+  const definition = packagesByName.get(name);
+  if (!definition) throw new Error(`unknown package definition: ${name}`);
+  return definition;
 }
 
 async function sha256(path) {
@@ -177,8 +228,9 @@ function sha256Sync(path) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const result = await createPackage();
-  const verified = verifyPackage({ version: result.version });
-  console.log(`Packaged ${result.archivePath}`);
-  console.log(`${verified.files.length} payload files; SHA-256 written to ${result.checksumPath}`);
+  for (const result of await createPackages()) {
+    const verified = verifyPackage({ version: result.version, packageName: result.name });
+    console.log(`Packaged ${result.archivePath}`);
+    console.log(`${verified.files.length - 1} payload files; SHA-256 written to ${result.checksumPath}`);
+  }
 }

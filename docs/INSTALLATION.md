@@ -14,6 +14,8 @@ make package
 
 `make package` creates `dist/herdr-muxcle-v<version>.tar.gz`, its `.sha256` file, and a browsable versioned directory. Package version comes only from `package.json`. The archive contains only `layouts/muxcle.json`, `mods/muxcle-compat/{main.js,mod.json}`, `manifest.json`, and `RECIPE.md`; it contains no TypeScript source or development dependencies. Generated output is ignored by Git.
 
+This archive and tag workflow do not submit the project to Herdr's public gallery. Gallery listings require a real `preview.png`; none is included because no isolated UI screenshot was captured. Do not imply gallery listing, release publication, or an actual tmux feature implementation.
+
 Verify a downloaded checksum before extraction:
 
 ```sh

@@ -1,6 +1,6 @@
 # Architecture
 
-This repository is currently a scaffold, not a shipped Herdr mod. `src/lib/example.js` and its co-located test demonstrate a small, deterministic helper; they are not product functionality. `fixtures/herdr-mod/` is only an empty input for the optional native loader check.
+This repository is currently a scaffold, not a shipped Herdr mod. `src/lib/example.ts` and its co-located test demonstrate a small, deterministic helper; they are not product functionality. The TypeScript build emits the native loader fixture from `fixtures/herdr-mod/main.ts` as `main.js` for the optional Herdr check.
 
 ## Boundaries
 

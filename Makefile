@@ -1,14 +1,18 @@
 SHELL := /bin/sh
 
-.PHONY: gate watch lint test hooks-install hooks-check format coverage security herdr-check
+.PHONY: gate watch lint build test hooks-install hooks-check format coverage security herdr-check
 
 gate:
 	@./scripts/quality-gate.sh
 
 lint:
+	@./node_modules/.bin/tsc --noEmit --project tsconfig.json
 	@set -e; files=$$(for root in src fixtures mods; do if test -d "$$root"; then find "$$root" -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) -print; fi; done); for file in $$files; do node --input-type=module --check < "$$file"; done
 
-test:
+build:
+	@./node_modules/.bin/tsc --project tsconfig.json
+
+test: build
 	@set -e; files=$$(for root in src fixtures mods; do if test -d "$$root"; then find "$$root" -type f -name '*.test.mjs' -print; fi; done); if test -n "$$files"; then node --test $$files; fi
 
 watch:
@@ -25,11 +29,11 @@ hooks-check:
 format:
 	@echo 'No formatter is configured yet.'
 
-coverage:
+coverage: build
 	@node --test --experimental-test-coverage src/lib/example.test.mjs
 
 security:
-	@echo 'No dependency audit is configured; this project currently has no package dependencies.'
+	@echo 'No dependency audit is configured; TypeScript is a pinned development dependency.'
 
-herdr-check:
-	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT HUP INT TERM; cp -R fixtures/herdr-mod/. "$$tmp/"; herdr-app check "$$tmp"
+herdr-check: build
+	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT HUP INT TERM; cp -R .build/fixtures/herdr-mod/. "$$tmp/"; cp fixtures/herdr-mod/mod.json "$$tmp/"; herdr-app check "$$tmp"

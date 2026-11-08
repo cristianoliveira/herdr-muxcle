@@ -6,6 +6,15 @@ Build `herdr-muxcle` as a **Herdr desktop app customization**, not a plugin for 
 
 This is an established extension surface, but the sampled community repositories do not establish one shared development toolchain. Keep the repository gate small and independent of a running desktop app.
 
+### TypeScript authoring
+
+TypeScript is the approved source language for this repository. Compile it to JavaScript before Herdr loads the mod; the desktop entry point remains `main.js`. This is a repository build choice, not a claim that Herdr loads TypeScript directly.
+
+- Typecheck and test through the shared gate; keep generated JavaScript separate from source and out of Git.
+- Keep native imports (`herdr`, `gpui-kit`) as runtime imports, not bundled replacements. Use matching API declarations when integrating those modules.
+- Do not expose browser or Node globals to native mod source. Node remains development tooling only.
+- Pin the compiler and lock development dependencies. Building and testing must not require an active Herdr home or core.
+
 ## Problem and outcome
 
 Developers need to change tmux-style behavior without overwriting shipped files, personal settings, or running terminals. A passing JavaScript test alone cannot prove that Herdr can render a mod.

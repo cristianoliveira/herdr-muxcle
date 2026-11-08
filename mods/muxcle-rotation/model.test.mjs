@@ -67,14 +67,55 @@ test("a single ordinary pane is a no-op", () => {
   assert.equal(rotationPlan(focus(), { ...tab, panes: 1 }, panes.slice(0, 1)).kind, "noop");
 });
 
-test("refuses missing focus, stale counts, duplicate IDs, and larger layouts", () => {
+test("plans a scoped document rotation for three or more ordinary panes", () => {
+  const third = { ...panes[1], pane: "c", terminal: "terminal-c" };
+  const plan = rotationPlan(focus("b"), { ...tab, panes: 3 }, [...panes, third]);
+
+  assert.equal(plan.kind, "document");
+  assert.deepEqual(plan.context, {
+    space: "space",
+    tab: "tab",
+    pane: "b",
+    panes: ["a", "b", "c"],
+    terminals: ["terminal-a", "terminal-b", "terminal-c"],
+    machine: null,
+  });
+  assert.equal(plan.focusTarget, "a");
+});
+
+test("preserves machine-qualified identities in multi-pane document requests", () => {
+  const items = [...panes, { ...panes[1], pane: "c", terminal: "terminal-c" }].map((pane) => ({
+    ...pane,
+    pane: `server/${pane.pane}`,
+    terminal: `server/${pane.terminal}`,
+    tab: "server/tab",
+  }));
+  const plan = rotationPlan(
+    { ...focus("b"), space: "server/space", tab: "server/tab", pane: "server/b", terminal: "server/terminal-b" },
+    { ...tab, id: "server/tab", panes: 3 },
+    items,
+    "server",
+  );
+
+  assert.equal(plan.kind, "document");
+  assert.equal(plan.context.machine, "server");
+  assert.deepEqual(plan.context.panes, ["server/a", "server/b", "server/c"]);
+  assert.deepEqual(plan.context.terminals, ["server/terminal-a", "server/terminal-b", "server/terminal-c"]);
+  assert.equal(plan.focusTarget, "server/a");
+});
+
+test("refuses missing focus, stale counts, duplicate IDs, and oversized layouts", () => {
   assert.equal(rotationPlan(null, tab, panes).kind, "unsupported");
   assert.equal(rotationPlan(focus(), undefined, panes).kind, "unsupported");
   assert.equal(rotationPlan(focus("missing"), tab, panes).kind, "unsupported");
   assert.equal(rotationPlan(focus(), { ...tab, panes: 3 }, panes).kind, "unsupported");
   assert.equal(rotationPlan(focus(), tab, [panes[0], panes[0]]).kind, "unsupported");
-  const third = { ...panes[1], pane: "c", terminal: "terminal-c" };
-  assert.equal(rotationPlan(focus(), { ...tab, panes: 3 }, [...panes, third]).kind, "unsupported");
+  const oversized = Array.from({ length: 65 }, (_, index) => ({
+    ...panes[0],
+    pane: index === 0 ? "a" : `pane-${index}`,
+    terminal: index === 0 ? "terminal-a" : `terminal-${index}`,
+  }));
+  assert.equal(rotationPlan(focus(), { ...tab, panes: 65 }, oversized).kind, "unsupported");
 });
 
 test("refuses zoomed, replaced, and mod panes without planning writes", () => {

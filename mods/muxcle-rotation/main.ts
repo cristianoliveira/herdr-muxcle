@@ -1,37 +1,43 @@
 import { View, type AsyncContext } from "gpui-kit";
-import { focused, spaces, panes, nextCommand, run, notify } from "herdr";
-import { rotationPlan } from "./model.js";
+import { focused, spaces, panes, nextCommand, run, notify, exec, appHome } from "herdr";
+import { RotationController } from "./controller.js";
+import { executeDocumentRotation } from "./adapter.js";
 
 export default class MuxcleRotation extends View {
   private closed = false;
+  private controller!: RotationController;
 
   init(_props: Record<string, unknown> | undefined, cx: AsyncContext): void {
+    this.controller = new RotationController({
+      snapshot: () => {
+        const focus = focused();
+        const space = spaces().find((item) => item.id === focus?.space);
+        return {
+          focus,
+          tab: space?.tabs.find((item) => item.id === focus?.tab),
+          panes: panes(),
+          machine: space?.machine ?? null,
+        };
+      },
+      document: (context) =>
+        executeDocumentRotation(exec, `${appHome().replace(/[\\/]+$/, "")}/mods/muxcle-rotation`, context),
+      run: (action) => {
+        run(action.command, action.args);
+      },
+      notice: (message, level) => {
+        notify({ title: "Pane rotation", body: message, level });
+      },
+    });
     cx.spawn(async (taskCx) => {
       while (!this.closed) {
         const command = await nextCommand();
         taskCx.notify();
         if (this.closed) return;
         if (command !== "rotate") continue;
-
-        const focus = focused();
-        const tab = spaces()
-          .find((space) => space.id === focus?.space)
-          ?.tabs.find((item) => item.id === focus?.tab);
-        const plan = rotationPlan(focus, tab, panes());
-        if (plan.kind === "noop") continue;
-        if (plan.kind === "unsupported") {
-          notify({ title: "Pane rotation unavailable", body: plan.message, level: "info" });
-          continue;
-        }
-        try {
-          for (const action of plan.actions) run(action.command, action.args);
-        } catch {
-          notify({
-            title: "Pane rotation stopped",
-            body: "Some commands may have applied. Check pane positions before trying again.",
-            level: "error",
-          });
-        }
+        taskCx.spawn(async (operationCx) => {
+          await this.controller.rotate();
+          if (!this.closed) operationCx.notify();
+        });
       }
     });
   }
@@ -42,5 +48,6 @@ export default class MuxcleRotation extends View {
 
   close(): void {
     this.closed = true;
+    this.controller?.dispose();
   }
 }

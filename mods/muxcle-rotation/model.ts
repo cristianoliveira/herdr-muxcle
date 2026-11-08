@@ -24,8 +24,18 @@ export type RotationAction =
   | { command: "pane.swap"; args: { direction: "left" | "right" | "up" | "down" } }
   | { command: "pane.focus"; args: { pane: string } };
 
+export interface DocumentRotationContext {
+  space: string;
+  tab: string;
+  pane: string;
+  panes: string[];
+  terminals: string[];
+  machine: string | null;
+}
+
 export type RotationPlan =
   | { kind: "rotate"; actions: RotationAction[] }
+  | { kind: "document"; context: DocumentRotationContext; focusTarget: string }
   | { kind: "noop" }
   | { kind: "unsupported"; message: string };
 
@@ -33,6 +43,7 @@ export function rotationPlan(
   focus: RotationFocus | null,
   tab: RotationTab | undefined,
   allPanes: readonly RotationPane[],
+  machine: string | null = null,
 ): RotationPlan {
   if (!focus?.pane || !focus.terminal || focus.shown !== null) {
     return { kind: "unsupported", message: "Focus an ordinary terminal pane before rotating." };
@@ -51,10 +62,21 @@ export function rotationPlan(
     return { kind: "unsupported", message: "Unzoom the tab and use ordinary terminal panes before rotating." };
   }
   if (panes.length === 1) return { kind: "noop" };
-  if (panes.length !== 2) {
+  if (panes.length > 64) {
+    return { kind: "unsupported", message: "Rotation supports at most 64 panes in one tab." };
+  }
+  if (panes.length > 2) {
     return {
-      kind: "unsupported",
-      message: "This native rotation supports exactly two panes; larger layouts are unchanged.",
+      kind: "document",
+      context: {
+        space: focus.space,
+        tab: focus.tab,
+        pane: focus.pane,
+        panes: ids,
+        terminals: panes.map((pane) => pane.terminal ?? ""),
+        machine,
+      },
+      focusTarget: ids[(ids.indexOf(focus.pane) + ids.length - 1) % ids.length],
     };
   }
 

@@ -1,6 +1,8 @@
-# Install two-pane rotation
+# Install pane rotation
 
-Requires Herdr 0.1.13 and exactly one shown command-host block in a personal layout. No other Muxcle package, Node.js, Python, Git, or repository checkout is required.
+Requires Herdr 0.1.13 and exactly one shown command-host block in a personal layout. No other Muxcle package, Node.js, Git, or repository checkout is required. Three or more panes also require Python 3 and `hc` on Herdr's `PATH`, with core support for versioned `doc.get` / `doc.set`. Two-pane native rotation needs neither helper.
+
+The `hc` CLI must reach the same core/session as Herdr. Keep `HC_SESSION` consistent for isolated or custom sessions; do not direct the helper at a different core.
 
 ## Get the package
 
@@ -33,11 +35,13 @@ Optionally merge `ctrl-a ctrl-o` → `muxcle-rotation.rotate` from the package's
 
 ## Use and limits
 
-Focus an ordinary terminal in a two-pane split, then invoke the shortcut. The terminals exchange positions and focus stays at its original screen position, now on the incoming terminal. A single pane changes nothing.
+Focus an ordinary terminal, then invoke the shortcut. Rotation advances pane contents one position: `[A, B, C]` becomes `[C, A, B]`. Focus returns to the incoming terminal at its original screen position if the original focus context is still current. A single pane changes nothing.
 
-Tabs with more than two panes, zoomed/replaced terminals, mod panes, missing focus, and inconsistent pane snapshots are refused without dispatching rotation commands. This package does not implement arbitrary-grid rotation or a core-document fallback. Native swaps determine sizing behavior; no equalization or resizing is performed.
+Supports up to 64 ordinary terminal panes, including nested row/column grids. Two panes use native swaps; larger tabs use one version-checked core document update. The document adapter preserves slot sizes and min/max/resizable constraints, container metadata, other tabs, and unrelated document fields. It verifies pane order and terminal identities before writing. Hidden or unsupported tree shapes, zoomed/replaced terminals, mod panes, missing focus, oversized documents, and inconsistent snapshots are refused. Trees are bounded to 32 nested levels and 512 nodes; the core document must fit its 1 MiB limit.
 
-Commands run synchronously without an asynchronous discovery step. They are not an atomic transaction: if a native command fails, some steps may already have applied. Check the layout before trying again; there is no automatic retry or rollback.
+The native two-pane command sequence is not an atomic transaction; a failure may leave partial changes. Larger rotations write once using the exact version read from core: a conflict is not retried. Each core request has a five-second timeout; a lost write acknowledgement leaves the outcome uncertain. Inspect pane positions before repeating an uncertain command.
+
+Repeated shortcuts are ignored while a document update is pending. Navigating away does not pull focus back; the originally selected tab may still rotate. Closing or unmounting the command host suppresses focus restoration but does not cancel the helper; the original tab may still rotate. No path retries a failed native sequence through the document adapter.
 
 ## Update or remove
 

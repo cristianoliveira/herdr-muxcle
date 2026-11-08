@@ -6,6 +6,7 @@
 - GNU Make
 - Node.js 22.23.4 to match CI (built-in `node:test`)
 - npm 10.9.9 for the pinned TypeScript development compiler
+- Python 3.10+ for repository-local AGENTS.md link and landmark validation (available on the Ubuntu CI runner)
 - `tar` for package archives
 - `herdr-app` for native package verification and release checks
 
@@ -25,7 +26,7 @@ make release-tag TAG=v0.1.0  # verify tag matches package.json; does not publish
 
 ## One normal quality gate
 
-Run `make gate` locally or while iterating. The versioned hooks and CI use this same command. It type-checks TypeScript with strict mode, ES2022-only libraries, and no Node/browser globals; syntax-checks JavaScript modules under `src/`, `fixtures/`, and `mods/`; builds to `.build/`; and runs discovered co-located Node behavior tests. Success prints exactly `true`; failure prints `false` first, then at most 20 diagnostic lines (including Make's failure summaries). A `true` gate is the definition of passing automated baseline checks, not proof of complete feature behavior.
+Run `make gate` locally or while iterating. The versioned hooks and CI use this same command. It type-checks TypeScript with strict mode, ES2022-only libraries, and no Node/browser globals; syntax-checks JavaScript modules under `src/`, `fixtures/`, and `mods/`; validates repository AGENTS.md links and public landmarks; builds to `.build/`; and runs discovered co-located Node behavior tests. Success prints exactly `true`; failure prints `false` first, then at most 20 diagnostic lines (including Make's failure summaries). A `true` gate is the definition of passing automated baseline checks, not proof of complete feature behavior.
 
 Run `make watch` to start the configured `fzz` watcher. Its `watch.yaml` job reruns `make gate`, so watcher feedback uses the same gate; install `fzz` separately if it is unavailable.
 

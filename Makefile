@@ -8,6 +8,8 @@ gate:
 lint:
 	@./node_modules/.bin/tsc --noEmit --project tsconfig.json
 	@set -e; files=$$(for root in src fixtures mods scripts; do if test -d "$$root"; then find "$$root" -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) -print; fi; done); for file in $$files; do node --input-type=module --check < "$$file"; done
+	@python3 -B scripts/validate_agents_links.py .
+	@python3 -B scripts/validate_agents_landmarks.py .
 
 build:
 	@./node_modules/.bin/tsc --project tsconfig.json

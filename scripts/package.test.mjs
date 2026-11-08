@@ -9,6 +9,7 @@ import {
   createDeterministicArchive,
   createPackage,
   createPackages,
+  createPickerPackage,
   createSessionizerPackage,
   createTmuxKeysPackage,
   verifyPackage,
@@ -41,6 +42,56 @@ const expectedSessionizerFiles = [
   "RECIPE.md",
   "manifest.json",
 ].sort();
+
+test("picker archive is independent, reproducible, and refuses unowned installation targets", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-picker-package-"));
+  try {
+    const info = await createPickerPackage({ repositoryRoot, outputDirectory: temporary });
+    const verified = verifyPackage({ outputDirectory: temporary, version: info.version, packageName: "muxcle-picker" });
+    assert.deepEqual(
+      verified.files,
+      [
+        "INSTALLATION.md",
+        "RECIPE.md",
+        "check-install-targets.sh",
+        "keys.json",
+        "manifest.json",
+        "mods/muxcle-picker/main.js",
+        "mods/muxcle-picker/model.js",
+        "mods/muxcle-picker/mod.json",
+        "mods/muxcle-picker/package-owner.json",
+      ].sort(),
+    );
+
+    const original = await readFile(info.archivePath);
+    await changeTimes(info.bundleDirectory, 1);
+    const repeatedArchive = join(temporary, "repeat.tar.gz");
+    await createDeterministicArchive({
+      packageDirectory: info.bundleDirectory,
+      archivePath: repeatedArchive,
+      packageName: "muxcle-picker",
+    });
+    assert.deepEqual(await readFile(repeatedArchive), original);
+
+    const appHome = join(temporary, "home");
+    const target = join(appHome, "mods/muxcle-picker");
+    const checker = join(info.bundleDirectory, "check-install-targets.sh");
+    const check = (mode = []) => spawnSync("sh", [checker, ...mode, appHome]).status;
+    assert.equal(check(), 0);
+    await mkdir(target, { recursive: true });
+    assert.notEqual(check(), 0);
+    assert.notEqual(check(["--update"]), 0);
+    await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-picker","schema":1}\n');
+    assert.equal(check(["--update"]), 0);
+    assert.equal(check(["--remove"]), 0);
+    await rm(target, { recursive: true });
+    await symlink(join(temporary, "missing"), target);
+    assert.notEqual(check(), 0);
+    assert.notEqual(check(["--update"]), 0);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
 
 test("package generation leaves existing app settings untouched", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "herdr-muxcle-package-test-"));
@@ -118,7 +169,8 @@ test("Sessionizer preflight scopes fresh, update, and removal checks to its mark
     await mkdir(join(appHome, "mods"), { recursive: true });
     const packageInfo = await createSessionizerPackage({ repositoryRoot, outputDirectory });
     const checker = join(packageInfo.bundleDirectory, "check-install-targets.sh");
-    const runCheck = (mode = "fresh") => spawnSync("sh", [checker, ...(mode === "fresh" ? [] : [`--${mode}`]), appHome]);
+    const runCheck = (mode = "fresh") =>
+      spawnSync("sh", [checker, ...(mode === "fresh" ? [] : [`--${mode}`]), appHome]);
     const target = join(appHome, "mods/muxcle-sessionizer");
 
     assert.equal(runCheck().status, 0);
@@ -147,7 +199,8 @@ test("install preflight refuses existing targets, dangling links, and linked con
     await mkdir(appHome);
     const packageInfo = await createPackage({ repositoryRoot, outputDirectory });
     const checker = join(packageInfo.bundleDirectory, "check-install-targets.sh");
-    const runCheck = (mode = "fresh") => spawnSync("sh", [checker, ...(mode === "update" ? ["--update"] : []), appHome]);
+    const runCheck = (mode = "fresh") =>
+      spawnSync("sh", [checker, ...(mode === "update" ? ["--update"] : []), appHome]);
 
     assert.equal(runCheck().status, 0);
 

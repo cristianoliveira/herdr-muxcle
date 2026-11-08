@@ -133,6 +133,8 @@ declare module "herdr" {
 
   export interface SpaceReference {
     id: string;
+    name: string;
+    tabs: { id: string; name: string; active: boolean }[];
     folder: string;
     machine: string | null;
     active: boolean;

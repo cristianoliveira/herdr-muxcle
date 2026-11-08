@@ -1,18 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createReadStream, readFileSync } from "node:fs";
-import {
-  chmod,
-  copyFile,
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  rename,
-  rm,
-  utimes,
-  writeFile,
-} from "node:fs/promises";
+import { chmod, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, utimes, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -79,10 +68,35 @@ const sessionizerPackage = {
     ["packages/sessionizer/RECIPE.md", "RECIPE.md"],
   ],
 };
+const pickerPackage = {
+  name: "muxcle-picker",
+  files: [
+    "check-install-targets.sh",
+    "INSTALLATION.md",
+    "keys.json",
+    "RECIPE.md",
+    "mods/muxcle-picker/main.js",
+    "mods/muxcle-picker/model.js",
+    "mods/muxcle-picker/mod.json",
+    "mods/muxcle-picker/package-owner.json",
+  ],
+  directories: ["", "mods", "mods/muxcle-picker"],
+  sources: [
+    ["packages/picker/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/picker/INSTALLATION.md", "INSTALLATION.md"],
+    ["packages/picker/keys.json", "keys.json"],
+    ["packages/picker/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-picker/main.js", "mods/muxcle-picker/main.js"],
+    [".build/mods/muxcle-picker/model.js", "mods/muxcle-picker/model.js"],
+    ["mods/muxcle-picker/mod.json", "mods/muxcle-picker/mod.json"],
+    ["mods/muxcle-picker/package-owner.json", "mods/muxcle-picker/package-owner.json"],
+  ],
+};
 const packagesByName = new Map([
   [appPackage.name, appPackage],
   [tmuxKeysPackage.name, tmuxKeysPackage],
   [sessionizerPackage.name, sessionizerPackage],
+  [pickerPackage.name, pickerPackage],
 ]);
 
 export async function createPackage(options = {}) {
@@ -97,18 +111,23 @@ export async function createSessionizerPackage(options = {}) {
   return buildPackage(sessionizerPackage, options);
 }
 
+export async function createPickerPackage(options = {}) {
+  return buildPackage(pickerPackage, options);
+}
+
 export async function createPackages(options = {}) {
   return [
     await createPackage(options),
     await createTmuxKeysPackage(options),
     await createSessionizerPackage(options),
+    await createPickerPackage(options),
   ];
 }
 
-async function buildPackage(definition, {
-  repositoryRoot: root = repositoryRoot,
-  outputDirectory = join(root, "dist"),
-} = {}) {
+async function buildPackage(
+  definition,
+  { repositoryRoot: root = repositoryRoot, outputDirectory = join(root, "dist") } = {},
+) {
   const packageMetadata = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   const version = packageMetadata.version;
   if (!/^\d+\.\d+\.\d+$/.test(version ?? "")) {
@@ -167,9 +186,7 @@ export async function createDeterministicArchive({ packageDirectory, archivePath
   await normalizePackageTree(packageDirectory);
 
   const files = [...definition.files, "manifest.json"].map((path) => `${bundleName}/${path}`);
-  const directories = definition.directories.map((path) => path
-    ? `${bundleName}/${path}/`
-    : `${bundleName}/`);
+  const directories = definition.directories.map((path) => (path ? `${bundleName}/${path}/` : `${bundleName}/`));
   const entries = [...files, ...directories].sort();
   const tarVersion = execFileSync("tar", ["--version"], { encoding: "utf8" });
   const ownership = tarVersion.includes("GNU tar")
@@ -177,11 +194,13 @@ export async function createDeterministicArchive({ packageDirectory, archivePath
     : ["--uid=0", "--gid=0", "--uname=root", "--gname=root"];
 
   const tarBytes = execFileSync("tar", [
-    "-cf", "-",
+    "-cf",
+    "-",
     "--format=ustar",
     ...ownership,
     "--no-recursion",
-    "-C", dirname(packageDirectory),
+    "-C",
+    dirname(packageDirectory),
     ...entries,
   ]);
   const compressed = execFileSync("gzip", ["-n", "-c"], { input: tarBytes });
@@ -220,31 +239,43 @@ export function verifyPackage({
       directory: rawPath.endsWith("/"),
     }));
   const prefix = `${bundleName}/`;
-  const files = entries.filter((entry) => !entry.directory).map((entry) => {
-    if (!entry.path.startsWith(prefix)) throw new Error("archive contains an unexpected top-level path");
-    return entry.path.slice(prefix.length);
-  }).sort();
-  const directories = entries.filter((entry) => entry.directory).map((entry) => {
-    if (!entry.path.startsWith(bundleName)) throw new Error("archive contains an unexpected directory");
-    return entry.path.slice(bundleName.length).replace(/^\//, "");
-  }).sort();
+  const files = entries
+    .filter((entry) => !entry.directory)
+    .map((entry) => {
+      if (!entry.path.startsWith(prefix)) throw new Error("archive contains an unexpected top-level path");
+      return entry.path.slice(prefix.length);
+    })
+    .sort();
+  const directories = entries
+    .filter((entry) => entry.directory)
+    .map((entry) => {
+      if (!entry.path.startsWith(bundleName)) throw new Error("archive contains an unexpected directory");
+      return entry.path.slice(bundleName.length).replace(/^\//, "");
+    })
+    .sort();
   const expectedFiles = [...definition.files, "manifest.json"].sort();
   const expectedDirectories = [...definition.directories].sort();
   const expectedEntries = [
     ...expectedFiles.map((path) => `${bundleName}/${path}`),
-    ...expectedDirectories.map((path) => path ? `${bundleName}/${path}/` : `${bundleName}/`),
+    ...expectedDirectories.map((path) => (path ? `${bundleName}/${path}/` : `${bundleName}/`)),
   ].sort();
   const actualEntries = entries.map((entry) => `${entry.path}${entry.directory ? "/" : ""}`);
-  if (JSON.stringify(actualEntries) !== JSON.stringify(expectedEntries)
-    || JSON.stringify(files) !== JSON.stringify(expectedFiles)
-    || JSON.stringify(directories) !== JSON.stringify(expectedDirectories)) {
+  if (
+    JSON.stringify(actualEntries) !== JSON.stringify(expectedEntries) ||
+    JSON.stringify(files) !== JSON.stringify(expectedFiles) ||
+    JSON.stringify(directories) !== JSON.stringify(expectedDirectories)
+  ) {
     throw new Error(`unexpected package contents: ${files.join(", ")}`);
   }
 
-  const manifest = JSON.parse(execFileSync("tar", ["-xOf", archivePath, `${bundleName}/manifest.json`], { encoding: "utf8" }));
-  if (manifest.name !== definition.name
-    || manifest.version !== version
-    || JSON.stringify(manifest.files) !== JSON.stringify(expectedFiles)) {
+  const manifest = JSON.parse(
+    execFileSync("tar", ["-xOf", archivePath, `${bundleName}/manifest.json`], { encoding: "utf8" }),
+  );
+  if (
+    manifest.name !== definition.name ||
+    manifest.version !== version ||
+    JSON.stringify(manifest.files) !== JSON.stringify(expectedFiles)
+  ) {
     throw new Error("package manifest does not match the package contents");
   }
 

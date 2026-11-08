@@ -4,7 +4,7 @@ Sessionizer is a standalone native Herdr mod. It works in an existing layout and
 
 ## Download and install
 
-Set `VERSION` to the versioned release you want, then download and verify its archive:
+No release is published yet. Once a matching GitHub Release is available, set `VERSION` to the version you want, then download and verify its archive:
 
 ```sh
 set -eu
@@ -81,7 +81,7 @@ Move with ↑/↓ or Ctrl-J/Ctrl-K. Press Enter or click a folder to reuse a mat
 "ctrl-a ctrl-p": "mod.open:muxcle-sessionizer"
 ```
 
-Review any existing binding with the same chord before merging. Herdr reads key changes on restart.
+Review any existing binding with the same chord before merging. Herdr reloads key changes live; check `herdr-app status` if the binding does not take effect.
 
 ## Update
 

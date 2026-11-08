@@ -223,10 +223,15 @@ export class SessionizerController {
     return false;
   }
 
-  cancel(): boolean {
+  dispose(): boolean {
     if (this.cancelled) return false;
     this.cancelled = true;
     this.state = { ...this.state, status: "closed", busy: false };
+    return true;
+  }
+
+  cancel(): boolean {
+    if (!this.dispose()) return false;
     try {
       this.adapter.close();
     } catch {

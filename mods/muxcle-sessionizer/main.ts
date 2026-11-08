@@ -45,6 +45,10 @@ export default class MuxcleSessionizer extends View {
     });
   }
 
+  close(): void {
+    this.controller?.dispose();
+  }
+
   render(_cx: Context): NativeElement {
     const currentTheme = theme();
     const palette: SessionizerPalette = {
@@ -86,6 +90,10 @@ export default class MuxcleSessionizer extends View {
       }
     } else {
       surface.child(this.emptyList(state.message ?? "Loading project folders…", palette));
+    }
+
+    if (state.status === "ready" && state.message && state.visibleProjects.length > 0) {
+      surface.child(div().text_size(12).text_color(palette.foreground).child(safeDisplayText(state.message)));
     }
 
     if (state.warnings.length > 0) {

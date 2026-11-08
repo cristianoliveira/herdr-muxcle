@@ -169,6 +169,24 @@ test("cancel during lookup closes once and prevents a later command", async () =
   assert.equal(harness.calls.closed, 1);
 });
 
+test("host disposal prevents a pending selection without closing the host again", async () => {
+  let resolveLookup;
+  const lookup = new Promise((resolve) => { resolveLookup = resolve; });
+  const harness = createHarness({ findLocalSpace: () => lookup });
+  await loadReady(harness);
+
+  const selection = harness.controller.choose("project-0");
+  assert.equal(harness.controller.dispose(), true);
+  assert.equal(harness.controller.dispose(), false);
+  resolveLookup('{"spaceId":null}');
+
+  assert.equal(await selection, false);
+  assert.equal(harness.controller.snapshot().status, "closed");
+  assert.deepEqual(harness.calls.created, []);
+  assert.deepEqual(harness.calls.selected, []);
+  assert.equal(harness.calls.closed, 0);
+});
+
 test("a disappeared project folder and invalid match result do not create a space", async () => {
   const missing = createHarness({ findLocalSpace: async () => '{"spaceId":null,"error":"folder_missing"}' });
   await loadReady(missing);

@@ -28,4 +28,4 @@ security:
 	@echo 'No dependency audit is configured; this project currently has no package dependencies.'
 
 herdr-check:
-	@herdr-app check "$(CURDIR)/fixtures/herdr-mod"
+	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT HUP INT TERM; cp -R fixtures/herdr-mod/. "$$tmp/"; herdr-app check "$$tmp"

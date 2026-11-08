@@ -27,7 +27,7 @@ Hooks invoke the gate before commit and push. The commit-msg hook enforces `type
 - `make format`: formatting is manual until a formatter is selected.
 - `make coverage`: report Node test coverage; not a threshold or gate.
 - `make security`: no dependency scanner is configured while there are no dependencies.
-- `make herdr-check`: ask the installed Herdr app to load the illustrative empty fixture. This is native integration validation, not required for every edit.
+- `make herdr-check`: ask the installed Herdr app to load the illustrative fixture in a temporary directory. This checks initial loading only, not UI or asynchronous behavior, and is not required for every edit.
 
 ## Failure and recovery
 
@@ -36,7 +36,7 @@ Hooks invoke the gate before commit and push. The commit-msg hook enforces `type
 - `make herdr-check` cannot find `herdr-app` → install/enter the environment that provides Herdr, then rerun it.
 - Hook blocks a commit message → use a conventional message such as `fix(mod): handle missing pane`.
 
-Do not write to live `~/.config/herdr-app` state, copy a personal configuration into fixtures, or treat the example helper as a product feature. `herdr-app check` is a separate, read-only validation against the explicitly supplied fixture.
+Do not write to live `~/.config/herdr-app` state, copy personal configuration into fixtures, or treat the example helper as product functionality. `HERDR_APP_HOME` alone does not isolate the separate Herdr core state; do not launch a development app against a live core. `herdr-app check` validates initial loading only, and may generate helper files, so the target copies the fixture to a temporary directory and removes it afterward.
 
 ## Completion
 

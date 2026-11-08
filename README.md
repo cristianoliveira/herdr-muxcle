@@ -12,16 +12,21 @@ So this project is to make the Herdr app as close to a tmux experience as possib
 
 Reuse native Herdr commands where possible.
 
-## Status
+## Packages
 
-This is an installable development scaffold, not tmux compatibility yet. The Muxcle layout is separate from your existing layout; the included mod only identifies the scaffold. No personal dotfiles are migrated.
+Install capabilities independently; none requires the whole Muxcle setup.
+
+- **[Tmux keys](packages/tmux-keys/INSTALLATION.md)**: optional prefix, tab, split, pane-navigation, and zoom shortcuts using native Herdr commands. No custom layout or runtime mod required.
+- **[Muxcle layout scaffold](docs/INSTALLATION.md)**: optional starter layout with a static status mod, not a tmux compatibility implementation.
+
+Sessionizer and custom compatibility helpers are not dependencies of the Tmux keys package.
 
 ## Installation
 
-Download a precompiled native package from a versioned GitHub release and follow [Installation](docs/INSTALLATION.md). No repository clone, Git, Node.js, or TypeScript is needed to install. Keep existing layouts, settings, and key bindings; do not replace your whole Herdr app home.
+Download only the package you want from a versioned GitHub release and follow its installation guide above. No repository clone, Git, Node.js, or TypeScript is needed to install. Keep existing layouts and settings; review shortcut conflicts before merging selected bindings. Never replace your whole Herdr app home or key map.
 
 Developers build packages locally with `make package`; versioned release automation is configured separately. This repository setup does not mean a release has already been published.
 
 ## Development
 
-See [Development](DEVELOPMENT.md) for prerequisites, the local quality gate, hooks, and watcher. [Herdr development research](docs/HERDR-RESEARCH.md) records the native API evidence and safety boundaries.
+See [Development](DEVELOPMENT.md) for prerequisites, the local quality gate, hooks, and watcher.

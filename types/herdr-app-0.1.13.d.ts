@@ -1,8 +1,9 @@
-// Minimal compile-time surface copied from the installed Herdr 0.1.13
-// gpui-kit.d.ts. The shipped scaffold only extends View and returns a string;
-// add more declarations from the matching installed types when code needs them.
+// Hand-maintained subset of Herdr 0.1.13's installed gpui-kit.d.ts.
+// The actual render accepts Context and returns Element | Entity | string.
+// This scaffold uses only string rendering and never accesses its context.
+// Add matching installed declarations before using more of the native API.
 declare module "gpui-kit" {
   export abstract class View {
-    abstract render(cx: unknown): string | object;
+    abstract render(cx: unknown): string;
   }
 }

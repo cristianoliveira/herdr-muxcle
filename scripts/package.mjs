@@ -91,13 +91,15 @@ export async function createDeterministicArchive({ packageDirectory, archivePath
     ? `${bundleName}/${path}/`
     : `${bundleName}/`);
   const entries = [...files, ...directories].sort();
+  const tarVersion = execFileSync("tar", ["--version"], { encoding: "utf8" });
+  const ownership = tarVersion.includes("GNU tar")
+    ? ["--owner=root:0", "--group=root:0"]
+    : ["--uid=0", "--gid=0", "--uname=root", "--gname=root"];
+
   execFileSync("tar", [
     "-czf", archivePath,
     "--format=ustar",
-    "--uid=0",
-    "--gid=0",
-    "--uname=root",
-    "--gname=root",
+    ...ownership,
     "--no-recursion",
     "-C", dirname(packageDirectory),
     ...entries,

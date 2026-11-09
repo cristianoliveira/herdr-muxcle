@@ -231,6 +231,10 @@ const existingPackageDefinitions = [
 const trustedComponentNames = new Set(existingPackageDefinitions.filter(hasOwnedModSources).map(({ name }) => name));
 const packPackage = createPackDefinition(existingPackageDefinitions);
 const packageDefinitions = [...existingPackageDefinitions, packPackage];
+for (const definition of packageDefinitions) {
+  definition.files = [...definition.files, "install.py"].sort();
+  definition.sources = [...definition.sources, ["scripts/install.py", "install.py"]];
+}
 const packagesByName = new Map(packageDefinitions.map((definition) => [definition.name, definition]));
 export const RELEASE_CATALOG = Object.freeze(
   packageDefinitions.map(({ name, release }) => Object.freeze({ name, ...release })),

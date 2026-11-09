@@ -75,6 +75,7 @@ test("release notes are deterministic and include every package install guide an
   assert.match(first, /^# Herdr Muxcle v0\.1\.0\n/m);
   assert.ok(first.includes(`[unified installation overview](${repositoryUrl}/blob/v0.1.0/INSTALLATION.md)`));
   assert.match(first, /optional static starter, not an all-in-one bundle/);
+  assert.doesNotMatch(first, /all seven packages/i);
   for (const item of plan.packages) {
     assert.ok(first.includes(`[Install guide](${item.installationGuide})`));
     assert.ok(first.includes(`[Archive](${item.archiveUrl})`));

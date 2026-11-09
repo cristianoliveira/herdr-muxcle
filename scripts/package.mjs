@@ -426,7 +426,7 @@ function createPackDefinition(definitions) {
     name: "muxcle-pack",
     release: {
       title: "Whole pack",
-      summary: "Optional vendor-managed distribution of all seven packages; no installer or automatic activation.",
+      summary: "Optional vendor-managed Muxcle collection for dotfiles; no installer or automatic activation.",
       installationPath: "packages/pack/INSTALLATION.md",
     },
     files,

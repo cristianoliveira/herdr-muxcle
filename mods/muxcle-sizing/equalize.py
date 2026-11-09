@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Equalize every split in one explicitly scoped Herdr tab."""
+"""Apply bounded sizing operations to one explicitly scoped Herdr tab."""
 
 import copy
 import json
 import math
+import struct
 import subprocess
 import sys
 
@@ -13,6 +14,12 @@ MAX_DOCUMENT_BYTES = 1024 * 1024
 MAX_RESPONSE_BYTES = 2 * MAX_DOCUMENT_BYTES
 MAX_NODES = 512
 MAX_DEPTH = 32
+OPERATIONS = {"equalize", "grow-width", "shrink-width", "grow-height", "shrink-height"}
+
+
+def validate_operation(operation):
+    if not isinstance(operation, str) or operation not in OPERATIONS:
+        raise ValueError("Unsupported pane sizing operation.")
 
 
 def normalize_context(value):
@@ -61,7 +68,8 @@ def normalize_context(value):
     return result
 
 
-def equalize_document(value, context):
+def equalize_document(value, context, operation="equalize"):
+    validate_operation(operation)
     if not isinstance(context, dict):
         raise ValueError("Invalid sizing context.")
     panes = context.get("panes")
@@ -138,8 +146,64 @@ def equalize_document(value, context):
         for tab in space["tabs"]
         if isinstance(tab, dict) and tab.get("id") == context["tab"]
     )
-    changed_splits = equalize_splits(result_tab["root"])
+    if operation == "equalize":
+        changed_splits = equalize_splits(result_tab["root"])
+    else:
+        changed_splits = resize_focused_branch(result_tab["root"], context["pane"], operation)
     return result, changed_splits
+
+
+def split_ancestors(node, pane_id):
+    if node.get("type") == "block":
+        return [] if node.get("id") == pane_id else None
+    for index, child in enumerate(node["children"]):
+        descendants = split_ancestors(child, pane_id)
+        if descendants is not None:
+            return [(node, index), *descendants]
+    return None
+
+
+def resize_focused_branch(root, pane_id, operation):
+    axis = "row" if operation.endswith("width") else "column"
+    ancestors = split_ancestors(root, pane_id)
+    if ancestors is None:
+        raise ValueError("The focused pane is no longer in the selected tab.")
+
+    target = next(
+        ((split, index) for split, index in reversed(ancestors) if split["type"] == axis and len(split["children"]) >= 2),
+        None,
+    )
+    if target is None:
+        return 0
+
+    split, branch_index = target
+    children = split["children"]
+    shares = [node_share(child) for child in children]
+    if any(unit != "weight" for unit, _ in shares):
+        raise ValueError("Fixed-pixel sizing prevents safe pane adjustment; no sizing change was sent.")
+    for child in children:
+        can_resize(child)
+
+    weights = [weight for _, weight in shares]
+    if native_f32_sum(weights) is None:
+        raise ValueError("Pane sibling weights exceed native f32 range; no sizing change was sent.")
+
+    old_weight = shares[branch_index][1]
+    step = native_f32(1.1)
+    try:
+        unrounded_weight = old_weight * step if operation.startswith("grow-") else old_weight / step
+    except OverflowError:
+        return 0
+    new_weight = native_f32(unrounded_weight)
+    if new_weight is None or not math.isfinite(new_weight) or new_weight <= 0 or new_weight == old_weight:
+        return 0
+    updated_weights = weights.copy()
+    updated_weights[branch_index] = new_weight
+    if native_f32_sum(updated_weights) is None:
+        return 0
+
+    set_weight(children[branch_index], new_weight)
+    return 1
 
 
 def node_share(node):
@@ -160,7 +224,10 @@ def node_share(node):
     weight = size["weight"]
     if not is_finite_number(weight) or weight <= 0:
         raise ValueError("Invalid pane weight; no sizing change was sent.")
-    return "weight", weight
+    native_weight = native_f32(weight)
+    if native_weight is None or not math.isfinite(native_weight) or native_weight <= 0:
+        raise ValueError("Pane weight is outside the native f32 range; no sizing change was sent.")
+    return "weight", native_weight
 
 
 def is_finite_number(value):
@@ -172,19 +239,40 @@ def is_finite_number(value):
         return False
 
 
+def native_f32(value):
+    """Round weights exactly as the native pane model stores them."""
+    try:
+        return struct.unpack("!f", struct.pack("!f", value))[0]
+    except (OverflowError, struct.error):
+        return None
+
+
+def native_f32_sum(values):
+    total = 0.0
+    for value in values:
+        total = native_f32(total + value)
+        if total is None or not math.isfinite(total) or total <= 0:
+            return None
+    return total
+
+
 def can_resize(node):
     if "min" in node or "max" in node or node.get("resizable") is False:
-        raise ValueError("Pane constraints prevent safe equalizing; no sizing change was sent.")
+        raise ValueError("Pane constraints prevent safe pane sizing; no sizing change was sent.")
     if "resizable" in node and not isinstance(node["resizable"], bool):
         raise ValueError("Unknown pane resize constraint; no sizing change was sent.")
 
 
 def set_equal_weight(node):
+    set_weight(node, 1)
+
+
+def set_weight(node, weight):
     size = node.get("size")
     if size is None:
-        node["size"] = {"weight": 1}
+        node["size"] = {"weight": weight}
     else:
-        node["size"] = {**size, "weight": 1}
+        node["size"] = {**size, "weight": weight}
 
 
 def equalize_splits(node, depth=0, counter=None):
@@ -225,7 +313,8 @@ def json_bytes(value):
     return raw
 
 
-def equalize(raw_context, request=None):
+def equalize(raw_context, request=None, operation="equalize"):
+    validate_operation(operation)
     scope = normalize_context(raw_context)
     request = request or rpc
     params = {"name": "herdr-app"}
@@ -239,7 +328,7 @@ def equalize(raw_context, request=None):
     ):
         raise ValueError("Core returned an invalid document version.")
 
-    value, changed = equalize_document(current.get("value"), scope)
+    value, changed = equalize_document(current.get("value"), scope, operation)
     if changed:
         json_bytes(value)
         acknowledged = request("doc.set", {**params, "value": value, "version": current["version"]})
@@ -300,13 +389,15 @@ def rpc(method, params):
 
 
 def main(arguments):
-    if len(arguments) != 1:
-        print("Equalizing requires one bounded JSON context.", file=sys.stderr)
+    if len(arguments) not in (1, 2):
+        print("Usage: equalize.py CONTEXT [equalize|grow-width|shrink-width|grow-height|shrink-height]", file=sys.stderr)
         return 1
     try:
+        operation = arguments[1] if len(arguments) == 2 else "equalize"
+        validate_operation(operation)
         if len(arguments[0].encode("utf-8")) > MAX_INPUT_BYTES:
             raise ValueError("Equalizing requires one bounded JSON context.")
-        result = equalize(json.loads(arguments[0]))
+        result = equalize(json.loads(arguments[0]), operation=operation)
         print(json.dumps(result, separators=(",", ":")))
         return 0
     except (UnicodeError, ValueError, RuntimeError, OSError, RecursionError) as error:

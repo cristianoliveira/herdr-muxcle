@@ -1,6 +1,7 @@
 import json
 import sys
 import unittest
+from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
@@ -84,6 +85,143 @@ class EqualizeDocumentTests(unittest.TestCase):
         self.assertEqual(result["extension"], original["extension"])
         self.assertEqual(original["spaces"][0]["tabs"][0]["root"]["children"][0]["size"]["weight"], 4)
 
+    def test_grows_width_on_only_the_focused_branch_of_the_nearest_row(self):
+        value = document()
+        root = value["spaces"][0]["tabs"][0]["root"]
+        nested = root["children"][1]
+
+        result, count = equalize.equalize_document(value, context(), "grow-width")
+        result_root = result["spaces"][0]["tabs"][0]["root"]
+        result_nested = result_root["children"][1]
+
+        self.assertEqual(count, 1)
+        self.assertEqual(result_root["children"][0]["size"], {"weight": 4})
+        self.assertAlmostEqual(result_nested["size"]["weight"], 2.2)
+        self.assertEqual(result_nested["children"], nested["children"])
+        self.assertEqual(result_root["size"], root["size"])
+        self.assertEqual(result_root["extension"], root["extension"])
+
+    def test_shrinks_height_at_the_nearest_column_and_preserves_other_groups(self):
+        value = document()
+        root = value["spaces"][0]["tabs"][0]["root"]
+        nested = root["children"][1]
+
+        result, count = equalize.equalize_document(value, context(), "shrink-height")
+        result_root = result["spaces"][0]["tabs"][0]["root"]
+        result_nested = result_root["children"][1]
+
+        self.assertEqual(count, 1)
+        self.assertEqual(result_root["children"][0]["size"], root["children"][0]["size"])
+        self.assertAlmostEqual(result_nested["children"][0]["size"]["weight"], 3 / 1.1, places=6)
+        self.assertNotIn("size", result_nested["children"][1])
+        self.assertEqual(result_nested["extension"], nested["extension"])
+        self.assertEqual(result["spaces"][0]["tabs"][1], value["spaces"][0]["tabs"][1])
+        self.assertEqual(result["spaces"][1], value["spaces"][1])
+
+    def test_skips_single_child_axis_container_and_noops_when_axis_is_missing(self):
+        value = document()
+        root = value["spaces"][0]["tabs"][0]["root"]
+        focused_branch = {
+            "id": "single-row",
+            "type": "row",
+            "size": {"weight": 3},
+            "children": [leaf("b", "tb")],
+        }
+        root["children"] = [leaf("a", "ta", size={"weight": 2}), focused_branch]
+        scope = {**context(), "panes": ["a", "b"], "terminals": ["ta", "tb"]}
+
+        result, count = equalize.equalize_document(value, scope, "grow-width")
+        result_root = result["spaces"][0]["tabs"][0]["root"]
+
+        self.assertEqual(count, 1)
+        self.assertAlmostEqual(result_root["children"][1]["size"]["weight"], 3.3, places=6)
+        self.assertNotIn("size", result_root["children"][1]["children"][0])
+
+        horizontal_only = {**scope, "pane": "b"}
+        no_op, no_change = equalize.equalize_document(value, horizontal_only, "grow-height")
+        self.assertEqual(no_change, 0)
+        self.assertEqual(no_op, value)
+
+    def test_does_not_fall_back_to_outer_axis_when_nearest_split_is_constrained(self):
+        value = document()
+        root = value["spaces"][0]["tabs"][0]["root"]
+        nested = root["children"][1]
+        nested["type"] = "row"
+        nested["children"][0]["min"] = 10
+
+        with self.assertRaisesRegex(ValueError, "constraints prevent safe pane sizing"):
+            equalize.equalize_document(value, context(), "grow-width")
+
+    def test_rejects_constraints_in_affected_group_but_ignores_other_axes(self):
+        constrained = document()
+        constrained["spaces"][0]["tabs"][0]["root"]["children"][0]["min"] = 10
+        with self.assertRaisesRegex(ValueError, "constraints prevent safe pane sizing"):
+            equalize.equalize_document(constrained, context(), "grow-width")
+
+        other_axis_constraint = document()
+        other_axis_constraint["spaces"][0]["tabs"][0]["root"]["children"][1]["children"][0]["min"] = 10
+        result, count = equalize.equalize_document(other_axis_constraint, context(), "grow-width")
+        self.assertEqual(count, 1)
+        self.assertEqual(result["spaces"][0]["tabs"][0]["root"]["children"][1]["children"][0]["min"], 10)
+
+        fixed_group = document()
+        fixed_group["spaces"][0]["tabs"][0]["root"]["children"][1]["size"] = {"px": 300}
+        with self.assertRaisesRegex(ValueError, "Fixed-pixel sizing"):
+            equalize.equalize_document(fixed_group, context(), "grow-width")
+
+    def test_nudge_noops_when_native_f32_sibling_total_would_overflow(self):
+        value = document()
+        root = value["spaces"][0]["tabs"][0]["root"]
+        root["children"][0]["size"] = {"weight": 3e38}
+        root["children"][1]["size"] = {"weight": 3e37}
+        focused = {**context(), "pane": "a"}
+
+        result, count = equalize.equalize_document(value, focused, "grow-width")
+        calls = []
+        outcome = equalize.equalize(
+            focused,
+            lambda method, params: calls.append(method) or {"version": 9, "value": value},
+            "grow-width",
+        )
+
+        self.assertEqual(result, value)
+        self.assertEqual(count, 0)
+        self.assertEqual(outcome, {"changed": False, "splits": 0})
+        self.assertEqual(calls, ["doc.get"])
+
+        invalid = document()
+        invalid["spaces"][0]["tabs"][0]["root"]["children"][0]["size"] = {"weight": 3e38}
+        invalid["spaces"][0]["tabs"][0]["root"]["children"][1]["size"] = {"weight": 3e38}
+        invalid_calls = []
+        with self.assertRaisesRegex(ValueError, "sibling weights exceed native f32 range"):
+            equalize.equalize(
+                focused,
+                lambda method, params: invalid_calls.append(method) or {"version": 9, "value": invalid},
+                "grow-width",
+            )
+        self.assertEqual(invalid_calls, ["doc.get"])
+
+    def test_growth_arithmetic_that_overflows_or_makes_no_progress_is_a_noop(self):
+        for operation, weight in (("grow-width", 3.4028234663852886e38), ("shrink-height", 1.401298464324817e-45)):
+            value = document()
+            root = value["spaces"][0]["tabs"][0]["root"]
+            if operation == "grow-width":
+                root["children"][1]["size"] = {"weight": weight}
+            else:
+                root["children"][1]["children"][0]["size"] = {"weight": weight}
+            with self.subTest(operation=operation, weight=weight):
+                result, count = equalize.equalize_document(value, context(), operation)
+                calls = []
+                outcome = equalize.equalize(
+                    context(),
+                    lambda method, params: calls.append(method) or {"version": 5, "value": value},
+                    operation,
+                )
+                self.assertEqual(result, value)
+                self.assertEqual(count, 0)
+                self.assertEqual(outcome, {"changed": False, "splits": 0})
+                self.assertEqual(calls, ["doc.get"])
+
     def test_equal_layout_is_unchanged_and_omitted_sizes_mean_weight_one(self):
         value = document()
         root = value["spaces"][0]["tabs"][0]["root"]
@@ -130,6 +268,8 @@ class EqualizeDocumentTests(unittest.TestCase):
             {"weight": 0},
             {"weight": -1},
             {"weight": float("inf")},
+            {"weight": 1e40},
+            {"weight": 1e-50},
             {"weight": 10**400},
             {"px": 100, "weight": 2},
             {"weight": 2, "distribution": "mystery"},
@@ -147,9 +287,12 @@ class EqualizeDocumentTests(unittest.TestCase):
         scope = {**context(), "pane": "a", "panes": ["a"], "terminals": ["ta"]}
 
         result, count = equalize.equalize_document(value, scope)
+        resized, resize_count = equalize.equalize_document(value, scope, "grow-width")
 
         self.assertEqual(result, value)
         self.assertEqual(count, 0)
+        self.assertEqual(resized, value)
+        self.assertEqual(resize_count, 0)
 
     def test_refuses_geometry_constraints_hidden_nodes_and_mods(self):
         cases = []
@@ -197,6 +340,35 @@ class EqualizeDocumentTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             equalize.equalize_document(invalid, context())
 
+    def test_operation_is_validated_before_core_contact_and_legacy_call_defaults_to_equalize(self):
+        calls = []
+        with self.assertRaisesRegex(ValueError, "Unsupported pane sizing operation"):
+            equalize.equalize(context(), lambda method, params: calls.append(method), "resize-diagonal")
+        self.assertEqual(calls, [])
+
+        invocations = []
+        with patch.object(equalize, "equalize", side_effect=lambda raw, operation="equalize": invocations.append((raw, operation)) or {"changed": False, "splits": 0}):
+            with patch.object(equalize.sys, "stdout", StringIO()):
+                self.assertEqual(equalize.main([json.dumps(context())]), 0)
+                self.assertEqual(equalize.main([json.dumps(context()), "grow-width"]), 0)
+        self.assertEqual(invocations, [(context(), "equalize"), (context(), "grow-width")])
+
+    def test_resize_uses_one_versioned_doc_write(self):
+        calls = []
+        value = document()
+
+        def request(method, params):
+            calls.append((method, params))
+            return {"version": 7, "value": value} if method == "doc.get" else {"version": 8}
+
+        result = equalize.equalize(context(), request, "grow-width")
+
+        self.assertEqual(result, {"changed": True, "splits": 1})
+        self.assertEqual([method for method, _ in calls], ["doc.get", "doc.set"])
+        self.assertEqual(calls[1][1]["version"], 7)
+        resized = calls[1][1]["value"]["spaces"][0]["tabs"][0]["root"]["children"][1]
+        self.assertAlmostEqual(resized["size"]["weight"], 2.2, places=6)
+
     def test_doc_write_uses_exact_version_once_and_noops_without_a_write(self):
         calls = []
         value = document()
@@ -236,7 +408,7 @@ class EqualizeDocumentTests(unittest.TestCase):
             methods.append(method)
             return {"version": 3, "value": constrained}
 
-        with self.assertRaisesRegex(ValueError, "constraints prevent safe equalizing"):
+        with self.assertRaisesRegex(ValueError, "constraints prevent safe pane sizing"):
             equalize.equalize(context(), read_constrained)
         self.assertEqual(methods, ["doc.get"])
 

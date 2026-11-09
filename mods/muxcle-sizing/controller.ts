@@ -1,4 +1,13 @@
-import { sizingPlan, type DocumentSizingContext, type SizingFocus, type SizingPane, type SizingTab } from "./model.js";
+import {
+  isSizingOperation,
+  SIZING_HELP_MESSAGE,
+  sizingPlan,
+  type DocumentSizingContext,
+  type SizingFocus,
+  type SizingOperation,
+  type SizingPane,
+  type SizingTab,
+} from "./model.js";
 
 export interface SizingSnapshot {
   focus: SizingFocus | null;
@@ -9,7 +18,7 @@ export interface SizingSnapshot {
 
 export interface SizingAdapter {
   snapshot(): SizingSnapshot;
-  document(context: DocumentSizingContext): Promise<string>;
+  document(context: DocumentSizingContext, operation: SizingOperation): Promise<string>;
   notice(message: string, level: "info" | "error"): void;
 }
 
@@ -19,8 +28,18 @@ export class SizingController {
 
   constructor(private readonly adapter: SizingAdapter) {}
 
-  async equalize(): Promise<boolean> {
-    if (this.busy || this.closed) return false;
+  equalize(): Promise<boolean> {
+    return this.execute("equalize");
+  }
+
+  async execute(operation: string): Promise<boolean> {
+    if (this.closed) return false;
+    if (operation === "help") {
+      this.adapter.notice(SIZING_HELP_MESSAGE, "info");
+      return false;
+    }
+    if (!isSizingOperation(operation)) return false;
+    if (this.busy) return false;
     this.busy = true;
     try {
       const snapshot = this.adapter.snapshot();
@@ -31,12 +50,9 @@ export class SizingController {
         return false;
       }
 
-      const result = parseResult(await this.adapter.document(plan.context));
+      const result = parseResult(await this.adapter.document(plan.context, operation));
       if (!result.changed) return false;
-      if (!this.closed) {
-        const splitLabel = result.splits === 1 ? "split" : "splits";
-        this.adapter.notice(`Equalized ${result.splits} ${splitLabel}.`, "info");
-      }
+      if (!this.closed) this.adapter.notice(successMessage(operation, result.splits), "info");
       return true;
     } catch (error) {
       if (!this.closed) {
@@ -52,6 +68,16 @@ export class SizingController {
   dispose(): void {
     this.closed = true;
   }
+}
+
+function successMessage(operation: SizingOperation, splits: number): string {
+  if (operation === "equalize") {
+    const splitLabel = splits === 1 ? "split" : "splits";
+    return `Equalized ${splits} ${splitLabel}.`;
+  }
+  const direction = operation.startsWith("grow-") ? "Grew" : "Shrunk";
+  const axis = operation.endsWith("width") ? "width" : "height";
+  return `${direction} pane ${axis}.`;
 }
 
 interface EqualizationResult {

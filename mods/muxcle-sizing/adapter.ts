@@ -1,4 +1,4 @@
-import type { DocumentSizingContext } from "./model.js";
+import { isSizingOperation, type DocumentSizingContext } from "./model.js";
 
 export type SizingExec = (
   command: string,
@@ -10,7 +10,9 @@ export async function executeDocumentEqualization(
   execute: SizingExec,
   helperDirectory: string,
   context: DocumentSizingContext,
+  operation: string = "equalize",
 ): Promise<string> {
+  if (!isSizingOperation(operation)) throw new Error("Unsupported pane sizing operation.");
   const payload = JSON.stringify(context);
   if (utf8Length(payload) > 96 * 1024) {
     throw new Error("Sizing context is too large; no helper was started.");
@@ -18,7 +20,9 @@ export async function executeDocumentEqualization(
 
   let result: Awaited<ReturnType<SizingExec>>;
   try {
-    result = await execute("python3", ["-I", "-B", "equalize.py", payload], { cwd: helperDirectory });
+    const args = ["-I", "-B", "equalize.py", payload];
+    if (operation !== "equalize") args.push(operation);
+    result = await execute("python3", args, { cwd: helperDirectory });
   } catch {
     throw new Error(
       "Sizing helper could not be confirmed; outcome may be uncertain. Check Python 3 and hc on Herdr's PATH.",

@@ -27,6 +27,37 @@ test("runs the isolated helper with argv and an explicit working directory", asy
   ]);
 });
 
+test("passes named sizing operations after the context argument", async () => {
+  const calls = [];
+  const execute = async (...args) => {
+    calls.push(args);
+    return { code: 0, stdout: '{"changed":true,"splits":1}', stderr: "" };
+  };
+
+  await executeDocumentEqualization(execute, "/mod", context, "grow-width");
+
+  assert.deepEqual(calls, [
+    ["python3", ["-I", "-B", "equalize.py", JSON.stringify(context), "grow-width"], { cwd: "/mod" }],
+  ]);
+});
+
+test("rejects unsupported operations before starting a process", async () => {
+  let called = false;
+  await assert.rejects(
+    executeDocumentEqualization(
+      async () => {
+        called = true;
+        return { code: 0, stdout: "", stderr: "" };
+      },
+      "/mod",
+      context,
+      "resize-diagonal",
+    ),
+    /Unsupported pane sizing operation/,
+  );
+  assert.equal(called, false);
+});
+
 test("rejects oversized UTF-8 context before starting a process", async () => {
   let called = false;
   await assert.rejects(

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { sizingPlan } from "../../.build/mods/muxcle-sizing/model.js";
+import { isSizingOperation, sizingPlan } from "../../.build/mods/muxcle-sizing/model.js";
 
 const panes = [
   { pane: "a", terminal: "ta", tab: "tab", zoomed: false },
@@ -9,6 +9,13 @@ const panes = [
 ];
 const focus = (pane = "a") => ({ space: "space", tab: "tab", pane, terminal: `t${pane}`, shown: null });
 const tab = { id: "tab", panes: 3, zoomed: false };
+
+test("whitelists the named pane sizing commands", () => {
+  for (const operation of ["equalize", "grow-width", "shrink-width", "grow-height", "shrink-height"]) {
+    assert.equal(isSizingOperation(operation), true);
+  }
+  assert.equal(isSizingOperation("resize-diagonal"), false);
+});
 
 test("a single ordinary pane is a no-op", () => {
   assert.deepEqual(sizingPlan(focus(), { ...tab, panes: 1 }, panes.slice(0, 1)), { kind: "noop" });

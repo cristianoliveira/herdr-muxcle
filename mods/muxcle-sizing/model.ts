@@ -1,3 +1,19 @@
+export const SIZING_OPERATIONS = ["equalize", "grow-width", "shrink-width", "grow-height", "shrink-height"] as const;
+
+export type SizingOperation = (typeof SIZING_OPERATIONS)[number];
+
+export const SIZING_HELP_MESSAGE = [
+  "Pane sizing commands (invoke with `herdr-app do <command>`):",
+  "  muxcle-sizing.help — show this guidance without reading core state.",
+  "  muxcle-sizing.equalize — balance flexible sibling shares recursively.",
+  "  muxcle-sizing.grow-width / muxcle-sizing.shrink-width — adjust the focused branch's nearest row split.",
+  "  muxcle-sizing.grow-height / muxcle-sizing.shrink-height — adjust the focused branch's nearest column split.",
+].join("\n");
+
+export function isSizingOperation(value: string): value is SizingOperation {
+  return (SIZING_OPERATIONS as readonly string[]).includes(value);
+}
+
 export interface SizingFocus {
   space: string;
   tab: string;

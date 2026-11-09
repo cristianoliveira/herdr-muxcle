@@ -2,6 +2,7 @@ import { View, type AsyncContext } from "gpui-kit";
 import { appHome, exec, focused, nextCommand, notify, panes, spaces } from "herdr";
 import { executeDocumentEqualization } from "./adapter.js";
 import { SizingController } from "./controller.js";
+import { isSizingOperation } from "./model.js";
 
 const MOD_NAME = "muxcle-sizing";
 
@@ -21,8 +22,8 @@ export default class MuxcleSizing extends View {
           machine: space?.machine ?? null,
         };
       },
-      document: (context) =>
-        executeDocumentEqualization(exec, `${appHome().replace(/[\\/]+$/, "")}/mods/${MOD_NAME}`, context),
+      document: (context, operation) =>
+        executeDocumentEqualization(exec, `${appHome().replace(/[\\/]+$/, "")}/mods/${MOD_NAME}`, context, operation),
       notice: (message, level) => notify({ title: "Pane sizing", body: message, level }),
     });
 
@@ -31,9 +32,9 @@ export default class MuxcleSizing extends View {
         const command = await nextCommand();
         hostCx.notify();
         if (this.closed) return;
-        if (command !== "equalize") continue;
+        if (command !== "help" && !isSizingOperation(command)) continue;
         hostCx.spawn(async (operationCx) => {
-          await this.controller.equalize();
+          await this.controller.execute(command);
           if (!this.closed) operationCx.notify();
         });
       }

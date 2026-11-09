@@ -10,11 +10,15 @@ const panes = [
 const tab = { id: "tab", panes: 2, zoomed: false };
 
 function harness(overrides = {}) {
-  const calls = { docs: [], notices: [] };
+  const calls = { docs: [], operations: [], notices: [], snapshots: 0 };
   const adapter = {
-    snapshot: () => overrides.snapshot ?? { focus, tab, panes, machine: null },
-    document: async (context) => {
+    snapshot: () => {
+      calls.snapshots += 1;
+      return overrides.snapshot ?? { focus, tab, panes, machine: null };
+    },
+    document: async (context, operation) => {
       calls.docs.push(context);
+      calls.operations.push(operation);
       return overrides.document ? overrides.document(context) : '{"changed":true,"splits":1}';
     },
     notice: (message, level) => calls.notices.push({ message, level }),
@@ -36,7 +40,35 @@ test("opens one scoped document operation and reports successful equalization", 
       machine: null,
     },
   ]);
+  assert.deepEqual(value.calls.operations, ["equalize"]);
   assert.deepEqual(value.calls.notices, [{ message: "Equalized 1 split.", level: "info" }]);
+});
+
+test("dispatches named resize commands and reports the requested axis", async () => {
+  const value = harness();
+
+  assert.equal(await value.controller.execute("grow-width"), true);
+  assert.deepEqual(value.calls.operations, ["grow-width"]);
+  assert.deepEqual(value.calls.notices, [{ message: "Grew pane width.", level: "info" }]);
+});
+
+test("shows native help without reading a snapshot or invoking the helper", async () => {
+  const value = harness();
+
+  assert.equal(await value.controller.execute("help"), false);
+  assert.equal(value.calls.snapshots, 0);
+  assert.deepEqual(value.calls.docs, []);
+  assert.match(value.calls.notices[0].message, /muxcle-sizing\.grow-width/);
+  assert.match(value.calls.notices[0].message, /muxcle-sizing\.shrink-height/);
+});
+
+test("rejects unknown commands before taking a snapshot", async () => {
+  const value = harness();
+
+  assert.equal(await value.controller.execute("resize-diagonal"), false);
+  assert.equal(value.calls.snapshots, 0);
+  assert.deepEqual(value.calls.docs, []);
+  assert.deepEqual(value.calls.notices, []);
 });
 
 test("a single pane is a no-op without helper calls or notices", async () => {
@@ -78,7 +110,7 @@ test("coalesces pending shortcuts and exposes uncertain outcomes", async () => {
   });
   const pending = harness({ document: () => document });
   const first = pending.controller.equalize();
-  assert.equal(await pending.controller.equalize(), false);
+  assert.equal(await pending.controller.execute("grow-width"), false);
   resolveDocument('{"changed":true,"splits":2}');
   assert.equal(await first, true);
   assert.equal(pending.calls.docs.length, 1);

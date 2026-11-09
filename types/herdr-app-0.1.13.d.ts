@@ -141,6 +141,14 @@ declare module "herdr" {
     active: boolean;
   }
 
+  /** Narrow projection of the supported SDK's live AgentInfo; IDs are machine-qualified natively. */
+  export interface AgentInfo {
+    space: string;
+    tab: string;
+    app: string | null;
+    program: { name: string; agent: boolean };
+  }
+
   export interface ModProps {
     overlay?: string;
     role?: string;
@@ -155,6 +163,8 @@ declare module "herdr" {
     options?: { cwd?: string; on?: string | null },
   ): Promise<ExecResult>;
   export function spaces(): SpaceReference[];
+  /** Live status-reporting terminals with machine-scoped space and tab IDs. */
+  export function agents(): AgentInfo[];
   /** The currently shown layout tree from layouts/<name>.json. */
   export function layout(): unknown;
   export function panes(): {

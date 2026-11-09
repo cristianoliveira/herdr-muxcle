@@ -22,6 +22,13 @@ export interface PickerAction {
 
 export type PickerOrder = "native" | "recent";
 
+export interface PickerOptions {
+  agents?: readonly unknown[];
+  order?: PickerOrder;
+  recentState?: unknown;
+  historyBlockVisible?: boolean;
+}
+
 interface RecentTabVisit {
   space: string;
   tab: string;
@@ -32,6 +39,8 @@ const MAX_RECENT_INPUT = 1024;
 const MAX_TARGET_ID_LENGTH = 4096;
 const MAX_LAYOUT_NODES = 2048;
 const MAX_LAYOUT_DEPTH = 64;
+const MAX_AGENT_NAME_LENGTH = 512;
+const LOCAL_MACHINE_ALIAS = "local";
 
 export function parsePickerOrder(raw: string | null): PickerOrder {
   if (raw === null || raw.length > MAX_CONFIG_LENGTH) return "native";
@@ -45,42 +54,42 @@ export function parsePickerOrder(raw: string | null): PickerOrder {
   return "native";
 }
 
-export function pickerRows(
-  spaces: readonly PickerSpace[],
-  query: string,
-  order: PickerOrder = "native",
-  recentState: unknown = null,
-  historyBlockVisible = false,
-): PickerRow[] {
+export function pickerRows(spaces: readonly PickerSpace[], query: string, options: PickerOptions = {}): PickerRow[] {
   const letters = [...query.slice(0, 256).toLowerCase().replace(/\s+/g, "")];
-  const useRecentOrder = order === "recent" && historyBlockVisible;
-  const ranks = useRecentOrder ? recentRanks(recentState) : new Map<string, number>();
+  const useRecentOrder = options.order === "recent" && options.historyBlockVisible === true;
+  const ranks = useRecentOrder ? recentRanks(options.recentState) : new Map<string, number>();
+  const agentRecords = Array.isArray(options.agents) ? options.agents : [];
+  const agentsByTarget = agentNamesByTarget(agentRecords);
   const orderedSpaces = useRecentOrder ? sortSpacesByRecent(spaces, ranks) : spaces;
-  return orderedSpaces
-    .flatMap((space): PickerRow[] => {
-      if (space.tabs.length === 0) {
-        return [
-          {
-            key: JSON.stringify(["space", space.id]),
-            kind: "space",
-            id: space.id,
-            label: space.name,
-            machine: space.machine,
-            active: space.active,
-          },
-        ];
-      }
-      const orderedTabs = useRecentOrder ? sortTabsByRecent(space, ranks) : space.tabs;
-      return orderedTabs.map((tab) => ({
-        key: JSON.stringify(["tab", space.id, tab.id]),
+  const candidates = orderedSpaces.flatMap((space): { row: PickerRow; searchText: string }[] => {
+    if (space.tabs.length === 0) {
+      const row: PickerRow = {
+        key: JSON.stringify(["space", space.machine, space.id]),
+        kind: "space",
+        id: space.id,
+        label: space.name,
+        machine: space.machine,
+        active: space.active,
+      };
+      return [{ row, searchText: searchText(row, []) }];
+    }
+
+    const orderedTabs = useRecentOrder ? sortTabsByRecent(space, ranks) : space.tabs;
+    return orderedTabs.map((tab) => {
+      const row: PickerRow = {
+        key: JSON.stringify(["tab", space.machine, space.id, tab.id]),
         kind: "tab",
         id: tab.id,
         label: `${space.name} → ${tab.name}`,
         machine: space.machine,
         active: space.active && tab.active,
-      }));
-    })
-    .filter((row) => matches(row.label, letters));
+      };
+      const agentNames = agentsByTarget.get(targetKey(space.id, tab.id)) ?? [];
+      return { row, searchText: searchText(row, agentNames) };
+    });
+  });
+
+  return candidates.filter(({ searchText: text }) => matches(text, letters)).map(({ row }) => row);
 }
 
 export function hasVisibleHistoryBlock(layout: unknown): boolean {
@@ -121,6 +130,31 @@ export function hasVisibleHistoryBlock(layout: unknown): boolean {
   }
 
   return false;
+}
+
+/** Herdr supplies native space/tab IDs; display names never determine an agent's target. */
+function agentNamesByTarget(raw: readonly unknown[]): Map<string, string[]> {
+  const namesByTarget = new Map<string, string[]>();
+  for (const candidate of raw) {
+    if (!isRecord(candidate) || !isTargetId(candidate.space) || !isTargetId(candidate.tab)) continue;
+
+    const names = [candidate.app, isRecord(candidate.program) ? candidate.program.name : null];
+    const target = targetKey(candidate.space, candidate.tab);
+    const searchNames = namesByTarget.get(target) ?? [];
+    for (const name of names) {
+      if (typeof name !== "string" || name.length === 0) continue;
+      const boundedName = name.slice(0, MAX_AGENT_NAME_LENGTH);
+      if (!searchNames.some((existing) => existing.toLowerCase() === boundedName.toLowerCase())) {
+        searchNames.push(boundedName);
+      }
+    }
+    if (searchNames.length > 0) namesByTarget.set(target, searchNames);
+  }
+  return namesByTarget;
+}
+
+function searchText(row: PickerRow, agentNames: readonly string[]): string {
+  return [row.machine ?? LOCAL_MACHINE_ALIAS, row.label, ...agentNames].join(" ");
 }
 
 function isHistoryContent(value: unknown): boolean {
@@ -183,12 +217,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-export function selectedRowKey(rows: readonly PickerRow[], previous: string | null): string | null {
-  return rows.find((row) => row.key === previous)?.key ?? rows.find((row) => row.active)?.key ?? rows[0]?.key ?? null;
+export function selectedRowKey(
+  rows: readonly PickerRow[],
+  previous: string | null,
+  invalidated = false,
+): string | null {
+  if (invalidated) return null;
+  if (previous !== null) return rows.find((row) => row.key === previous)?.key ?? null;
+  return rows.find((row) => row.active)?.key ?? rows[0]?.key ?? null;
 }
 
-export function selectionAction(spaces: readonly PickerSpace[], query: string, key: string): PickerAction | null {
-  const row = pickerRows(spaces, query).find((entry) => entry.key === key);
+export function selectionAction(
+  spaces: readonly PickerSpace[],
+  query: string,
+  key: string,
+  options: Pick<PickerOptions, "agents"> = {},
+): PickerAction | null {
+  const row = pickerRows(spaces, query, options).find((entry) => entry.key === key);
   return row ? { command: row.kind === "tab" ? "tab.select" : "space.select", args: { id: row.id } } : null;
 }
 

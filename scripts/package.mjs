@@ -82,7 +82,7 @@ const pickerPackage = {
   name: "muxcle-picker",
   release: {
     title: "Spaces and tabs picker",
-    summary: "Browse and switch between Herdr spaces and tabs, with optional recency ordering.",
+    summary: "Search Herdr spaces and tabs by label, machine, and associated agent, with optional recency ordering.",
     installationPath: "packages/picker/RECIPE.md",
   },
   files: [

@@ -1,6 +1,6 @@
 import { View, div, type Context, type AsyncContext, type NativeElement } from "gpui-kit";
 import { h_flex, v_flex, Input, InputState, v_virtual_list, VirtualListScrollHandle } from "gpui-base";
-import { appHome, closeOverlay, layout, props, readTextFile, run, shared, spaces, theme } from "herdr";
+import { agents, appHome, closeOverlay, layout, props, readTextFile, run, shared, spaces, theme } from "herdr";
 import {
   hasVisibleHistoryBlock,
   parsePickerOrder,
@@ -19,6 +19,7 @@ export default class MuxclePicker extends View {
   private focus!: ReturnType<Context["focus_handle"]>;
   private scroll!: VirtualListScrollHandle;
   private selected: string | null = null;
+  private selectionInvalidated = false;
   private query = "";
   private message = "";
   private closed = false;
@@ -27,9 +28,10 @@ export default class MuxclePicker extends View {
   init(_props: Record<string, unknown> | undefined, cx: AsyncContext): void {
     this.focus = cx.focus_handle();
     this.scroll = VirtualListScrollHandle.new();
-    this.input = InputState.new({ placeholder: "Search spaces and tabs…" });
+    this.input = InputState.new({ placeholder: "Search spaces, tabs, machines, and agents…" });
     this.input.on("change", (_event, eventCx) => {
       this.query = this.input.value().slice(0, 256);
+      this.selectionInvalidated = false;
       this.selected = this.rows()[0]?.key ?? null;
       this.message = "";
       this.scrollToSelection();
@@ -56,7 +58,9 @@ export default class MuxclePicker extends View {
   render(_cx: Context): NativeElement {
     const palette = theme();
     const rows = this.rows();
-    this.selected = selectedRowKey(rows, this.selected);
+    const previous = this.selected;
+    this.selected = selectedRowKey(rows, previous, this.selectionInvalidated);
+    this.selectionInvalidated = this.selectionInvalidated || (previous !== null && this.selected === null);
     const surface = v_flex()
       .w(600)
       .max_h(580)
@@ -145,7 +149,12 @@ export default class MuxclePicker extends View {
         recentState = null;
       }
     }
-    return pickerRows(spaces(), this.query, this.order, recentState, historyBlockVisible);
+    return pickerRows(spaces(), this.query, {
+      agents: agents(),
+      order: this.order,
+      recentState,
+      historyBlockVisible,
+    });
   }
 
   private move(delta: -1 | 1): void {
@@ -153,6 +162,7 @@ export default class MuxclePicker extends View {
     if (rows.length === 0) return;
     const current = rows.findIndex((row) => row.key === this.selected);
     const next = current < 0 ? 0 : Math.max(0, Math.min(rows.length - 1, current + delta));
+    this.selectionInvalidated = false;
     this.selected = rows[next].key;
     this.scrollToSelection();
   }
@@ -164,7 +174,7 @@ export default class MuxclePicker extends View {
 
   private choose(key: string, cx: Context): void {
     if (this.closed) return;
-    const action = selectionAction(spaces(), this.query, key);
+    const action = selectionAction(spaces(), this.query, key, { agents: agents() });
     if (!action) {
       this.message = "That item is no longer available. Select another result.";
       cx.notify();

@@ -1,5 +1,7 @@
 # Install the spaces and tabs picker
 
+For scripted deployment of this selected package, use the [shared installer](https://github.com/cristianoliveira/herdr-muxcle/blob/main/docs/INSTALLER.md). New archives include root `install.py`; it previews by default and writes only with `--apply`. Manual and agent-assisted steps remain available below.
+
 Choosing a capability? Start with the [installation overview](https://github.com/cristianoliveira/herdr-muxcle/blob/main/INSTALLATION.md). This guide also ships inside this package's archive.
 
 This package requires Herdr 0.1.13. No clone, Git, Node.js, Python, custom layout, or other Muxcle package is needed.
@@ -17,7 +19,7 @@ tar -xzf muxcle-picker-v0.1.0.tar.gz
 
 ## Install through Herdr
 
-Ask your Herdr agent to install only this package from the extracted folder. It should read the recipe and every file first, preserve existing files, and ask before replacing shortcuts. The package contains no program execution or filesystem discovery logic.
+Ask your Herdr agent to install only this package from the extracted folder. It should read the recipe and every file first, preserve existing files, and ask before replacing shortcuts. The popup itself contains no program execution or filesystem discovery logic; the optional installer is separate deployment tooling.
 
 For a manual installation, set `BUNDLE` to the extracted folder and run:
 

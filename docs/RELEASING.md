@@ -8,7 +8,7 @@ This guide is for maintainers. Installing a capability? Use [Installation](../IN
 
 One shared stable `X.Y.Z` version from `package.json` produces **eight optional archives and eight SHA-256 files**. This process currently supports stable tags such as `v0.1.0`, not prerelease tags. `private: true` is intentional: these are native Herdr packages, not npm publications.
 
-The package catalog in `scripts/package.mjs` drives both archive construction and the release plan. Do not maintain a separate hand-written release asset list. Each archive includes `RECIPE.md` and root `INSTALLATION.md`; the scaffold also keeps its previous `docs/INSTALLATION.md` path.
+The package catalog in `scripts/package.mjs` drives both archive construction and the release plan. Do not maintain a separate hand-written release asset list. Each archive includes the same standalone `install.py`, `RECIPE.md`, and root `INSTALLATION.md`; the scaffold also keeps its previous `docs/INSTALLATION.md` path.
 
 `muxcle-pack` is the optional complete distribution for user-managed dotfiles. The seven individual packages remain available. `herdr-muxcle` is only the original scaffold, not the complete pack.
 
@@ -16,7 +16,7 @@ The package catalog in `scripts/package.mjs` drives both archive construction an
 
 Work from the intended release commit on `main`. Review `git status --short`; do not accidentally include someone else's uncommitted changes.
 
-For the first release, the repository already uses `0.1.0`. For later releases, update `package.json` and `package-lock.json` together, review the change, and commit it. For example, `npm version patch --no-git-tag-version --ignore-scripts` prepares a patch version without creating a Git tag. This bumps the shared package version, not just one capability.
+`v0.1.0` is already published and predates the whole pack and installer. Prepare a new version, such as `0.1.1`, for those additions; do not replace the existing tag or assets. Update `package.json` and `package-lock.json` together, review the change, and commit it. For example, `npm version patch --no-git-tag-version --ignore-scripts` prepares a patch version without creating a Git tag. This bumps the shared package version, not just one capability.
 
 Install locked development tools and preview the release:
 
@@ -56,10 +56,10 @@ This checks packaged initial mod loading in a temporary app home, not your live 
 
 ## 3. Commit, tag, and push deliberately
 
-Commit the intended changes first. The following example is for the first release; replace `TAG` with the version from `package.json` when preparing a later release:
+Commit the intended changes first. The following example assumes the package version has been deliberately updated to `0.1.1`; always match the version from `package.json`:
 
 ```sh
-TAG=v0.1.0
+TAG=v0.1.1
 make release-tag TAG="$TAG"
 git status --short
 git log -1 --oneline
@@ -89,7 +89,7 @@ Check:
 
 - The tag points to the intended commit and matches the version.
 - All eight archive/checksum pairs are attached; no developer files are included.
-- Each archive has readable standalone installation instructions and a recipe.
+- Each archive has the same installer, readable standalone installation instructions, and a recipe. Verify preview/conflict behavior with a scratch target, not a live app home.
 - Download, checksum, and tagged guide links use this release version.
 - Notes describe changed behavior, prerequisites, compatibility limits, and any validation gaps. Add a short human summary of changes; generated installation notes are not a changelog.
 - The complete `muxcle-pack` and optional `herdr-muxcle` scaffold are clearly distinguished. No notes imply automatic installation or replacement of personal files.

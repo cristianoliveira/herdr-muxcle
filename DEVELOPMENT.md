@@ -8,7 +8,7 @@ Installing a capability? Start with [Installation](INSTALLATION.md). Preparing a
 - GNU Make
 - Node.js 22.23.4 to match CI (built-in `node:test`)
 - npm 10.9.9 for the pinned TypeScript development compiler
-- Python 3.11+ for repository validation and E2E harness safety tests (available on the Ubuntu CI runner)
+- Python 3.11+ for repository validation, installer tests, and E2E harness safety tests (available on the Ubuntu CI runner)
 - `tar` for package archives
 - `herdr-app` for native package verification and release checks
 
@@ -49,7 +49,8 @@ Hooks invoke the gate before commit and push. The commit-msg hook enforces `type
 - `make format`: formatting is manual until a formatter is selected.
 - `make coverage`: build and report Node test coverage; not a threshold or gate.
 - `make security`: run `npm audit` against the lockfile, including development tools. This is network-dependent and intentionally outside the normal gate.
-- `make package`: create precompiled individual archives plus the optional whole-pack archive, with checksums; does not install files, merge personal configuration, or activate a layout.
+- `make package`: create precompiled individual archives plus the optional whole-pack archive, with checksums and the shared standalone installer; the build itself does not install files, merge personal configuration, or activate a layout.
+- `python3 scripts/install.py --help`: shared installer examples for any selected extracted Muxcle package. Preview uses an explicit target; only `--apply` changes it. See [Installer](docs/INSTALLER.md) for conflicts, backups, and dotfiles staging.
 - `make herdr-check`: unpack into a clean temporary app home, preserve a sentinel settings file, and ask Herdr to load the packaged mod. This checks initial mod loading only, not layout activation or interactive behavior.
 - `make e2e`: run packaged capabilities through a copied native app and a private core on macOS. Check sizing, rotation, history, Help visibility, and popup/discovery smoke behavior. Requires a GUI login and `swiftc` for offline screenshot text checks. Opens a separate test window; never sends keyboard/mouse events. See [native E2E coverage and explicit gaps](tests/e2e/README.md). The normal gate runs only mocked harness/oracle unit tests, not this suite.
 - `make release-plan`: preview the shared package catalog's versioned download links and installation notes; does not build, publish, create tags, or contact GitHub.

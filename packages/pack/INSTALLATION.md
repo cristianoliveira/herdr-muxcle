@@ -1,6 +1,8 @@
 # Use the whole pack in your dotfiles
 
-**One download, managed by you.** `muxcle-pack` contains all Muxcle capabilities as ready-to-use files. It does not run an installer, change your keys, switch your layout, or update itself.
+For scripted deployment of this selected package, use the [shared installer](https://github.com/cristianoliveira/herdr-muxcle/blob/main/docs/INSTALLER.md). New archives include root `install.py`; it previews by default and writes only with `--apply`. Manual and agent-assisted steps remain available below.
+
+**One download, managed by you.** `muxcle-pack` contains all Muxcle capabilities as ready-to-use files. Extraction does not install files, change keys, switch layouts, or update anything. Use the shared installer explicitly, or deploy through your own dotfile manager.
 
 Individual packages remain available. The older `herdr-muxcle` archive is only the scaffold; the complete archive is named **`muxcle-pack-v<version>.tar.gz`**.
 
@@ -17,11 +19,11 @@ No Git, Node.js, npm, or compiler is required to use the archive. A dotfiles rep
 
 Choose a published tag from [GitHub Releases](https://github.com/cristianoliveira/herdr-muxcle/releases). Download `muxcle-pack-<tag>.tar.gz` and its matching `.sha256`. If no release exists yet, contributors can build with `make package` and use the archive in `dist/`.
 
-For example, with both files in the current directory after `v0.1.0` is published:
+The existing `v0.1.0` release predates the whole pack. For example, once a newer `v0.1.1` release includes it, place both files in the current directory:
 
 ```sh
-shasum -a 256 -c muxcle-pack-v0.1.0.tar.gz.sha256
-tar -xzf muxcle-pack-v0.1.0.tar.gz
+shasum -a 256 -c muxcle-pack-v0.1.1.tar.gz.sha256
+tar -xzf muxcle-pack-v0.1.1.tar.gz
 ```
 
 Stop if verification fails. Linux users can use `sha256sum -c` instead. Extract into a scratch directory, not over your live Herdr app home.
@@ -58,7 +60,9 @@ Bundled component recipes and guides explain individual behavior and limits. The
 | `config.example.json` | Starting point for your own `data/muxcle-sessionizer/config.json` |
 | `components/*`, recipes, guides, and manifest | Component references to keep in your vendor folder; no need to deploy into Herdr |
 
-Use your existing dotfile manager to copy or link selected files. For a Stow-style setup, place managed paths beneath `.config/herdr-app/` in your dotfiles package; the archive itself is not a prearranged Stow package. With Home Manager or another manager, declare the destination paths explicitly.
+You can preview deployment into a regular dotfiles staging directory with `python3 /path/to/pack/install.py --target /path/to/staging`, then repeat with `--apply` after review. The same installer supports individual packages as well. It does not switch your active layout or configure project roots.
+
+Alternatively, use your existing dotfile manager to copy or link selected files. For a Stow-style setup, place managed paths beneath `.config/herdr-app/` in your dotfiles package; the archive itself is not a prearranged Stow package. With Home Manager or another manager, declare the destination paths explicitly.
 
 **Do not symlink the entire extracted folder as your app home.** Keep runtime state, caches, shared data, terminals, and credentials outside the vendored pack. Manage only the intended static files and your selected Sessionizer config. Package-specific preflight scripts are for standalone manual installs and can reject linked containers; they are not dotfile-manager deployment commands.
 

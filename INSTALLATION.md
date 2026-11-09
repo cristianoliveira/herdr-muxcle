@@ -2,7 +2,7 @@
 
 **Choose the whole pack or one capability, download its archive, then follow its included `INSTALLATION.md`.** Use the **[whole pack](packages/pack/INSTALLATION.md)** to manage everything in your dotfiles. Individual packages remain independent; start with **Tmux keys** if you only want familiar shortcuts.
 
-You need Herdr, not a development environment. Released packages contain ready-to-use JavaScript and native files: no Git, repository clone, Node.js, npm, or TypeScript is required. Installation is agent-assisted or manual; no automatic installer replaces your configuration.
+You need Herdr, not a development environment. Released packages contain ready-to-use JavaScript and native files: no Git, repository clone, Node.js, npm, or TypeScript is required. Use the shared Python installer, your Herdr agent, or manual deployment. Nothing changes your configuration without explicit action.
 
 ## 1. Choose a package
 
@@ -60,6 +60,22 @@ Keep the printed folder until installation is complete. Its `RECIPE.md` explains
 ## 3. Install only what you chose
 
 **Managing the whole pack yourself?** Follow its [dotfiles guide](packages/pack/INSTALLATION.md): vendor the extracted tree, deploy selected static files through your manager, and review replacements in your own commits. Keep state and caches outside the pack. The agent-assisted path below is optional.
+
+### With the shared script
+
+The same script handles **any individual package or the whole pack**. It previews by default; `--apply` enables installation. From an extracted archive that includes `install.py`:
+
+```sh
+BUNDLE="/absolute/path/to/extracted-package"
+APP_HOME="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
+python3 "$BUNDLE/install.py" --target "$APP_HOME"
+# After reviewing the plan:
+python3 "$BUNDLE/install.py" --target "$APP_HOME" --apply
+```
+
+You can target a dotfiles staging directory instead. The standalone script also accepts `--source` with another verified, extracted Muxcle package folder. Downloading and extraction remain separate steps. It preserves unrelated keys, checks conflicts, and does not activate layouts or configure project roots. See [installer examples and safety rules](docs/INSTALLER.md), including `--replace` and `--skip-keys`.
+
+The existing `v0.1.0` release predates the installer and whole pack. Its individual archives work as sources for the current checkout's installer, but do not contain the script themselves. Use a newer release for bundled `install.py` and the whole pack.
 
 ### With your Herdr agent
 

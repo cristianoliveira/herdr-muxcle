@@ -44,7 +44,7 @@ herdr-app do muxcle-sizing.grow-height
 herdr-app do muxcle-sizing.shrink-height
 ```
 
-`help` displays command guidance in a Herdr notification without changing layout. The CLI confirms delivery, not asynchronous write completion; check Herdr's result before issuing another sizing command. `equalize` gives each nested row/column equal flexible sibling shares. This balances groups, not terminal pixel areas across an uneven tree.
+`help` opens a readable native dialog without changing layout or reading core state. Use Close or Escape to dismiss it and return to the existing pane. The CLI confirms delivery, not asynchronous write completion; check Herdr's result before issuing another sizing command. `equalize` gives each nested row/column equal flexible sibling shares. This balances groups, not terminal pixel areas across an uneven tree.
 
 Grow/shrink finds the nearest ancestor split on the requested axis: a row for width, a column for height. Only the weight of its child branch containing the focused pane changes. Grow multiplies that weight by `1.1`; Shrink divides it by `1.1`, subject to native numeric rounding. Other sibling weights stay unchanged. This is a reciprocal proportional step, not a 10-percentage-point allocation change or cell/pixel-based tmux resize.
 

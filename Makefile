@@ -1,6 +1,6 @@
 SHELL := /bin/sh
 
-.PHONY: gate watch lint build test package release-tag release-ci release-check hooks-install hooks-check format coverage security herdr-check
+.PHONY: gate watch lint build test package release-tag release-ci release-check hooks-install hooks-check format coverage security herdr-check e2e e2e-help
 
 gate:
 	@./scripts/quality-gate.sh
@@ -19,6 +19,7 @@ test: build
 	@python3 -B -m unittest discover -s mods/muxcle-sessionizer -p 'test_*.py'
 	@python3 -B -m unittest discover -s mods/muxcle-rotation -p 'test_*.py'
 	@python3 -B -m unittest discover -s mods/muxcle-sizing -p 'test_*.py'
+	@python3 -B -m unittest discover -s tests/e2e -p 'test_*.py'
 
 watch:
 	@fzz --config watch.yaml watch
@@ -45,6 +46,12 @@ package: build
 
 herdr-check: package
 	@./scripts/check-package-install.sh
+
+e2e: package
+	@python3 -B tests/e2e/run.py $(E2E_ARGS)
+
+e2e-help:
+	@python3 -B tests/e2e/run.py --help
 
 release-tag:
 	@test -n "$(TAG)" || { echo 'Set TAG, for example: make release-tag TAG=v0.1.0' >&2; exit 1; }

@@ -2,7 +2,7 @@
 
 An optional Herdr capability for equalizing split shares and adjusting width/height weights in an ordinary terminal tab. Pane order, IDs, terminal content, focus, other tabs, and unrelated document fields stay unchanged. This is a tmux-inspired proportional layout tool, not tmux cell-based resizing.
 
-Mount exactly one shown, non-focusable host.json block in a personal layout. The optional Ctrl-a = shortcut invokes muxcle-sizing.equalize. Commands: muxcle-sizing.help, equalize, grow-width, shrink-width, grow-height, and shrink-height (all with the same muxcle-sizing prefix). For example, run `herdr-app do muxcle-sizing.grow-width`. No resize shortcuts are installed automatically; review conflicts before adding bindings. Help displays guidance without a core operation.
+Mount exactly one shown, non-focusable host.json block in a personal layout. The optional Ctrl-a = shortcut invokes muxcle-sizing.equalize. Commands: muxcle-sizing.help, equalize, grow-width, shrink-width, grow-height, and shrink-height (all with the same muxcle-sizing prefix). For example, run `herdr-app do muxcle-sizing.grow-width`. No resize shortcuts are installed automatically; review conflicts before adding bindings. Help opens a readable, closeable native dialog without a snapshot or core operation; Close or Escape returns to the existing pane.
 
 Equalize balances flexible sibling shares recursively. Nested groups are balanced independently; this does not promise identical terminal pixel areas across an uneven tree. Already-equal groups remain intact, including their constraints. Changing an unequal group with fixed-pixel, min/max or non-resizable constraints is refused instead of discarding them.
 

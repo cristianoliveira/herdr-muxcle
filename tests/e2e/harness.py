@@ -81,6 +81,7 @@ def _build_environment(
     app_home = root / "app-home"
     runtime = root / "run"
     paths = [
+        str(root / "bin"),
         str(Path(hc).parent),
         str(Path(python).parent),
         "/usr/bin",
@@ -91,6 +92,7 @@ def _build_environment(
     unique_paths = list(dict.fromkeys(paths))
     return {
         "HOME": str(home),
+        "SHELL": "/bin/sh",
         "PATH": os.pathsep.join(unique_paths),
         "TMPDIR": str(root / "tmp"),
         "XDG_CACHE_HOME": str(root / "cache"),
@@ -866,8 +868,10 @@ class NativeSession:
         with marker.open("x", encoding="ascii") as output:
             output.write(self.nonce)
         marker.chmod(0o600)
-        for name in ("home", "app-home", "cache", "config", "data", "run", "state", "tmp"):
+        for name in ("home", "app-home", "bin", "cache", "config", "data", "run", "state", "tmp"):
             (root / name).mkdir(mode=0o700)
+        for name, target in (("hc", self.hc), ("python3", self.python)):
+            (root / "bin" / name).symlink_to(target)
 
         self._release_guard = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._release_guard.bind(("127.0.0.1", 0))
@@ -895,12 +899,22 @@ class NativeSession:
             "core": str(self.hc),
             "telemetry": False,
             "clipboard_write": False,
+            "font_size": 12.0,
         }
         settings_path = app_home / "settings.json"
         with settings_path.open("x", encoding="utf-8") as output:
             json.dump(settings, output, indent=2)
             output.write("\n")
         settings_path.chmod(0o600)
+        with (app_home / "shared.json").open("x", encoding="utf-8") as output:
+            json.dump({"frame.welcomed": self.app_version}, output)
+            output.write("\n")
+        with (app_home / "update-notes.json").open("x", encoding="utf-8") as output:
+            json.dump({"last_run": self.app_version, "presented": []}, output)
+            output.write("\n")
+        with (app_home / "window.json").open("x", encoding="utf-8") as output:
+            json.dump({"state": "windowed", "bounds": [0, 0, 1280, 960]}, output)
+            output.write("\n")
         _deploy_packages(self.dist, self.version, self.packages, app_home)
 
     def _run_hc_json(self, *arguments: str, timeout: float = 25.0) -> Any:

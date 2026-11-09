@@ -22,6 +22,27 @@ class HarnessUnitTests(unittest.TestCase):
 
             self.assertFalse(artifacts.exists())
 
+    def test_workspace_exposes_cli_aliases_when_resolved_binary_has_another_name(self):
+        with tempfile.TemporaryDirectory(prefix="e-", dir="/tmp") as temporary:
+            base = Path(temporary)
+            core = base / "herdr-core"
+            python = base / "python3.13"
+            core.write_text("core binary")
+            python.write_text("python binary")
+            session = harness.NativeSession(base / "artifacts")
+            session.hc = core
+            session.python = python
+            with patch.object(harness, "SCRATCH_PARENT", base):
+                try:
+                    session._create_workspace()
+                    self.assertEqual((session.root / "bin" / "hc").resolve(), core.resolve())
+                    self.assertEqual((session.root / "bin" / "python3").resolve(), python.resolve())
+                    self.assertEqual(session.env["PATH"].split(os.pathsep)[0], str(session.root / "bin"))
+                finally:
+                    session._cleanup()
+            self.assertTrue(core.exists())
+            self.assertTrue(python.exists())
+
     def test_environment_is_allowlisted_and_uses_only_scratch_paths(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -42,7 +63,7 @@ class HarnessUnitTests(unittest.TestCase):
         self.assertEqual(env["HERDR_RELEASES_URL"], "http://127.0.0.1:54321")
         self.assertEqual(env["HERDR_TELEMETRY"], "0")
         self.assertEqual(env["DO_NOT_TRACK"], "1")
-        self.assertEqual(env["PATH"].split(os.pathsep)[0], "/nix/store/hc/bin")
+        self.assertEqual(env["PATH"].split(os.pathsep)[0], str(root / "bin"))
         self.assertFalse({"SSH_AUTH_SOCK", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "HC_TERMINAL_ID"} & env.keys())
 
     def test_app_commands_cannot_be_redirected_by_mutating_returned_environment(self):

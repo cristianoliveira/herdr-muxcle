@@ -424,10 +424,7 @@ function createPackDefinition(definitions) {
 function createPackSources(definitions) {
   const componentSources = definitions.flatMap((definition) => {
     const resources = definition.sources
-      .filter(
-        ([, target]) =>
-          !target.startsWith("mods/") && target !== "RECIPE.md" && target !== "layouts/muxcle.json",
-      )
+      .filter(([, target]) => !target.startsWith("mods/") && target !== "RECIPE.md" && target !== "layouts/muxcle.json")
       .map(([source, target]) => [source, `components/${definition.name}/${target}`]);
     return resources;
   });

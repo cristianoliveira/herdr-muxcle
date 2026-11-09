@@ -14,7 +14,7 @@ export function createReleasePlan({ version, repositoryUrl = defaultRepositoryUr
   const tag = `v${version}`;
   const downloads = `${repository}/releases/download/${tag}`;
   const packages = RELEASE_CATALOG.map((entry) => {
-    if (!entry.title || !entry.summary || !isSafeGuidePath(entry.installationPath)) {
+    if (!entry.title || !entry.summary || !isSafeRecipePath(entry.installationPath)) {
       throw new Error(`release catalog metadata is incomplete for ${entry.name}`);
     }
     const archiveName = `${entry.name}-v${version}.tar.gz`;
@@ -25,27 +25,27 @@ export function createReleasePlan({ version, repositoryUrl = defaultRepositoryUr
       checksumName,
       archiveUrl: `${downloads}/${archiveName}`,
       checksumUrl: `${downloads}/${checksumName}`,
-      installationGuide: `${repository}/blob/${tag}/${entry.installationPath}`,
+      recipeUrl: `${repository}/blob/${tag}/${entry.installationPath}`,
     };
   });
   return { version, tag, repositoryUrl: repository, packages };
 }
 
 export function formatReleaseNotes(plan) {
-  const overview = `${plan.repositoryUrl}/blob/${plan.tag}/INSTALLATION.md`;
+  const overview = `${plan.repositoryUrl}/blob/${plan.tag}/README.md`;
   const rows = plan.packages.map((entry) => {
     const packageName = `\`${entry.name}\``;
-    const guide = `[Install guide](${entry.installationGuide})`;
+    const recipe = `[Recipe](${entry.recipeUrl})`;
     const archive = `[Archive](${entry.archiveUrl})`;
     const checksum = `[SHA-256](${entry.checksumUrl})`;
-    return `| ${entry.title} (${packageName}) | ${entry.summary} | ${guide} | ${archive} | ${checksum} |`;
+    return `| ${entry.title} (${packageName}) | ${entry.summary} | ${recipe} | ${archive} | ${checksum} |`;
   });
   return [
     `# Herdr Muxcle ${plan.tag}`,
     "",
-    `Choose only the capabilities you need. The [unified installation overview](${overview}) compares the available packages. The scaffold is an optional static starter, not an all-in-one bundle. Each package is a separate archive; check its guide for prerequisites and safe installation steps.`,
+    `Choose only the capabilities you need. The [package overview](${overview}) compares the available packages. The scaffold is an optional static starter, not an all-in-one bundle. Each package is a separate archive; check its recipe for implementation, setup, and maintenance guidance.`,
     "",
-    "| Capability | Includes | Install guide | Archive | Checksum |",
+    "| Capability | Includes | Recipe | Archive | Checksum |",
     "| --- | --- | --- | --- | --- |",
     ...rows,
     "",
@@ -81,7 +81,7 @@ function normalizeRepositoryUrl(value) {
   return `${url.origin}${path}`;
 }
 
-function isSafeGuidePath(value) {
+function isSafeRecipePath(value) {
   return (
     typeof value === "string" &&
     !value.startsWith("/") &&

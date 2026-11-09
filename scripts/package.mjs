@@ -11,22 +11,18 @@ const appPackage = {
   release: {
     title: "Herdr Muxcle scaffold",
     summary: "Optional static starter layout and compatibility status; not an all-in-one bundle.",
-    installationPath: "docs/INSTALLATION.md",
+    installationPath: "RECIPE.md",
   },
   files: [
-    "INSTALLATION.md",
     "check-install-targets.sh",
-    "docs/INSTALLATION.md",
     "layouts/muxcle.json",
     "mods/muxcle-compat/main.js",
     "mods/muxcle-compat/mod.json",
     "RECIPE.md",
   ],
-  directories: ["", "docs", "layouts", "mods", "mods/muxcle-compat"],
+  directories: ["", "layouts", "mods", "mods/muxcle-compat"],
   sources: [
-    ["docs/INSTALLATION.md", "INSTALLATION.md"],
     ["scripts/check-install-targets.sh", "check-install-targets.sh"],
-    ["docs/INSTALLATION.md", "docs/INSTALLATION.md"],
     ["layouts/muxcle.json", "layouts/muxcle.json"],
     ["mods/muxcle-compat/mod.json", "mods/muxcle-compat/mod.json"],
     [".build/mods/muxcle-compat/main.js", "mods/muxcle-compat/main.js"],
@@ -38,12 +34,11 @@ const tmuxKeysPackage = {
   release: {
     title: "Tmux-inspired keys",
     summary: "Optional tmux-inspired key bindings for Herdr.",
-    installationPath: "packages/tmux-keys/INSTALLATION.md",
+    installationPath: "packages/tmux-keys/RECIPE.md",
   },
-  files: ["INSTALLATION.md", "keys.json", "RECIPE.md"],
+  files: ["keys.json", "RECIPE.md"],
   directories: [""],
   sources: [
-    ["packages/tmux-keys/INSTALLATION.md", "INSTALLATION.md"],
     ["packages/tmux-keys/keys.json", "keys.json"],
     ["packages/tmux-keys/RECIPE.md", "RECIPE.md"],
   ],
@@ -53,12 +48,11 @@ const sessionizerPackage = {
   release: {
     title: "Sessionizer",
     summary: "Find configured project folders and open or reuse one local Herdr space.",
-    installationPath: "packages/sessionizer/INSTALLATION.md",
+    installationPath: "packages/sessionizer/RECIPE.md",
   },
   files: [
     "check-install-targets.sh",
     "config.example.json",
-    "INSTALLATION.md",
     "keys.json",
     "mods/muxcle-sessionizer/discover.py",
     "mods/muxcle-sessionizer/main.js",
@@ -73,7 +67,6 @@ const sessionizerPackage = {
   sources: [
     ["packages/sessionizer/check-install-targets.sh", "check-install-targets.sh"],
     ["packages/sessionizer/config.example.json", "config.example.json"],
-    ["packages/sessionizer/INSTALLATION.md", "INSTALLATION.md"],
     ["packages/sessionizer/keys.json", "keys.json"],
     ["mods/muxcle-sessionizer/discover.py", "mods/muxcle-sessionizer/discover.py"],
     [".build/mods/muxcle-sessionizer/main.js", "mods/muxcle-sessionizer/main.js"],
@@ -90,11 +83,10 @@ const pickerPackage = {
   release: {
     title: "Spaces and tabs picker",
     summary: "Browse and switch between Herdr spaces and tabs.",
-    installationPath: "packages/picker/INSTALLATION.md",
+    installationPath: "packages/picker/RECIPE.md",
   },
   files: [
     "check-install-targets.sh",
-    "INSTALLATION.md",
     "keys.json",
     "RECIPE.md",
     "mods/muxcle-picker/main.js",
@@ -105,7 +97,6 @@ const pickerPackage = {
   directories: ["", "mods", "mods/muxcle-picker"],
   sources: [
     ["packages/picker/check-install-targets.sh", "check-install-targets.sh"],
-    ["packages/picker/INSTALLATION.md", "INSTALLATION.md"],
     ["packages/picker/keys.json", "keys.json"],
     ["packages/picker/RECIPE.md", "RECIPE.md"],
     [".build/mods/muxcle-picker/main.js", "mods/muxcle-picker/main.js"],
@@ -119,11 +110,10 @@ const historyPackage = {
   release: {
     title: "Navigation history",
     summary: "Toggle between recently visited tabs or spaces using one mounted observer block.",
-    installationPath: "packages/history/INSTALLATION.md",
+    installationPath: "packages/history/RECIPE.md",
   },
   files: [
     "check-install-targets.sh",
-    "INSTALLATION.md",
     "keys.json",
     "observer.json",
     "RECIPE.md",
@@ -135,7 +125,6 @@ const historyPackage = {
   directories: ["", "mods", "mods/muxcle-history"],
   sources: [
     ["packages/history/check-install-targets.sh", "check-install-targets.sh"],
-    ["packages/history/INSTALLATION.md", "INSTALLATION.md"],
     ["packages/history/keys.json", "keys.json"],
     ["packages/history/observer.json", "observer.json"],
     ["packages/history/RECIPE.md", "RECIPE.md"],
@@ -150,11 +139,10 @@ const rotationPackage = {
   release: {
     title: "Pane rotation",
     summary: "Rotate pane contents in a personal layout using one command-host block.",
-    installationPath: "packages/rotation/INSTALLATION.md",
+    installationPath: "packages/rotation/RECIPE.md",
   },
   files: [
     "check-install-targets.sh",
-    "INSTALLATION.md",
     "keys.json",
     "host.json",
     "RECIPE.md",
@@ -169,7 +157,6 @@ const rotationPackage = {
   directories: ["", "mods", "mods/muxcle-rotation"],
   sources: [
     ["packages/rotation/check-install-targets.sh", "check-install-targets.sh"],
-    ["packages/rotation/INSTALLATION.md", "INSTALLATION.md"],
     ["packages/rotation/keys.json", "keys.json"],
     ["packages/rotation/host.json", "host.json"],
     ["packages/rotation/RECIPE.md", "RECIPE.md"],
@@ -187,11 +174,10 @@ const sizingPackage = {
   release: {
     title: "Pane sizing",
     summary: "Equalize and resize flexible pane groups using one command-host block.",
-    installationPath: "packages/sizing/INSTALLATION.md",
+    installationPath: "packages/sizing/RECIPE.md",
   },
   files: [
     "check-install-targets.sh",
-    "INSTALLATION.md",
     "keys.json",
     "host.json",
     "RECIPE.md",
@@ -206,7 +192,6 @@ const sizingPackage = {
   directories: ["", "mods", "mods/muxcle-sizing"],
   sources: [
     ["packages/sizing/check-install-targets.sh", "check-install-targets.sh"],
-    ["packages/sizing/INSTALLATION.md", "INSTALLATION.md"],
     ["packages/sizing/keys.json", "keys.json"],
     ["packages/sizing/host.json", "host.json"],
     ["packages/sizing/RECIPE.md", "RECIPE.md"],
@@ -427,7 +412,7 @@ function createPackDefinition(definitions) {
     release: {
       title: "Whole pack",
       summary: "Optional vendor-managed Muxcle collection for dotfiles; no installer or automatic activation.",
-      installationPath: "packages/pack/INSTALLATION.md",
+      installationPath: "packages/pack/RECIPE.md",
     },
     files,
     directories: listPackageDirectories(files),
@@ -438,25 +423,17 @@ function createPackDefinition(definitions) {
 
 function createPackSources(definitions) {
   const componentSources = definitions.flatMap((definition) => {
-    const installation = findSource(definition, "INSTALLATION.md");
-    const recipe = findSource(definition, "RECIPE.md");
-    const guides = [
-      [installation[0], `components/${definition.name}/INSTALLATION.md`],
-      [recipe[0], `components/${definition.name}/RECIPE.md`],
-    ];
     const resources = definition.sources
       .filter(
         ([, target]) =>
-          !target.startsWith("mods/") &&
-          target !== "INSTALLATION.md" &&
-          target !== "RECIPE.md" &&
-          target !== "docs/INSTALLATION.md" &&
-          target !== "layouts/muxcle.json",
+          !target.startsWith("mods/") && target !== "RECIPE.md" && target !== "layouts/muxcle.json",
       )
       .map(([source, target]) => [source, `components/${definition.name}/${target}`]);
-    return [...guides, ...resources];
+    return resources;
   });
-  const scaffoldSources = appPackage.sources.map(([source, target]) => [source, `scaffold/${target}`]);
+  const scaffoldSources = appPackage.sources
+    .filter(([, target]) => target !== "RECIPE.md")
+    .map(([source, target]) => [source, `scaffold/${target}`]);
   const runtimeModSources = definitions
     .filter(hasOwnedModSources)
     .flatMap((definition) => definition.sources.filter(([, target]) => target.startsWith("mods/")));
@@ -464,7 +441,6 @@ function createPackSources(definitions) {
   const sessionizerConfig = findSource(sessionizer, "config.example.json");
 
   return [
-    ["packages/pack/INSTALLATION.md", "INSTALLATION.md"],
     ["packages/pack/RECIPE.md", "RECIPE.md"],
     [sessionizerConfig[0], "config.example.json"],
     ...componentSources,

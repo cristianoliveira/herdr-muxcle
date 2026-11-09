@@ -37,20 +37,17 @@ import { assertReleaseTag } from "./release-tag.mjs";
 
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
 const expectedFiles = [
-  "INSTALLATION.md",
   "check-install-targets.sh",
-  "docs/INSTALLATION.md",
   "layouts/muxcle.json",
   "mods/muxcle-compat/main.js",
   "mods/muxcle-compat/mod.json",
   "RECIPE.md",
   "manifest.json",
 ].sort();
-const expectedTmuxKeysFiles = ["INSTALLATION.md", "keys.json", "RECIPE.md", "manifest.json"].sort();
+const expectedTmuxKeysFiles = ["keys.json", "RECIPE.md", "manifest.json"].sort();
 const expectedSessionizerFiles = [
   "check-install-targets.sh",
   "config.example.json",
-  "INSTALLATION.md",
   "keys.json",
   "mods/muxcle-sessionizer/discover.py",
   "mods/muxcle-sessionizer/main.js",
@@ -63,48 +60,30 @@ const expectedSessionizerFiles = [
   "manifest.json",
 ].sort();
 const expectedPackFiles = [
-  "INSTALLATION.md",
   "RECIPE.md",
   "config.example.json",
   "keys.json",
   "layouts/muxcle-pack.json",
-  "components/herdr-muxcle/INSTALLATION.md",
-  "components/herdr-muxcle/RECIPE.md",
   "components/herdr-muxcle/check-install-targets.sh",
-  "components/muxcle-tmux-keys/INSTALLATION.md",
-  "components/muxcle-tmux-keys/RECIPE.md",
   "components/muxcle-tmux-keys/keys.json",
-  "components/muxcle-sessionizer/INSTALLATION.md",
-  "components/muxcle-sessionizer/RECIPE.md",
   "components/muxcle-sessionizer/check-install-targets.sh",
   "components/muxcle-sessionizer/config.example.json",
   "components/muxcle-sessionizer/keys.json",
-  "components/muxcle-picker/INSTALLATION.md",
-  "components/muxcle-picker/RECIPE.md",
   "components/muxcle-picker/check-install-targets.sh",
   "components/muxcle-picker/keys.json",
-  "components/muxcle-history/INSTALLATION.md",
-  "components/muxcle-history/RECIPE.md",
   "components/muxcle-history/check-install-targets.sh",
   "components/muxcle-history/keys.json",
   "components/muxcle-history/observer.json",
-  "components/muxcle-rotation/INSTALLATION.md",
-  "components/muxcle-rotation/RECIPE.md",
   "components/muxcle-rotation/check-install-targets.sh",
   "components/muxcle-rotation/keys.json",
   "components/muxcle-rotation/host.json",
-  "components/muxcle-sizing/INSTALLATION.md",
-  "components/muxcle-sizing/RECIPE.md",
   "components/muxcle-sizing/check-install-targets.sh",
   "components/muxcle-sizing/keys.json",
   "components/muxcle-sizing/host.json",
-  "scaffold/INSTALLATION.md",
   "scaffold/check-install-targets.sh",
-  "scaffold/docs/INSTALLATION.md",
   "scaffold/layouts/muxcle.json",
   "scaffold/mods/muxcle-compat/main.js",
   "scaffold/mods/muxcle-compat/mod.json",
-  "scaffold/RECIPE.md",
   "mods/muxcle-sessionizer/discover.py",
   "mods/muxcle-sessionizer/main.js",
   "mods/muxcle-sessionizer/mod.json",
@@ -145,7 +124,6 @@ test("picker archive is independent, reproducible, and refuses unowned installat
     assert.deepEqual(
       verified.files,
       [
-        "INSTALLATION.md",
         "RECIPE.md",
         "check-install-targets.sh",
         "keys.json",
@@ -199,7 +177,6 @@ test("history archive is independent, reproducible, and scopes installation to i
     assert.deepEqual(
       verified.files,
       [
-        "INSTALLATION.md",
         "RECIPE.md",
         "check-install-targets.sh",
         "keys.json",
@@ -250,7 +227,6 @@ test("sizing archive is independent, reproducible, and protects existing install
     assert.deepEqual(
       verified.files,
       [
-        "INSTALLATION.md",
         "RECIPE.md",
         "check-install-targets.sh",
         "keys.json",
@@ -520,7 +496,6 @@ test("rotation archive is independent, reproducible, and protects existing mod p
     assert.deepEqual(
       verified.files,
       [
-        "INSTALLATION.md",
         "RECIPE.md",
         "check-install-targets.sh",
         "keys.json",
@@ -635,10 +610,6 @@ test("whole-pack archive composes all components without activating scaffold sta
     assert.equal(info.name, "muxcle-pack");
     assert.deepEqual(verified.files, expectedPackFiles);
     assert.equal(
-      await readFile(join(info.bundleDirectory, "INSTALLATION.md"), "utf8"),
-      await readFile(join(repositoryRoot, "packages/pack/INSTALLATION.md"), "utf8"),
-    );
-    assert.equal(
       await readFile(join(info.bundleDirectory, "RECIPE.md"), "utf8"),
       await readFile(join(repositoryRoot, "packages/pack/RECIPE.md"), "utf8"),
     );
@@ -738,8 +709,8 @@ test("package generation leaves existing app settings untouched", async () => {
 
     assert.deepEqual(verified.files, expectedFiles);
     assert.equal(
-      await readFile(join(packageInfo.bundleDirectory, "INSTALLATION.md"), "utf8"),
-      await readFile(join(packageInfo.bundleDirectory, "docs/INSTALLATION.md"), "utf8"),
+      await readFile(join(packageInfo.bundleDirectory, "RECIPE.md"), "utf8"),
+      await readFile(join(repositoryRoot, "RECIPE.md"), "utf8"),
     );
     assert.equal(await readFile(existingSettings, "utf8"), existingValue);
   } finally {

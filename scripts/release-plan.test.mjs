@@ -19,18 +19,18 @@ const packageNames = [
   "muxcle-sizing",
   "muxcle-pack",
 ];
-const installationPaths = [
-  "docs/INSTALLATION.md",
-  "packages/tmux-keys/INSTALLATION.md",
-  "packages/sessionizer/INSTALLATION.md",
-  "packages/picker/INSTALLATION.md",
-  "packages/history/INSTALLATION.md",
-  "packages/rotation/INSTALLATION.md",
-  "packages/sizing/INSTALLATION.md",
-  "packages/pack/INSTALLATION.md",
+const recipePaths = [
+  "RECIPE.md",
+  "packages/tmux-keys/RECIPE.md",
+  "packages/sessionizer/RECIPE.md",
+  "packages/picker/RECIPE.md",
+  "packages/history/RECIPE.md",
+  "packages/rotation/RECIPE.md",
+  "packages/sizing/RECIPE.md",
+  "packages/pack/RECIPE.md",
 ];
 
-test("release plan derives archive names and installation links from the package catalog", () => {
+test("release plan derives archive names and recipe links from the package catalog", () => {
   const plan = createReleasePlan({ version: "0.1.0", repositoryUrl });
 
   assert.deepEqual(
@@ -39,9 +39,9 @@ test("release plan derives archive names and installation links from the package
   );
   assert.deepEqual(
     RELEASE_CATALOG.map(({ installationPath }) => installationPath),
-    installationPaths,
+    recipePaths,
   );
-  assert.ok(installationPaths.every((path) => existsSync(new URL(`../${path}`, import.meta.url))));
+  assert.ok(recipePaths.every((path) => existsSync(new URL(`../${path}`, import.meta.url))));
   assert.deepEqual(
     plan.packages.map(({ name }) => name),
     packageNames,
@@ -51,7 +51,7 @@ test("release plan derives archive names and installation links from the package
     assert.equal(item.checksumName, `${item.archiveName}.sha256`);
     assert.equal(item.archiveUrl, `${repositoryUrl}/releases/download/v0.1.0/${item.archiveName}`);
     assert.equal(item.checksumUrl, `${item.archiveUrl}.sha256`);
-    assert.ok(item.installationGuide.startsWith(`${repositoryUrl}/blob/v0.1.0/`));
+    assert.ok(item.recipeUrl.startsWith(`${repositoryUrl}/blob/v0.1.0/`));
   }
 });
 
@@ -66,18 +66,18 @@ test("release assets contain exactly one archive and checksum per catalog entry"
   );
 });
 
-test("release notes are deterministic and include every package install guide and artifact", () => {
+test("release notes are deterministic and include every package recipe and artifact", () => {
   const plan = createReleasePlan({ version: "0.1.0", repositoryUrl });
   const first = formatReleaseNotes(plan);
   const second = formatReleaseNotes(createReleasePlan({ version: "0.1.0", repositoryUrl }));
 
   assert.equal(first, second);
   assert.match(first, /^# Herdr Muxcle v0\.1\.0\n/m);
-  assert.ok(first.includes(`[unified installation overview](${repositoryUrl}/blob/v0.1.0/INSTALLATION.md)`));
+  assert.ok(first.includes(`[package overview](${repositoryUrl}/blob/v0.1.0/README.md)`));
   assert.match(first, /optional static starter, not an all-in-one bundle/);
   assert.doesNotMatch(first, /all seven packages/i);
   for (const item of plan.packages) {
-    assert.ok(first.includes(`[Install guide](${item.installationGuide})`));
+    assert.ok(first.includes(`[Recipe](${item.recipeUrl})`));
     assert.ok(first.includes(`[Archive](${item.archiveUrl})`));
     assert.ok(first.includes(`[SHA-256](${item.checksumUrl})`));
   }

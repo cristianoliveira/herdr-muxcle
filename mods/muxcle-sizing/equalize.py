@@ -14,7 +14,10 @@ MAX_DOCUMENT_BYTES = 1024 * 1024
 MAX_RESPONSE_BYTES = 2 * MAX_DOCUMENT_BYTES
 MAX_NODES = 512
 MAX_DEPTH = 32
-OPERATIONS = {"equalize", "grow-width", "shrink-width", "grow-height", "shrink-height"}
+STRIP_HEIGHT_OPERATION = "strip-height"
+STRIP_HEIGHT_SHARE = 0.04
+MAX_STRIP_PANES = 25
+OPERATIONS = {"equalize", "grow-width", "shrink-width", "grow-height", "shrink-height", STRIP_HEIGHT_OPERATION}
 
 
 def validate_operation(operation):
@@ -148,9 +151,53 @@ def equalize_document(value, context, operation="equalize"):
     )
     if operation == "equalize":
         changed_splits = equalize_splits(result_tab["root"])
+    elif operation == STRIP_HEIGHT_OPERATION:
+        original_root = copy.deepcopy(result_tab["root"])
+        shrink_to_strip(result_tab["root"], [node["id"] for node in leaves], context["pane"])
+        changed_splits = int(result_tab["root"] != original_root)
     else:
         changed_splits = resize_focused_branch(result_tab["root"], context["pane"], operation)
     return result, changed_splits
+
+
+def shrink_to_strip(root, pane_ids, focused_pane):
+    count = len(pane_ids)
+    if count == 1:
+        return
+    if count > MAX_STRIP_PANES:
+        raise ValueError("A four-percent height strip supports at most 25 panes; close panes before shrinking.")
+
+    position = pane_ids.index(focused_pane)
+    neighbor = position + 1 if position + 1 < count else position - 1
+    shares = [1 / count] * count
+    shares[neighbor] += shares[position] - STRIP_HEIGHT_SHARE
+    shares[position] = STRIP_HEIGHT_SHARE
+    heights = dict(zip(pane_ids, shares))
+
+    def stack(node, is_root=False):
+        if any(node.get(key) is not None for key in ("min", "max", "resizable")):
+            raise ValueError(
+                "Custom min/max/resizable constraints prevent a four-percent strip; remove those constraints first."
+            )
+        if not is_root:
+            node_share(node)
+
+        if node["type"] == "block":
+            height = native_f32(heights[node["id"]])
+            if height is None or not math.isfinite(height) or height <= 0:
+                raise ValueError("A pane height is outside the native f32 range; no sizing change was sent.")
+        else:
+            node["type"] = "column"
+            child_heights = [stack(child) for child in node["children"]]
+            height = native_f32_sum(child_heights)
+            if height is None:
+                raise ValueError("Pane heights exceed the native f32 range; no sizing change was sent.")
+
+        if not is_root:
+            node["size"] = {"weight": height}
+        return height
+
+    stack(root, is_root=True)
 
 
 def split_ancestors(node, pane_id):
@@ -390,7 +437,10 @@ def rpc(method, params):
 
 def main(arguments):
     if len(arguments) not in (1, 2):
-        print("Usage: equalize.py CONTEXT [equalize|grow-width|shrink-width|grow-height|shrink-height]", file=sys.stderr)
+        print(
+            "Usage: equalize.py CONTEXT [equalize|grow-width|shrink-width|grow-height|shrink-height|strip-height]",
+            file=sys.stderr,
+        )
         return 1
     try:
         operation = arguments[1] if len(arguments) == 2 else "equalize"

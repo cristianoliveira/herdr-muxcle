@@ -21,7 +21,7 @@ For one capability, substitute its recipe URL below. No custom installer or nati
 | **[Whole pack](packages/pack/RECIPE.md)** (`muxcle-pack`) | **All capabilities**, combined keys, and a ready personal layout | Python 3, `hc`, project roots; select the layout deliberately |
 | [Tmux keys](packages/tmux-keys/RECIPE.md) (`muxcle-tmux-keys`) | Tab, split, focus, and zoom shortcuts | Review and merge selected bindings; no runtime mod |
 | [Rotation](packages/rotation/RECIPE.md) (`muxcle-rotation`) | Rotate terminal panes without changing slot sizes | One mounted host; 3+ panes also need Python 3 and `hc` |
-| [Sizing](packages/sizing/RECIPE.md) (`muxcle-sizing`) | Equalize nested splits or adjust width/height weights | One mounted host, Python 3 and `hc` |
+| [Sizing](packages/sizing/RECIPE.md) (`muxcle-sizing`) | Equalize nested splits, adjust width/height weights, or create a 4% height strip | One mounted host, Python 3 and `hc` |
 | [History](packages/history/RECIPE.md) (`muxcle-history`) | Last-tab/space toggles and optional bounded tab MRU | One mounted observer |
 | [Picker](packages/picker/RECIPE.md) (`muxcle-picker`) | Search existing spaces and tabs by label, machine, and associated agent; optional recency order | Popup mod; History observer only for recency |
 | [Tab tools](packages/tab-tools/RECIPE.md) (`muxcle-tab-tools`) | Move tabs and name one from the focused terminal folder | One mounted host; optional shortcuts |

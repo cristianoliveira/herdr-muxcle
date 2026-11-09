@@ -4,15 +4,17 @@ Use the supplied compiled implementation as your base. Read this recipe and the 
 
 ## Behavior and design
 
-An optional Herdr capability for equalizing split shares and adjusting width/height weights in an ordinary terminal tab. Pane order, IDs, terminal content, focus, other tabs, and unrelated document fields stay unchanged. This is a tmux-inspired proportional layout tool, not tmux cell-based resizing.
+An optional Herdr capability for equalizing split shares, adjusting width/height weights, or creating a focused 4% height strip. Pane order, IDs, terminal content, focus, other tabs, and unrelated document fields stay unchanged. This is a tmux-inspired proportional layout tool, not tmux cell-based resizing.
 
-The design requires exactly one shown, non-focusable command host in the active personal layout. The optional Ctrl-a = shortcut invokes muxcle-sizing.equalize. Commands: muxcle-sizing.help, equalize, grow-width, shrink-width, grow-height, and shrink-height (all with the same muxcle-sizing prefix). These are command names, not installation steps. No resize shortcuts are part of the default snippet. Help opens a readable, closeable native dialog without a snapshot or core operation; Close or Escape returns to the existing pane.
+The design requires exactly one shown, non-focusable command host in the active personal layout. The optional Ctrl-a = shortcut invokes muxcle-sizing.equalize. Commands: muxcle-sizing.help, equalize, grow-width, shrink-width, grow-height, shrink-height, and strip-height (all with the same muxcle-sizing prefix). These are command names, not installation steps. No resize shortcuts are part of the default snippet. Help opens a readable, closeable native dialog without a snapshot or core operation; Close or Escape returns to the existing pane.
 
 Equalize balances flexible sibling shares recursively. Nested groups are balanced independently; this does not promise identical terminal pixel areas across an uneven tree. Already-equal groups remain intact, including their constraints. Changing an unequal group with fixed-pixel, min/max or non-resizable constraints is refused instead of discarding them.
 
 Grow/shrink selects the nearest ancestor row for width or column for height with multiple children. It multiplies only the containing branch's weight by 1.1 to grow or divides by 1.1 to shrink, subject to native rounding/progress limits. Other sibling weights stay unchanged. Other panes within that branch may share its axis change. The entire selected group must be flexible and unconstrained; a constrained nearest split is refused rather than skipped. A single pane, missing axis or unrepresentable/no-progress resize is a no-op.
 
-Only ordinary, unzoomed terminal layouts are supported. Hidden/mod panes, replaced terminal views, ambiguous sizing, and stale identities refuse. Every change uses at most one version-checked document write for the original tab and machine. Conflicts and uncertain acknowledgements are not retried. Repeated sizing commands are ignored while an operation is pending. Navigation or host removal does not cancel an already-started helper; the original tab may still change, but no focus command is issued. Inspect pane shares before repeating an uncertain operation.
+`muxcle-sizing.strip-height` is a separate operation; it does not redefine `shrink-height`. For 2–25 ordinary terminal panes, it converts every split to a vertical stack while preserving container and pane identities and order. Starting from an equal share per pane, the focused pane receives 4% of the tab's weighted height. The freed difference is added to the next pane in tree order, or the previous pane when focus is last; other panes keep their equal shares. Existing child size values are normalized to weights, including fixed-pixel sizes; custom `min`, `max`, or `resizable` constraints on any node refuse the operation. A repeated strip with no layout progress performs no document write.
+
+Equalize and proportional grow/shrink require ordinary, unzoomed terminal layouts. The separate strip-height command also accepts a zoomed tab so the strip can be revealed after resizing. It requests native unzoom only after rechecking that the original pane is still focused and the tab is still zoomed; if focus or zoom changed, it leaves the tab alone. Hidden/mod panes, replaced terminal views, ambiguous sizing, custom strip constraints, and stale identities refuse. Every change uses at most one version-checked document write for the original tab and machine. Conflicts and uncertain acknowledgements are not retried. Repeated sizing commands are ignored while an operation is pending. Navigation or host removal does not cancel an already-started helper; the original tab may still change, but no focus command is issued. Inspect pane shares before repeating an uncertain operation.
 
 Requires Herdr 0.1.13, Python 3 and hc with versioned doc.get/doc.set support on Herdr's PATH. The CLI must address the same core/session as the app; keep HC_SESSION consistent for isolated or custom sessions. No rotation or other Muxcle package, repository checkout, Node.js, Git, project-file access, new terminals, or persistent feature state is required. Recreation must preserve unrelated layouts, settings, bindings, and runtime state.
 
@@ -53,7 +55,7 @@ Optionally merge `ctrl-a =` → `muxcle-sizing.equalize` from `keys.json` into t
 
 ### Commands
 
-Focus an ordinary, unzoomed terminal pane and mount the command host. Choose one command below; wait for its result before invoking another:
+Focus an ordinary terminal pane and mount the command host. Equalize and grow/shrink require the tab to be unzoomed; `strip-height` can start zoomed and only requests unzoom after rechecking focus. Choose one command below; wait for its result before invoking another:
 
 ```sh
 herdr-app do muxcle-sizing.help
@@ -62,19 +64,20 @@ herdr-app do muxcle-sizing.grow-width
 herdr-app do muxcle-sizing.shrink-width
 herdr-app do muxcle-sizing.grow-height
 herdr-app do muxcle-sizing.shrink-height
+herdr-app do muxcle-sizing.strip-height
 ```
 
 `help` opens a readable native dialog without changing layout or reading core state. Use Close or Escape to dismiss it and return to the existing pane. The CLI confirms delivery, not asynchronous write completion; check Herdr's result before issuing another sizing command. `equalize` gives each nested row/column equal flexible sibling shares. This balances groups, not terminal pixel areas across an uneven tree.
 
 Grow/shrink finds the nearest ancestor split on the requested axis: a row for width, a column for height. Only the weight of its child branch containing the focused pane changes. Grow multiplies that weight by `1.1`; Shrink divides it by `1.1`, subject to native numeric rounding. Other sibling weights stay unchanged. This is a reciprocal proportional step, not a 10-percentage-point allocation change or cell/pixel-based tmux resize.
 
-In a nested grid, resizing may change the width or height of other panes in the same branch. For two equal siblings, one grow step changes weights from `[1, 1]` to `[1.1, 1]`, not allocations from 50/50 to 60/40. Pane IDs, order, terminal content, focus, container metadata, other tabs, and unrelated document fields are preserved. No new resize shortcuts are installed; review conflicts before binding these command names yourself.
+In a nested grid, resizing may change the width or height of other panes in the same branch. For two equal siblings, one grow step changes weights from `[1, 1]` to `[1.1, 1]`, not allocations from 50/50 to 60/40. Pane IDs, order, terminal content, focus, container metadata, other tabs, and unrelated document fields are preserved. No new resize shortcuts are installed; review conflicts before binding these command names yourself. `strip-height` is bounded to 25 panes and intentionally changes the tab to a vertical stack; it is not a pixel-exact 4% display guarantee.
 
 ### Limits
 
-A single pane, a missing split axis, and a resize beyond native numeric/progress limits change nothing. Equalize also leaves already-equal groups intact, including their existing constraints. If balancing an unequal group would change fixed-pixel sizes, min/max constraints or a non-resizable node, the whole operation is refused rather than discarding constraints.
+A single pane, a missing split axis, and a resize beyond native numeric/progress limits change nothing. `strip-height` is limited to 25 panes; custom `min`, `max`, or `resizable` constraints refuse before writing. Existing child pixel/weight sizes are replaced by weighted strip shares. Equalize also leaves already-equal groups intact, including their existing constraints. If balancing an unequal group would change fixed-pixel sizes, min/max constraints or a non-resizable node, the whole operation is refused rather than discarding constraints.
 
-Grow/shrink requires the entire selected sibling group to be flexible and unconstrained. A constrained nearest split is refused; the command does not jump to a more distant ancestor. Ambiguous sizing in affected groups, hidden or unsupported trees, mod panes, zoomed/replaced terminals, and inconsistent snapshots are also refused. Trees are bounded to 64 panes, 32 nested levels and 512 nodes; the core document must fit its 1 MiB limit.
+Grow/shrink requires the entire selected sibling group to be flexible and unconstrained. A constrained nearest split is refused; the command does not jump to a more distant ancestor. Ambiguous sizing in affected groups, hidden or unsupported trees, mod panes, zoomed/replaced terminals for equalize/grow/shrink, and inconsistent snapshots are also refused. Trees are bounded to 64 panes, 32 nested levels and 512 nodes; the core document must fit its 1 MiB limit.
 
 The helper validates the original tab's pane order and terminal identities, then makes at most one version-checked write. Conflicts are not retried. Repeated sizing commands are ignored while an update is pending. A timeout or lost acknowledgement can leave the write outcome uncertain: inspect pane shares before repeating.
 

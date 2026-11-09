@@ -10,6 +10,7 @@ import {
   openOverlay,
   panes,
   props,
+  run,
   spaces,
   theme,
 } from "herdr";
@@ -47,6 +48,7 @@ export default class MuxcleSizing extends View {
       },
       document: (context, operation) =>
         executeDocumentEqualization(exec, `${appHome().replace(/[\\/]+$/, "")}/mods/${MOD_NAME}`, context, operation),
+      run: (command, args) => run(command, args),
       notice: (message, level) => notify({ title: "Pane sizing", body: message, level }),
       openHelp: () =>
         openOverlay({
@@ -148,6 +150,11 @@ export default class MuxcleSizing extends View {
       )
       .child(
         div()
+          .text_color(palette.foreground)
+          .child("muxcle-sizing.strip-height — stack panes vertically and make the focused pane 4% height."),
+      )
+      .child(
+        div()
           .text_color(palette.dim)
           .child(
             "Grow multiplies only that branch's weight by 1.1; shrink divides by 1.1. This reciprocal step changes proportional weights, not a fixed percentage of screen area. For equal siblings, one grow step changes [1, 1] to [1.1, 1].",
@@ -157,7 +164,7 @@ export default class MuxcleSizing extends View {
         div()
           .text_color(palette.dim)
           .child(
-            "Use ordinary, unzoomed terminal panes. Fixed or constrained sizing, mod/replaced panes, and unsupported layouts are refused. Equalize balances flexible groups, not pixel area across an uneven nested tree.",
+            "Equalize and proportional resizing require ordinary, unzoomed terminal panes. The separate strip-height command supports at most 25 ordinary terminal panes and refuses custom min/max/resizable constraints. If the tab was zoomed, it requests unzoom only after rechecking that the same pane remains focused and the tab remains zoomed.",
           ),
       )
       .child(div().font_semibold().text_color(palette.foreground).child("Requirements"))

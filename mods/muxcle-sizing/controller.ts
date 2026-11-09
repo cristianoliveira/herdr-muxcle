@@ -1,23 +1,16 @@
 import {
+  canUnzoomStrip,
   isSizingOperation,
   sizingPlan,
   type DocumentSizingContext,
-  type SizingFocus,
   type SizingOperation,
-  type SizingPane,
-  type SizingTab,
+  type SizingSnapshot,
 } from "./model.js";
-
-export interface SizingSnapshot {
-  focus: SizingFocus | null;
-  tab: SizingTab | undefined;
-  panes: readonly SizingPane[];
-  machine: string | null;
-}
 
 export interface SizingAdapter {
   snapshot(): SizingSnapshot;
   document(context: DocumentSizingContext, operation: SizingOperation): Promise<string>;
+  run(command: string, args: Record<string, unknown>): void;
   notice(message: string, level: "info" | "error"): void;
   openHelp(): void;
 }
@@ -43,7 +36,7 @@ export class SizingController {
     this.busy = true;
     try {
       const snapshot = this.adapter.snapshot();
-      const plan = sizingPlan(snapshot.focus, snapshot.tab, snapshot.panes, snapshot.machine);
+      const plan = sizingPlan(snapshot.focus, snapshot.tab, snapshot.panes, snapshot.machine, operation);
       if (plan.kind === "noop") return false;
       if (plan.kind === "unsupported") {
         this.adapter.notice(plan.message, "info");
@@ -51,7 +44,20 @@ export class SizingController {
       }
 
       const result = parseResult(await this.adapter.document(plan.context, operation), operation);
-      if (!result.changed) return false;
+      let unzoomRequested = false;
+      if (operation === "strip-height" && snapshot.tab?.zoomed && !this.closed) {
+        const current = this.adapter.snapshot();
+        if (canUnzoomStrip(snapshot, current)) {
+          this.adapter.run("pane.zoom", { pane: snapshot.focus?.pane ?? "" });
+          unzoomRequested = true;
+        }
+      }
+      if (!result.changed) {
+        if (unzoomRequested && !this.closed) {
+          this.adapter.notice("Requested unzoom to reveal the already-sized 4% strip.", "info");
+        }
+        return unzoomRequested;
+      }
       if (!this.closed) this.adapter.notice(successMessage(operation, result.splits), "info");
       return true;
     } catch (error) {
@@ -71,6 +77,7 @@ export class SizingController {
 }
 
 function successMessage(operation: SizingOperation, splits: number): string {
+  if (operation === "strip-height") return "Created a 4% height strip.";
   if (operation === "equalize") {
     const splitLabel = splits === 1 ? "split" : "splits";
     return `Equalized ${splits} ${splitLabel}.`;

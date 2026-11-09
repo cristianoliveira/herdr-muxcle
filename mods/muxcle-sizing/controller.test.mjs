@@ -10,11 +10,12 @@ const panes = [
 const tab = { id: "tab", panes: 2, zoomed: false };
 
 function harness(overrides = {}) {
-  const calls = { docs: [], operations: [], notices: [], helpViews: 0, snapshots: 0 };
+  const calls = { docs: [], operations: [], notices: [], commands: [], helpViews: 0, snapshots: 0 };
+  const snapshots = [...(overrides.snapshots ?? [])];
   const adapter = {
     snapshot: () => {
       calls.snapshots += 1;
-      return overrides.snapshot ?? { focus, tab, panes, machine: null };
+      return snapshots.shift() ?? overrides.snapshot ?? { focus, tab, panes, machine: null };
     },
     document: async (context, operation) => {
       calls.docs.push(context);
@@ -22,6 +23,7 @@ function harness(overrides = {}) {
       return overrides.document ? overrides.document(context) : '{"changed":true,"splits":1}';
     },
     notice: (message, level) => calls.notices.push({ message, level }),
+    run: (command, args) => calls.commands.push({ command, args }),
     openHelp: () => {
       calls.helpViews += 1;
     },
@@ -53,6 +55,83 @@ test("dispatches named resize commands and reports the requested axis", async ()
   assert.equal(await value.controller.execute("grow-width"), true);
   assert.deepEqual(value.calls.operations, ["grow-width"]);
   assert.deepEqual(value.calls.notices, [{ message: "Grew pane width.", level: "info" }]);
+});
+
+test("strip-height dispatches a distinct command and reports the fixed-weight target", async () => {
+  const value = harness();
+
+  assert.equal(await value.controller.execute("strip-height"), true);
+  assert.deepEqual(value.calls.operations, ["strip-height"]);
+  assert.deepEqual(value.calls.notices, [{ message: "Created a 4% height strip.", level: "info" }]);
+});
+
+test("strip-height unzooms only when its originally zoomed tab and focus remain unchanged", async () => {
+  const before = {
+    focus: { ...focus, shown: null },
+    tab: { ...tab, zoomed: true },
+    panes: panes.map((pane) => ({ ...pane, zoomed: pane.pane === "a" })),
+    machine: null,
+  };
+  const unchanged = harness({ snapshots: [before, before], document: async () => '{"changed":false,"splits":0}' });
+
+  assert.equal(await unchanged.controller.execute("strip-height"), true);
+  assert.deepEqual(unchanged.calls.commands, [{ command: "pane.zoom", args: { pane: "a" } }]);
+
+  const changedFocus = harness({ snapshots: [before, { ...before, focus: { ...focus, pane: "b" } }] });
+  await changedFocus.controller.execute("strip-height");
+  assert.deepEqual(changedFocus.calls.commands, []);
+
+  const userUnzoomed = harness({ snapshots: [before, { ...before, tab: { ...tab, zoomed: false } }] });
+  await userUnzoomed.controller.execute("strip-height");
+  assert.deepEqual(userUnzoomed.calls.commands, []);
+});
+
+test("strip-height refuses more than 25 panes before starting the helper", async () => {
+  const oversized = Array.from({ length: 26 }, (_, index) => ({
+    pane: `p${index}`,
+    terminal: `t${index}`,
+    tab: "tab",
+    zoomed: false,
+  }));
+  const value = harness({
+    snapshot: {
+      focus: { space: "space", tab: "tab", pane: "p0", terminal: "t0", shown: null },
+      tab: { id: "tab", panes: 26, zoomed: false },
+      panes: oversized,
+      machine: null,
+    },
+  });
+
+  assert.equal(await value.controller.execute("strip-height"), false);
+  assert.deepEqual(value.calls.docs, []);
+  assert.match(value.calls.notices[0].message, /at most 25 panes/);
+});
+
+test("strip-height does not undo a zoom created during sizing or after unmount", async () => {
+  const ordinary = { focus, tab, panes, machine: null };
+  const zoomed = { focus, tab: { ...tab, zoomed: true }, panes, machine: null };
+  const newlyZoomed = harness({ snapshots: [ordinary, zoomed] });
+
+  await newlyZoomed.controller.execute("strip-height");
+  assert.deepEqual(newlyZoomed.calls.commands, []);
+
+  let resolveDocument;
+  const pending = new Promise((resolve) => {
+    resolveDocument = resolve;
+  });
+  const before = {
+    focus,
+    tab: { ...tab, zoomed: true },
+    panes: panes.map((pane) => ({ ...pane, zoomed: pane.pane === "a" })),
+    machine: null,
+  };
+  const unmounted = harness({ snapshots: [before, before], document: () => pending });
+  const operation = unmounted.controller.execute("strip-height");
+  unmounted.controller.dispose();
+  resolveDocument('{"changed":true,"splits":1}');
+  await operation;
+
+  assert.deepEqual(unmounted.calls.commands, []);
 });
 
 test("rejects a resize result claiming more than one changed split", async () => {

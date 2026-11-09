@@ -176,7 +176,7 @@ const sizingPackage = {
   name: "muxcle-sizing",
   release: {
     title: "Pane sizing",
-    summary: "Equalize and resize flexible pane groups using one command-host block.",
+    summary: "Equalize and resize flexible pane groups, including a 4% height strip, using one command-host block.",
     installationPath: "packages/sizing/RECIPE.md",
   },
   files: [

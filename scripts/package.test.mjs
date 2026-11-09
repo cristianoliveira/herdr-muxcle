@@ -354,7 +354,7 @@ test("sizing archive is independent, reproducible, and protects existing install
   }
 });
 
-test("packaged sizing helper scopes equalize and reciprocal resize writes through a fake core", async () => {
+test("packaged sizing helper scopes equalize, reciprocal resize, and strip writes through a fake core", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "muxcle-sizing-protocol-"));
   try {
     const info = await createSizingPackage({ repositoryRoot, outputDirectory: temporary });
@@ -476,6 +476,19 @@ for line in sys.stdin:
     await writeFile(stateFile, JSON.stringify(vertical));
     await verifyResize("grow-height", 1.1);
     await verifyResize("shrink-height", 1);
+
+    const strip = execute("strip-height");
+    assert.equal(strip.status, 0, strip.stderr);
+    assert.deepEqual(JSON.parse(strip.stdout), { changed: true, splits: 1 });
+    const stripRoot = JSON.parse(await readFile(stateFile, "utf8")).value.spaces[0].tabs[0].root;
+    assert.equal(stripRoot.type, "column");
+    assert.ok(Math.abs(stripRoot.children[0].size.weight - 0.04) < 1e-6);
+    assert.ok(Math.abs(stripRoot.children[1].size.weight - 0.96) < 1e-6);
+
+    const repeatedStrip = execute("strip-height");
+    assert.equal(repeatedStrip.status, 0, repeatedStrip.stderr);
+    assert.deepEqual(JSON.parse(repeatedStrip.stdout), { changed: false, splits: 0 });
+
     const missingAxis = execute("grow-width");
     assert.equal(missingAxis.status, 0, missingAxis.stderr);
     assert.deepEqual(JSON.parse(missingAxis.stdout), { changed: false, splits: 0 });
@@ -488,7 +501,7 @@ for line in sys.stdin:
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line));
-    assert.equal(requests.filter((request) => request.method === "doc.set").length, 5);
+    assert.equal(requests.filter((request) => request.method === "doc.set").length, 6);
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

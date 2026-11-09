@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isSizingOperation, sizingPlan } from "../../.build/mods/muxcle-sizing/model.js";
+import { canUnzoomStrip, isSizingOperation, sizingPlan } from "../../.build/mods/muxcle-sizing/model.js";
 
 const panes = [
   { pane: "a", terminal: "ta", tab: "tab", zoomed: false },
@@ -11,10 +11,61 @@ const focus = (pane = "a") => ({ space: "space", tab: "tab", pane, terminal: `t$
 const tab = { id: "tab", panes: 3, zoomed: false };
 
 test("whitelists the named pane sizing commands", () => {
-  for (const operation of ["equalize", "grow-width", "shrink-width", "grow-height", "shrink-height"]) {
+  for (const operation of ["equalize", "grow-width", "shrink-width", "grow-height", "shrink-height", "strip-height"]) {
     assert.equal(isSizingOperation(operation), true);
   }
   assert.equal(isSizingOperation("resize-diagonal"), false);
+});
+
+test("strip-height permits zoomed panes and refuses tabs above its 25-pane limit", () => {
+  const zoomedPanes = panes.map((pane) => ({ ...pane, zoomed: true }));
+
+  assert.equal(sizingPlan(focus(), { ...tab, zoomed: true }, zoomedPanes).kind, "unsupported");
+  assert.equal(sizingPlan(focus(), { ...tab, zoomed: true }, zoomedPanes, null, "strip-height").kind, "document");
+
+  const oversized = Array.from({ length: 26 }, (_, index) => ({
+    ...panes[0],
+    pane: `p${index}`,
+    terminal: `t${index}`,
+  }));
+  const oversizedFocus = { ...focus(), pane: "p0", terminal: "t0" };
+  const plan = sizingPlan(oversizedFocus, { ...tab, panes: 26 }, oversized, null, "strip-height");
+
+  assert.equal(plan.kind, "unsupported");
+  assert.match(plan.message, /25 panes/);
+});
+
+test("strip-height unzooms only when the original pane and zoomed tab remain selected", () => {
+  const before = {
+    focus: { ...focus("a"), shown: null },
+    tab: { ...tab, zoomed: true },
+    panes: panes.map((pane) => ({ ...pane, zoomed: pane.pane === "a" })),
+    machine: null,
+  };
+
+  assert.equal(canUnzoomStrip(before, before), true);
+  assert.equal(canUnzoomStrip(before, { ...before, tab: { ...tab, zoomed: false } }), false);
+  assert.equal(canUnzoomStrip(before, { ...before, focus: focus("c") }), false);
+  assert.equal(canUnzoomStrip(before, { ...before, focus: { ...before.focus, terminal: "changed" } }), false);
+  assert.equal(canUnzoomStrip(before, { ...before, focus: { ...before.focus, shown: "replacement" } }), false);
+  assert.equal(canUnzoomStrip(before, { ...before, panes: panes.filter((pane) => pane.pane !== "a") }), false);
+  assert.equal(
+    canUnzoomStrip(before, { ...before, panes: panes.map((pane) => ({ ...pane, zoomed: pane.pane === "b" })) }),
+    false,
+  );
+  assert.equal(
+    canUnzoomStrip(before, {
+      ...before,
+      panes: before.panes.map((pane) => ({ ...pane, zoomed: pane.pane === "c" })),
+    }),
+    false,
+  );
+  assert.equal(canUnzoomStrip(before, { ...before, machine: "remote" }), false);
+  const initiallyZoomedElsewhere = {
+    ...before,
+    panes: panes.map((pane) => ({ ...pane, zoomed: pane.pane === "b" })),
+  };
+  assert.equal(canUnzoomStrip(initiallyZoomedElsewhere, initiallyZoomedElsewhere), false);
 });
 
 test("a single ordinary pane is a no-op", () => {

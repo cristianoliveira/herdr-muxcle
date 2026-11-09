@@ -41,6 +41,18 @@ test("passes named sizing operations after the context argument", async () => {
   ]);
 });
 
+test("passes the strip-height command as a separate helper operation", async () => {
+  const calls = [];
+  const execute = async (...args) => {
+    calls.push(args);
+    return { code: 0, stdout: '{"changed":true,"splits":1}', stderr: "" };
+  };
+
+  await executeDocumentEqualization(execute, "/mod", context, "strip-height");
+
+  assert.deepEqual(calls[0][1], ["-I", "-B", "equalize.py", JSON.stringify(context), "strip-height"]);
+});
+
 test("rejects unsupported operations before starting a process", async () => {
   let called = false;
   await assert.rejects(

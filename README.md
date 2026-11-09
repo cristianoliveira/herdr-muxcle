@@ -2,7 +2,7 @@
 
 You left tmux. Your fingers didn't.
 
-Bring familiar tmux workflows to Herdr as optional, independently installable capabilities. Reuse native Herdr commands where possible; keep your existing setup.
+Bring familiar tmux workflows to Herdr. Choose individual capabilities, or take the whole pack and manage it in your dotfiles. Reuse native Herdr commands where possible; keep control of your setup.
 
 ## Start here
 
@@ -16,6 +16,7 @@ Install from a published [GitHub Release](https://github.com/cristianoliveira/he
 
 | Package | What it adds |
 | --- | --- |
+| **`muxcle-pack`** | **All capabilities**, combined keys, and a ready personal layout for your dotfiles |
 | `muxcle-tmux-keys` | Selected tmux-inspired tab, split, focus, and zoom shortcuts |
 | `muxcle-rotation` | Rotate terminal panes without changing slot sizes |
 | `muxcle-sizing` | Equalize nested splits or adjust width/height weights |
@@ -24,7 +25,7 @@ Install from a published [GitHub Release](https://github.com/cristianoliveira/he
 | `muxcle-sessionizer` | Find configured project folders and open or reuse local spaces |
 | `herdr-muxcle` | Optional starter layout and static status row—not an all-in-one bundle |
 
-Start with **Tmux keys** if you only want shortcuts. No capability requires the scaffold or the other packages. History, Rotation, and Sizing need a block mounted in a personal layout; copying their mod folders alone does not activate them. The [installation guide](INSTALLATION.md) explains each setup before you download.
+Choose the **[whole pack](packages/pack/INSTALLATION.md)** if you want one versioned tree to vendor, customize, and replace yourself. It does not install or activate anything automatically. Start with **Tmux keys** if you only want shortcuts. Individual capabilities do not require the scaffold or other packages. History, Rotation, and Sizing need a block mounted in a personal layout; copying their mod folders alone does not activate them. The [installation guide](INSTALLATION.md) explains each setup before you download.
 
 Released archives include compiled runtime files, a recipe, installation instructions, and a SHA-256 checksum. End users do not need Git, Node.js, npm, TypeScript, or a repository clone. Review keys and layout changes; never replace a complete personal key map or app home.
 

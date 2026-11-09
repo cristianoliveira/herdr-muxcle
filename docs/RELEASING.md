@@ -6,11 +6,11 @@ This guide is for maintainers. Installing a capability? Use [Installation](../IN
 
 ## What ships
 
-One shared stable `X.Y.Z` version from `package.json` produces **seven independent archives and seven SHA-256 files**. This process currently supports stable tags such as `v0.1.0`, not prerelease tags. `private: true` is intentional: these are native Herdr packages, not npm publications.
+One shared stable `X.Y.Z` version from `package.json` produces **eight optional archives and eight SHA-256 files**. This process currently supports stable tags such as `v0.1.0`, not prerelease tags. `private: true` is intentional: these are native Herdr packages, not npm publications.
 
 The package catalog in `scripts/package.mjs` drives both archive construction and the release plan. Do not maintain a separate hand-written release asset list. Each archive includes `RECIPE.md` and root `INSTALLATION.md`; the scaffold also keeps its previous `docs/INSTALLATION.md` path.
 
-`herdr-muxcle` is only the optional scaffold. It does not contain the other six capabilities.
+`muxcle-pack` is the optional complete distribution for user-managed dotfiles. The seven individual packages remain available. `herdr-muxcle` is only the original scaffold, not the complete pack.
 
 ## 1. Prepare a version
 
@@ -88,11 +88,11 @@ gh release view "$TAG" --repo cristianoliveira/herdr-muxcle
 Check:
 
 - The tag points to the intended commit and matches the version.
-- All seven archive/checksum pairs are attached; no developer files are included.
+- All eight archive/checksum pairs are attached; no developer files are included.
 - Each archive has readable standalone installation instructions and a recipe.
 - Download, checksum, and tagged guide links use this release version.
 - Notes describe changed behavior, prerequisites, compatibility limits, and any validation gaps. Add a short human summary of changes; generated installation notes are not a changelog.
-- The scaffold is described as optional, not as an all-in-one install.
+- The complete `muxcle-pack` and optional `herdr-muxcle` scaffold are clearly distinguished. No notes imply automatic installation or replacement of personal files.
 
 Do not announce draft download links as publicly available. Readers without repository access may not see drafts or their assets.
 

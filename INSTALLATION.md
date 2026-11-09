@@ -1,6 +1,6 @@
 # Install Muxcle capabilities
 
-**Choose one capability, download its archive, then follow its included `INSTALLATION.md`.** Packages are independent. Start with **Tmux keys** if you only want familiar shortcuts.
+**Choose the whole pack or one capability, download its archive, then follow its included `INSTALLATION.md`.** Use the **[whole pack](packages/pack/INSTALLATION.md)** to manage everything in your dotfiles. Individual packages remain independent; start with **Tmux keys** if you only want familiar shortcuts.
 
 You need Herdr, not a development environment. Released packages contain ready-to-use JavaScript and native files: no Git, repository clone, Node.js, npm, or TypeScript is required. Installation is agent-assisted or manual; no automatic installer replaces your configuration.
 
@@ -10,6 +10,7 @@ All packages are tested with **Herdr 0.1.13**. This is a tested version, not a p
 
 | I want… | Archive name before the version | Additional setup | Full guide |
 | --- | --- | --- | --- |
+| Everything in my own dotfiles | **`muxcle-pack`** | Combined keys, compiled mods and a ready personal layout; Python 3, `hc`, project roots | [Whole pack](packages/pack/INSTALLATION.md) |
 | Tmux-inspired shortcuts | `muxcle-tmux-keys` | Review and merge selected keys; no mod or layout | [Tmux keys](packages/tmux-keys/INSTALLATION.md) |
 | Search existing spaces and tabs | `muxcle-picker` | Install a popup mod; optional shortcut | [Picker](packages/picker/INSTALLATION.md) |
 | Open a project folder as a space | `muxcle-sessionizer` | Popup mod, Python 3, configured project roots | [Sessionizer](packages/sessionizer/INSTALLATION.md) |
@@ -18,13 +19,13 @@ All packages are tested with **Herdr 0.1.13**. This is a tested version, not a p
 | Equalize or resize splits | `muxcle-sizing` | Mod, one command host, Python 3 and `hc` | [Sizing](packages/sizing/INSTALLATION.md) |
 | A starter window layout | `herdr-muxcle` | Select the optional scaffold layout after installation | [Scaffold](docs/INSTALLATION.md) |
 
-**`herdr-muxcle` is not an all-in-one bundle.** It supplies a starter layout and static status row, not the other capabilities. None of the packages requires it, and none requires Tmux keys.
+**The complete archive is `muxcle-pack`, not `herdr-muxcle`.** The older `herdr-muxcle` archive supplies only a starter layout and static status row. Individual capabilities do not require it or Tmux keys; the whole pack already includes all components.
 
 ### What “additional setup” means
 
-- **Keys:** `keys.json` is a snippet to merge, never a replacement for your full key map. A package's Ctrl-a sequences do not depend on a separate prefix mod.
+- **Keys:** individual packages ship snippets to review and merge. The whole pack combines them into one Muxcle-only preset: you can adopt it as your owned `keys.json` deliberately, or merge it with existing bindings. Nothing replaces a personal key map automatically. Ctrl-a sequences do not depend on a separate prefix mod.
 - **Popup:** copy the mod, check it, then open it through Herdr. No custom layout is required for Picker or Sessionizer.
-- **Observer / command host:** History, Rotation, and Sizing need one small block from `observer.json` or `host.json` mounted in your personal layout. **Copying the mod alone is not enough.** The block must remain shown for tracking or command delivery; opening a temporary popup is not a substitute.
+- **Observer / command host:** History, Rotation, and Sizing need one small block from `observer.json` or `host.json` mounted in your personal layout. **Copying the mod alone is not enough.** The whole pack's `muxcle-pack` layout already composes these blocks. They must remain shown for tracking or command delivery; opening a temporary popup is not a substitute.
 - **Python / core:** helpers must be on Herdr's `PATH`, not only your terminal's. `hc` is Herdr's core CLI and must reach the same core/session as the app. Keep `HC_SESSION` consistent when using a custom session.
 
 Do not edit shipped layouts: Herdr can replace them on startup. Adapt an existing personal layout, or ask before creating and selecting a personal copy.
@@ -58,11 +59,13 @@ Keep the printed folder until installation is complete. Its `RECIPE.md` explains
 
 ## 3. Install only what you chose
 
+**Managing the whole pack yourself?** Follow its [dotfiles guide](packages/pack/INSTALLATION.md): vendor the extracted tree, deploy selected static files through your manager, and review replacements in your own commits. Keep state and caches outside the pack. The agent-assisted path below is optional.
+
 ### With your Herdr agent
 
 Give your agent the **printed absolute package-folder path** and this request. If you want the agent to handle downloading too, give it the package name and published tag instead: ask it to fetch the archive and checksum from this project's release, verify before extracting, and stop if that release is unavailable—not clone or build the repository by default.
 
-> Read `RECIPE.md`, `INSTALLATION.md`, and the files in this verified package folder. Explain the required changes, then install only this capability into my intended Herdr app home. Preserve unrelated mods, settings, layouts, keys, and runtime state. Run the included destination preflight where present. Ask before replacing files or bindings, creating or selecting a personal layout, or changing project roots. If a host or observer is required, mount exactly one in the intended personal layout. Do not install the scaffold or other packages unless I ask. Confirm activation separately from copying files; do not run terminal-changing commands without my confirmation.
+> Read `RECIPE.md`, `INSTALLATION.md`, and the files in this verified package folder. Explain the required changes, then install only my selected package into my intended Herdr app home. Preserve unrelated mods, settings, layouts, keys, and runtime state. Run the included destination preflight where present. Ask before replacing files or bindings, creating or selecting a personal layout, or changing project roots. If a host or observer is required, mount exactly one in the intended personal layout. Do not add packages beyond my selection; if I selected the whole pack, explain its included components. Confirm activation separately from copying files; do not run terminal-changing commands without my confirmation.
 
 Herdr mods are trusted code, not sandboxed extensions. Review the package and changes even when an agent performs the installation.
 
@@ -78,6 +81,7 @@ Confirm your app home before changing files. Guides default to `${HERDR_APP_HOME
 
 Use the package's guide to finish setup and try its documented behavior with harmless terminals:
 
+- **Whole pack:** configure your project roots, deploy your chosen keymap, then deliberately select `muxcle-pack` or adapt your personal layout. Do not mount duplicate hosts.
 - **Keys:** review higher-priority terminal/layout bindings, then try a selected shortcut.
 - **Picker:** open `mod.open:muxcle-picker` in the intended running app.
 - **Sessionizer:** configure roots, then open `mod.open:muxcle-sessionizer`.

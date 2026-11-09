@@ -22,7 +22,7 @@ make gate          # canonical typecheck/build/test gate
 make herdr-check   # package, install into a temporary app home, preserve settings, native-check
 make e2e-help      # prerequisites and coverage of opt-in native IPC scenarios
 make e2e           # real isolated macOS app/core, PTY geometry, focus, screenshots
-make package       # build each optional capability archive with SHA-256
+make package       # build individual archives plus the whole pack, with SHA-256
 make release-plan  # preview versioned package downloads and installation notes; no publication
 make release-check # release CI checks plus isolated native check
 make release-ci    # checks available on the hosted release runner
@@ -49,7 +49,7 @@ Hooks invoke the gate before commit and push. The commit-msg hook enforces `type
 - `make format`: formatting is manual until a formatter is selected.
 - `make coverage`: build and report Node test coverage; not a threshold or gate.
 - `make security`: run `npm audit` against the lockfile, including development tools. This is network-dependent and intentionally outside the normal gate.
-- `make package`: create separate precompiled archives and checksums for each optional capability listed in README; does not install or merge packages.
+- `make package`: create precompiled individual archives plus the optional whole-pack archive, with checksums; does not install files, merge personal configuration, or activate a layout.
 - `make herdr-check`: unpack into a clean temporary app home, preserve a sentinel settings file, and ask Herdr to load the packaged mod. This checks initial mod loading only, not layout activation or interactive behavior.
 - `make e2e`: run packaged capabilities through a copied native app and a private core on macOS. Check sizing, rotation, history, Help visibility, and popup/discovery smoke behavior. Requires a GUI login and `swiftc` for offline screenshot text checks. Opens a separate test window; never sends keyboard/mouse events. See [native E2E coverage and explicit gaps](tests/e2e/README.md). The normal gate runs only mocked harness/oracle unit tests, not this suite.
 - `make release-plan`: preview the shared package catalog's versioned download links and installation notes; does not build, publish, create tags, or contact GitHub.

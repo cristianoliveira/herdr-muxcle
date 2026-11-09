@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { lstat, mkdtemp, mkdir, readFile, readdir, rm, symlink, utimes, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdtemp, mkdir, readFile, readdir, rm, symlink, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +12,7 @@ import {
   createPickerPackage,
   createHistoryPackage,
   createRotationPackage,
+  createSizingPackage,
   createSessionizerPackage,
   createTmuxKeysPackage,
   verifyPackage,
@@ -145,6 +146,236 @@ test("history archive is independent, reproducible, and scopes installation to i
     await rm(target, { recursive: true });
     await symlink(join(temporary, "missing"), target);
     assert.notEqual(check(), 0);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("sizing archive is independent, reproducible, and protects existing installation state", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-sizing-package-"));
+  try {
+    const info = await createSizingPackage({ repositoryRoot, outputDirectory: temporary });
+    const verified = verifyPackage({ outputDirectory: temporary, version: info.version, packageName: "muxcle-sizing" });
+    assert.deepEqual(
+      verified.files,
+      [
+        "INSTALLATION.md",
+        "RECIPE.md",
+        "check-install-targets.sh",
+        "keys.json",
+        "host.json",
+        "manifest.json",
+        "mods/muxcle-sizing/main.js",
+        "mods/muxcle-sizing/model.js",
+        "mods/muxcle-sizing/controller.js",
+        "mods/muxcle-sizing/adapter.js",
+        "mods/muxcle-sizing/equalize.py",
+        "mods/muxcle-sizing/mod.json",
+        "mods/muxcle-sizing/package-owner.json",
+      ].sort(),
+    );
+    const original = await readFile(info.archivePath);
+    await changeTimes(info.bundleDirectory, 1);
+    const repeated = join(temporary, "repeat.tar.gz");
+    await createDeterministicArchive({
+      packageDirectory: info.bundleDirectory,
+      archivePath: repeated,
+      packageName: "muxcle-sizing",
+    });
+    assert.deepEqual(await readFile(repeated), original);
+
+    const appHome = join(temporary, "home");
+    const target = join(appHome, "mods/muxcle-sizing");
+    const checker = join(info.bundleDirectory, "check-install-targets.sh");
+    const check = (mode = []) => spawnSync("sh", [checker, ...mode, appHome]).status;
+    assert.equal(check(), 0);
+    await mkdir(target, { recursive: true });
+    await writeFile(join(appHome, "settings.json"), '{"unrelated":true}\n');
+    assert.notEqual(check(), 0);
+    assert.notEqual(check(["--update"]), 0);
+    await writeFile(
+      join(target, "package-owner.json"),
+      await readFile(join(info.bundleDirectory, "mods/muxcle-sizing/package-owner.json")),
+    );
+    assert.equal(check(["--update"]), 0);
+    assert.equal(check(["--remove"]), 0);
+    assert.equal(await readFile(join(appHome, "settings.json"), "utf8"), '{"unrelated":true}\n');
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("packaged sizing helper equalizes through a fake core once and preserves unrelated data", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-sizing-protocol-"));
+  try {
+    const info = await createSizingPackage({ repositoryRoot, outputDirectory: temporary });
+    const stateFile = join(temporary, "state.json");
+    const requestsFile = join(temporary, "requests.jsonl");
+    const value = {
+      spaces: [
+        {
+          id: "s",
+          tabs: [
+            {
+              id: "t",
+              root: {
+                id: "root",
+                type: "row",
+                size: { weight: 5 },
+                children: [
+                  { id: "a", type: "block", size: { weight: 1 }, content: { terminal: "ta" } },
+                  { id: "b", type: "block", size: { weight: 3 }, content: { terminal: "tb" } },
+                ],
+              },
+            },
+            { id: "other", metadata: "keep" },
+          ],
+        },
+      ],
+      unrelated: { keep: [1, 2] },
+    };
+    await writeFile(stateFile, JSON.stringify({ value, version: 8 }));
+    const fakeCore = join(temporary, "hc");
+    await writeFile(
+      fakeCore,
+      `#!/usr/bin/env python3
+import json, os, sys
+from pathlib import Path
+state_file = Path(os.environ["MOCK_DOCUMENT"])
+for line in sys.stdin:
+    request = json.loads(line)
+    with open(os.environ["MOCK_REQUESTS"], "a") as log:
+        log.write(json.dumps(request) + "\\n")
+    state = json.loads(state_file.read_text())
+    if request["method"] == "hello":
+        result = {}
+    else:
+        assert request["params"]["name"] == "herdr-app"
+        assert request["params"]["on"] == "remote"
+        if request["method"] == "doc.get":
+            result = state
+        else:
+            assert request["method"] == "doc.set"
+            assert request["params"]["version"] == state["version"]
+            state = {"value": request["params"]["value"], "version": state["version"] + 1}
+            state_file.write_text(json.dumps(state))
+            result = {"version": state["version"]}
+    print(json.dumps({"id": request["id"], "result": result}))
+`,
+    );
+    await chmod(fakeCore, 0o700);
+    const context = {
+      space: "remote/s",
+      tab: "remote/t",
+      pane: "remote/a",
+      panes: ["remote/a", "remote/b"],
+      terminals: ["remote/ta", "remote/tb"],
+      machine: "remote",
+    };
+    const execute = () =>
+      spawnSync(
+        "python3",
+        ["-I", "-B", join(info.bundleDirectory, "mods/muxcle-sizing/equalize.py"), JSON.stringify(context)],
+        {
+          encoding: "utf8",
+          timeout: 15000,
+          env: {
+            ...process.env,
+            PATH: `${temporary}:${process.env.PATH}`,
+            MOCK_DOCUMENT: stateFile,
+            MOCK_REQUESTS: requestsFile,
+          },
+        },
+      );
+
+    const changed = execute();
+    assert.equal(changed.status, 0, changed.stderr);
+    assert.deepEqual(JSON.parse(changed.stdout), { changed: true, splits: 1 });
+    const unchanged = execute();
+    assert.equal(unchanged.status, 0, unchanged.stderr);
+    assert.deepEqual(JSON.parse(unchanged.stdout), { changed: false, splits: 0 });
+
+    const stored = JSON.parse(await readFile(stateFile, "utf8"));
+    const expected = structuredClone(value);
+    expected.spaces[0].tabs[0].root.children[1].size.weight = 1;
+    assert.deepEqual(stored, { value: expected, version: 9 });
+    const requests = (await readFile(requestsFile, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    assert.equal(requests.filter((request) => request.method === "doc.set").length, 1);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("packaged ownership markers are accepted by each capability's update and remove guards", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-owner-roundtrip-"));
+  const capabilities = [
+    [createSessionizerPackage, "muxcle-sessionizer"],
+    [createPickerPackage, "muxcle-picker"],
+    [createHistoryPackage, "muxcle-history"],
+    [createRotationPackage, "muxcle-rotation"],
+    [createSizingPackage, "muxcle-sizing"],
+  ];
+  try {
+    for (const [create, name] of capabilities) {
+      const info = await create({ repositoryRoot, outputDirectory: join(temporary, "dist") });
+      const home = join(temporary, name);
+      const target = join(home, "mods", name);
+      await mkdir(target, { recursive: true });
+      await writeFile(
+        join(target, "package-owner.json"),
+        await readFile(join(info.bundleDirectory, "mods", name, "package-owner.json")),
+      );
+      for (const mode of ["--update", "--remove"]) {
+        const result = spawnSync("sh", [join(info.bundleDirectory, "check-install-targets.sh"), mode, home], {
+          encoding: "utf8",
+        });
+        assert.equal(result.status, 0, `${name} ${mode}: ${result.stderr}`);
+      }
+      assert.deepEqual(await readdir(target), ["package-owner.json"]);
+    }
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("sizing preflight refuses unowned folders and linked boundaries without changing them", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-sizing-preflight-"));
+  try {
+    const home = join(temporary, "home");
+    const target = join(home, "mods/muxcle-sizing");
+    const checker = join(repositoryRoot, "packages/sizing/check-install-targets.sh");
+    const check = (mode = []) => spawnSync("sh", [checker, ...mode, home]).status;
+    assert.equal(check(), 0);
+    await mkdir(target, { recursive: true });
+    await writeFile(join(target, "keep.txt"), "unrelated");
+    assert.notEqual(check(), 0);
+    assert.notEqual(check(["--update"]), 0);
+    await writeFile(join(target, "package-owner.json"), '{"package":"foreign","schema":1}\n');
+    assert.notEqual(check(["--update"]), 0);
+    await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-sizing","schema":1}\n');
+    assert.equal(check(["--update"]), 0);
+    assert.equal(check(["--remove"]), 0);
+    assert.equal(await readFile(join(target, "keep.txt"), "utf8"), "unrelated");
+
+    const linked = join(temporary, "linked");
+    await mkdir(linked);
+    await writeFile(join(linked, "keep.txt"), "preserved");
+    await rm(target, { recursive: true });
+    await symlink(linked, target);
+    for (const mode of [[], ["--update"], ["--remove"]]) assert.notEqual(check(mode), 0);
+    assert.equal(await readFile(join(linked, "keep.txt"), "utf8"), "preserved");
+    await rm(target);
+    await rm(join(home, "mods"), { recursive: true });
+    await symlink(linked, join(home, "mods"));
+    assert.notEqual(check(), 0);
+    await rm(join(home, "mods"));
+    await rm(home, { recursive: true });
+    await symlink(linked, home);
+    assert.notEqual(check(), 0);
+    assert.equal(await readFile(join(linked, "keep.txt"), "utf8"), "preserved");
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

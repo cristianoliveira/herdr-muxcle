@@ -18,6 +18,7 @@ test: build
 	@set -e; files=$$(for root in src fixtures mods scripts; do if test -d "$$root"; then find "$$root" -type f -name '*.test.mjs' -print; fi; done); if test -n "$$files"; then node --test $$files; fi
 	@python3 -B -m unittest discover -s mods/muxcle-sessionizer -p 'test_*.py'
 	@python3 -B -m unittest discover -s mods/muxcle-rotation -p 'test_*.py'
+	@python3 -B -m unittest discover -s mods/muxcle-sizing -p 'test_*.py'
 
 watch:
 	@fzz --config watch.yaml watch
@@ -34,7 +35,7 @@ format:
 	@echo 'No formatter is configured yet.'
 
 coverage: build
-	@node --test --experimental-test-coverage src/lib/example.test.mjs src/lib/keymap-merge.test.mjs mods/muxcle-sessionizer/*.test.mjs mods/muxcle-picker/*.test.mjs mods/muxcle-history/*.test.mjs mods/muxcle-rotation/*.test.mjs scripts/package.test.mjs
+	@node --test --experimental-test-coverage src/lib/example.test.mjs src/lib/keymap-merge.test.mjs mods/muxcle-sessionizer/*.test.mjs mods/muxcle-picker/*.test.mjs mods/muxcle-history/*.test.mjs mods/muxcle-rotation/*.test.mjs mods/muxcle-sizing/*.test.mjs scripts/package.test.mjs
 
 security:
 	@npm audit --package-lock-only

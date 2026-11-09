@@ -150,6 +150,38 @@ const rotationPackage = {
     ["mods/muxcle-rotation/package-owner.json", "mods/muxcle-rotation/package-owner.json"],
   ],
 };
+const sizingPackage = {
+  name: "muxcle-sizing",
+  files: [
+    "check-install-targets.sh",
+    "INSTALLATION.md",
+    "keys.json",
+    "host.json",
+    "RECIPE.md",
+    "mods/muxcle-sizing/main.js",
+    "mods/muxcle-sizing/model.js",
+    "mods/muxcle-sizing/controller.js",
+    "mods/muxcle-sizing/adapter.js",
+    "mods/muxcle-sizing/equalize.py",
+    "mods/muxcle-sizing/mod.json",
+    "mods/muxcle-sizing/package-owner.json",
+  ],
+  directories: ["", "mods", "mods/muxcle-sizing"],
+  sources: [
+    ["packages/sizing/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/sizing/INSTALLATION.md", "INSTALLATION.md"],
+    ["packages/sizing/keys.json", "keys.json"],
+    ["packages/sizing/host.json", "host.json"],
+    ["packages/sizing/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-sizing/main.js", "mods/muxcle-sizing/main.js"],
+    [".build/mods/muxcle-sizing/model.js", "mods/muxcle-sizing/model.js"],
+    [".build/mods/muxcle-sizing/controller.js", "mods/muxcle-sizing/controller.js"],
+    [".build/mods/muxcle-sizing/adapter.js", "mods/muxcle-sizing/adapter.js"],
+    ["mods/muxcle-sizing/equalize.py", "mods/muxcle-sizing/equalize.py"],
+    ["mods/muxcle-sizing/mod.json", "mods/muxcle-sizing/mod.json"],
+    ["mods/muxcle-sizing/package-owner.json", "mods/muxcle-sizing/package-owner.json"],
+  ],
+};
 const packagesByName = new Map([
   [appPackage.name, appPackage],
   [tmuxKeysPackage.name, tmuxKeysPackage],
@@ -157,6 +189,7 @@ const packagesByName = new Map([
   [pickerPackage.name, pickerPackage],
   [historyPackage.name, historyPackage],
   [rotationPackage.name, rotationPackage],
+  [sizingPackage.name, sizingPackage],
 ]);
 
 export async function createPackage(options = {}) {
@@ -183,6 +216,10 @@ export async function createRotationPackage(options = {}) {
   return buildPackage(rotationPackage, options);
 }
 
+export async function createSizingPackage(options = {}) {
+  return buildPackage(sizingPackage, options);
+}
+
 export async function createPackages(options = {}) {
   return [
     await createPackage(options),
@@ -191,6 +228,7 @@ export async function createPackages(options = {}) {
     await createPickerPackage(options),
     await createHistoryPackage(options),
     await createRotationPackage(options),
+    await createSizingPackage(options),
   ];
 }
 
@@ -219,7 +257,15 @@ async function buildPackage(
     for (const [source, target] of definition.sources) {
       const targetPath = join(stagedDirectory, target);
       await mkdir(dirname(targetPath), { recursive: true });
-      await copyFile(join(root, source), targetPath);
+      if (target.endsWith("/package-owner.json")) {
+        const owner = JSON.parse(await readFile(join(root, source), "utf8"));
+        if (!owner || owner.package !== definition.name || owner.schema !== 1 || Object.keys(owner).length !== 2) {
+          throw new Error(`Unexpected package ownership marker: ${source}`);
+        }
+        await writeFile(targetPath, `${JSON.stringify({ package: definition.name, schema: 1 })}\n`);
+      } else {
+        await copyFile(join(root, source), targetPath);
+      }
     }
 
     const manifest = {

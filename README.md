@@ -18,6 +18,7 @@ Install capabilities independently; none requires the whole Muxcle setup.
 
 - **[Tmux keys](packages/tmux-keys/INSTALLATION.md)**: optional prefix, tab, split, pane-navigation, and zoom shortcuts using native Herdr commands. No custom layout or runtime mod required.
 - **[Pane rotation](packages/rotation/INSTALLATION.md)**: rotate ordinary terminal panes in splits or nested grids. Requires a mounted command-host block; three or more panes also need Python 3 and `hc`.
+- **[Pane equalization](packages/sizing/INSTALLATION.md)**: balance flexible sibling shares in nested terminal splits without moving panes or focus. Requires one command host, Python 3 and `hc`.
 - **[Navigation history](packages/history/INSTALLATION.md)**: last-tab per space and last-space toggles. Requires one observer block mounted in a personal layout.
 - **[Spaces and tabs picker](packages/picker/INSTALLATION.md)**: fuzzy search existing spaces and tabs without hiding quiet work. No Python or custom layout required.
 - **[Sessionizer](packages/sessionizer/INSTALLATION.md)**: search configured project roots and open or reuse local spaces. Requires Python 3, but no custom layout or Tmux keys package.

@@ -89,6 +89,22 @@ test("coalesces pending shortcuts and exposes uncertain outcomes", async () => {
   assert.match(uncertain.calls.notices[0].message, /uncertain/);
 });
 
+test("reports malformed helper output as an uncertain error", async () => {
+  const value = harness({ document: async () => "{invalid" });
+
+  assert.equal(await value.controller.equalize(), false);
+  assert.deepEqual(value.calls.notices, [
+    { message: "Sizing helper returned invalid data; outcome may be uncertain.", level: "error" },
+  ]);
+});
+
+test("uses a fallback message for failures that are not Error instances", async () => {
+  const value = harness({ document: async () => Promise.reject(null) });
+
+  assert.equal(await value.controller.equalize(), false);
+  assert.deepEqual(value.calls.notices, [{ message: "Equalizing could not be confirmed.", level: "error" }]);
+});
+
 test("dispose prevents future commands and suppresses late notices", async () => {
   let resolveDocument;
   const document = new Promise((resolve) => {

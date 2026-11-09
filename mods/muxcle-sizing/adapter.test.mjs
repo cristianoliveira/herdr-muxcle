@@ -36,7 +36,7 @@ test("rejects oversized UTF-8 context before starting a process", async () => {
         throw new Error("must not run");
       },
       "/mod",
-      { ...context, space: "é".repeat(50_000) },
+      { ...context, space: "é中🚀".repeat(20_000) },
     ),
     /too large/,
   );

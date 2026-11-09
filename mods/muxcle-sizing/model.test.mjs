@@ -58,7 +58,8 @@ test("refuses missing focus, stale pane counts, duplicate identities, and oversi
     pane: `p${index}`,
     terminal: `t${index}`,
   }));
-  assert.equal(sizingPlan(focus(), { ...tab, panes: 65 }, oversized).kind, "unsupported");
+  const oversizedFocus = { ...focus(), pane: "p0", terminal: "t0" };
+  assert.equal(sizingPlan(oversizedFocus, { ...tab, panes: 65 }, oversized).kind, "unsupported");
 });
 
 test("refuses zoomed, replaced, and non-terminal panes", () => {

@@ -10,7 +10,7 @@ const panes = [
 const tab = { id: "tab", panes: 2, zoomed: false };
 
 function harness(overrides = {}) {
-  const calls = { docs: [], operations: [], notices: [], snapshots: 0 };
+  const calls = { docs: [], operations: [], notices: [], helpViews: 0, snapshots: 0 };
   const adapter = {
     snapshot: () => {
       calls.snapshots += 1;
@@ -22,6 +22,9 @@ function harness(overrides = {}) {
       return overrides.document ? overrides.document(context) : '{"changed":true,"splits":1}';
     },
     notice: (message, level) => calls.notices.push({ message, level }),
+    openHelp: () => {
+      calls.helpViews += 1;
+    },
   };
   return { calls, controller: new SizingController(adapter) };
 }
@@ -60,14 +63,30 @@ test("rejects a resize result claiming more than one changed split", async () =>
   assert.match(value.calls.notices[0].message, /unexpected resize result.*uncertain/);
 });
 
-test("shows native help without reading a snapshot or invoking the helper", async () => {
+test("opens native help without reading a snapshot, invoking the helper, or posting a notice", async () => {
   const value = harness();
 
   assert.equal(await value.controller.execute("help"), false);
+  assert.equal(value.calls.helpViews, 1);
   assert.equal(value.calls.snapshots, 0);
   assert.deepEqual(value.calls.docs, []);
-  assert.match(value.calls.notices[0].message, /muxcle-sizing\.grow-width/);
-  assert.match(value.calls.notices[0].message, /muxcle-sizing\.shrink-height/);
+  assert.deepEqual(value.calls.notices, []);
+});
+
+test("help remains available while a sizing operation is pending", async () => {
+  let resolveDocument;
+  const pending = new Promise((resolve) => {
+    resolveDocument = resolve;
+  });
+  const value = harness({ document: () => pending });
+  const sizing = value.controller.execute("grow-width");
+
+  assert.equal(await value.controller.execute("help"), false);
+  assert.equal(value.calls.helpViews, 1);
+  assert.equal(value.calls.docs.length, 1);
+
+  resolveDocument('{"changed":false,"splits":0}');
+  assert.equal(await sizing, false);
 });
 
 test("rejects unknown commands before taking a snapshot", async () => {

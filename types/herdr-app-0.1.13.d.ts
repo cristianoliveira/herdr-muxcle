@@ -59,6 +59,7 @@ declare module "gpui-kit" {
     justify_between(): this;
     max_h(value: number): this;
     min_h(value: number): this;
+    on_click(handler: (event: unknown, cx: Context) => void): this;
     on_item_click(handler: (key: string, cx: Context) => void): this;
     on_key_down(handler: (event: KeyEvent, cx: Context) => void): this;
     p(value: number): this;
@@ -142,6 +143,7 @@ declare module "herdr" {
 
   export interface ModProps {
     overlay?: string;
+    role?: string;
   }
 
   export function appHome(): string;
@@ -168,6 +170,15 @@ declare module "herdr" {
     shown: string | null;
   } | null;
   export function run(name: string, args?: Record<string, unknown>): null;
+  export interface OverlaySpec {
+    mod: string;
+    kind?: "dialog" | "popup" | "window";
+    frame?: "none";
+    width?: number;
+    height?: number;
+    props?: Record<string, unknown>;
+  }
+  export function openOverlay(spec: OverlaySpec): string;
   export function closeOverlay(id: string): null;
   export function props(): ModProps;
   export function shared(key: string): unknown;

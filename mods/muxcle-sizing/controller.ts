@@ -1,6 +1,5 @@
 import {
   isSizingOperation,
-  SIZING_HELP_MESSAGE,
   sizingPlan,
   type DocumentSizingContext,
   type SizingFocus,
@@ -20,6 +19,7 @@ export interface SizingAdapter {
   snapshot(): SizingSnapshot;
   document(context: DocumentSizingContext, operation: SizingOperation): Promise<string>;
   notice(message: string, level: "info" | "error"): void;
+  openHelp(): void;
 }
 
 export class SizingController {
@@ -35,7 +35,7 @@ export class SizingController {
   async execute(operation: string): Promise<boolean> {
     if (this.closed) return false;
     if (operation === "help") {
-      this.adapter.notice(SIZING_HELP_MESSAGE, "info");
+      this.adapter.openHelp();
       return false;
     }
     if (!isSizingOperation(operation)) return false;

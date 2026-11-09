@@ -205,7 +205,7 @@ test("sizing archive is independent, reproducible, and protects existing install
   }
 });
 
-test("packaged sizing helper equalizes through a fake core once and preserves unrelated data", async () => {
+test("packaged sizing helper scopes equalize and reciprocal resize writes through a fake core", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "muxcle-sizing-protocol-"));
   try {
     const info = await createSizingPackage({ repositoryRoot, outputDirectory: temporary });
@@ -272,10 +272,16 @@ for line in sys.stdin:
       terminals: ["remote/ta", "remote/tb"],
       machine: "remote",
     };
-    const execute = () =>
+    const execute = (operation) =>
       spawnSync(
         "python3",
-        ["-I", "-B", join(info.bundleDirectory, "mods/muxcle-sizing/equalize.py"), JSON.stringify(context)],
+        [
+          "-I",
+          "-B",
+          join(info.bundleDirectory, "mods/muxcle-sizing/equalize.py"),
+          JSON.stringify(context),
+          ...(operation === undefined ? [] : [operation]),
+        ],
         {
           encoding: "utf8",
           timeout: 15000,
@@ -299,11 +305,41 @@ for line in sys.stdin:
     const expected = structuredClone(value);
     expected.spaces[0].tabs[0].root.children[1].size.weight = 1;
     assert.deepEqual(stored, { value: expected, version: 9 });
+
+    const verifyResize = async (operation, expectedWeight) => {
+      const before = JSON.parse(await readFile(stateFile, "utf8"));
+      const result = execute(operation);
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(JSON.parse(result.stdout), { changed: true, splits: 1 });
+      const after = JSON.parse(await readFile(stateFile, "utf8"));
+      const weight = after.value.spaces[0].tabs[0].root.children[0].size.weight;
+      assert.ok(Math.abs(weight - expectedWeight) < 1e-6, `${operation}: unexpected weight ${weight}`);
+      before.value.spaces[0].tabs[0].root.children[0].size.weight = weight;
+      before.version += 1;
+      assert.deepEqual(after, before);
+    };
+    await verifyResize("grow-width", 1.1);
+    await verifyResize("shrink-width", 1);
+
+    const vertical = JSON.parse(await readFile(stateFile, "utf8"));
+    vertical.value.spaces[0].tabs[0].root.type = "column";
+    vertical.version += 1;
+    await writeFile(stateFile, JSON.stringify(vertical));
+    await verifyResize("grow-height", 1.1);
+    await verifyResize("shrink-height", 1);
+    const missingAxis = execute("grow-width");
+    assert.equal(missingAxis.status, 0, missingAxis.stderr);
+    assert.deepEqual(JSON.parse(missingAxis.stdout), { changed: false, splits: 0 });
+
+    const previousRequests = await readFile(requestsFile, "utf8");
+    const invalid = execute("run-arbitrary-code");
+    assert.notEqual(invalid.status, 0);
+    assert.equal(await readFile(requestsFile, "utf8"), previousRequests);
     const requests = (await readFile(requestsFile, "utf8"))
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line));
-    assert.equal(requests.filter((request) => request.method === "doc.set").length, 1);
+    assert.equal(requests.filter((request) => request.method === "doc.set").length, 5);
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

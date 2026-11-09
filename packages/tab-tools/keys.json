@@ -1,0 +1,8 @@
+{
+  "global": {
+    "ctrl-a alt-h": "muxcle-tab-tools.move-left",
+    "ctrl-a alt-l": "muxcle-tab-tools.move-right",
+    "ctrl-a alt-m": "muxcle-tab-tools.move-position",
+    "ctrl-a alt-r": "muxcle-tab-tools.rename-from-cwd"
+  }
+}

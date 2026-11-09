@@ -204,6 +204,37 @@ const sizingPackage = {
     ["mods/muxcle-sizing/package-owner.json", "mods/muxcle-sizing/package-owner.json"],
   ],
 };
+const tabToolsPackage = {
+  name: "muxcle-tab-tools",
+  release: {
+    title: "Tab tools",
+    summary: "Move tabs and name them from the focused terminal folder using native Herdr commands.",
+    installationPath: "packages/tab-tools/RECIPE.md",
+  },
+  files: [
+    "check-install-targets.sh",
+    "host.json",
+    "keys.json",
+    "RECIPE.md",
+    "mods/muxcle-tab-tools/main.js",
+    "mods/muxcle-tab-tools/model.js",
+    "mods/muxcle-tab-tools/controller.js",
+    "mods/muxcle-tab-tools/mod.json",
+    "mods/muxcle-tab-tools/package-owner.json",
+  ],
+  directories: ["", "mods", "mods/muxcle-tab-tools"],
+  sources: [
+    ["packages/tab-tools/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/tab-tools/host.json", "host.json"],
+    ["packages/tab-tools/keys.json", "keys.json"],
+    ["packages/tab-tools/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-tab-tools/main.js", "mods/muxcle-tab-tools/main.js"],
+    [".build/mods/muxcle-tab-tools/model.js", "mods/muxcle-tab-tools/model.js"],
+    [".build/mods/muxcle-tab-tools/controller.js", "mods/muxcle-tab-tools/controller.js"],
+    ["mods/muxcle-tab-tools/mod.json", "mods/muxcle-tab-tools/mod.json"],
+    ["mods/muxcle-tab-tools/package-owner.json", "mods/muxcle-tab-tools/package-owner.json"],
+  ],
+};
 const existingPackageDefinitions = [
   appPackage,
   tmuxKeysPackage,
@@ -212,6 +243,7 @@ const existingPackageDefinitions = [
   historyPackage,
   rotationPackage,
   sizingPackage,
+  tabToolsPackage,
 ];
 const trustedComponentNames = new Set(existingPackageDefinitions.filter(hasOwnedModSources).map(({ name }) => name));
 const packPackage = createPackDefinition(existingPackageDefinitions);
@@ -247,6 +279,10 @@ export async function createRotationPackage(options = {}) {
 
 export async function createSizingPackage(options = {}) {
   return buildPackage(sizingPackage, options);
+}
+
+export async function createTabToolsPackage(options = {}) {
+  return buildPackage(tabToolsPackage, options);
 }
 
 export async function createPackPackage(options = {}) {
@@ -353,13 +389,13 @@ export function createPackLayout(baseLayout, hostBlocks) {
   const layout = cloneJson(baseLayout);
   removeModNodes(layout, "muxcle-compat");
 
-  const expectedHostMods = ["muxcle-history", "muxcle-rotation", "muxcle-sizing"];
+  const expectedHostMods = ["muxcle-history", "muxcle-rotation", "muxcle-sizing", "muxcle-tab-tools"];
   const suppliedHostMods = hostBlocks.map((block) => block?.content?.mod);
   if (
     hostBlocks.length !== expectedHostMods.length ||
     [...suppliedHostMods].sort().join("\n") !== [...expectedHostMods].sort().join("\n")
   ) {
-    throw new Error("pack layout requires one source block for History, Rotation, and Sizing");
+    throw new Error("pack layout requires one source block for History, Rotation, Sizing, and Tab tools");
   }
 
   const nodes = collectLayoutNodes(layout);
@@ -462,11 +498,13 @@ async function readPackLayout(root, definitions) {
   const history = definitions.find((definition) => definition.name === "muxcle-history");
   const rotation = definitions.find((definition) => definition.name === "muxcle-rotation");
   const sizing = definitions.find((definition) => definition.name === "muxcle-sizing");
+  const tabTools = definitions.find((definition) => definition.name === "muxcle-tab-tools");
   const hostBlocks = await Promise.all(
     [
       [history, "observer.json"],
       [rotation, "host.json"],
       [sizing, "host.json"],
+      [tabTools, "host.json"],
     ].map(async ([definition, target]) => {
       const source = findSource(definition, target);
       return JSON.parse(await readFile(join(root, source[0]), "utf8"));

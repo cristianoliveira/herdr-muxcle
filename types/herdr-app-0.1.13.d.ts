@@ -168,6 +168,7 @@ declare module "herdr" {
     pane: string | null;
     terminal: string | null;
     shown: string | null;
+    cwd: string | null;
   } | null;
   export function run(name: string, args?: Record<string, unknown>): null;
   export interface OverlaySpec {

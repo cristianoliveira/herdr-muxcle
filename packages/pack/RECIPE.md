@@ -6,9 +6,9 @@ Use the supplied compiled implementation as your base. Read this recipe and the 
 
 An optional complete Muxcle composition for a user-owned setup. Recreate the component behaviors as one coherent collection while keeping each capability independently usable. The setup section below covers distribution and dotfiles deployment.
 
-Includes Tmux keys, Rotation, Sizing, History, Picker, Sessionizer, and the optional original scaffold. The individual packages remain available; installing them first is not required.
+Includes Tmux keys, Rotation, Sizing, History, Picker, Tab tools, Sessionizer, and the optional original scaffold. The individual packages remain available; installing them first is not required.
 
-The combined keymap contains the component packages' existing bindings. It is a Muxcle preset, not a merge with your personal bindings. The `muxcle-pack` layout mounts one History observer and one command host each for Rotation and Sizing, using Herdr's native Spaces/Tabs/pane views. It does not show the scaffold's static “no tmux bindings installed” message.
+The combined keymap contains the component packages' existing bindings. It is a Muxcle preset, not a merge with your personal bindings. The `muxcle-pack` layout mounts one History observer and one command host each for Rotation, Sizing, and Tab tools, using Herdr's native Spaces/Tabs/pane views. It does not show the scaffold's static “no tmux bindings installed” message.
 
 Requires Herdr 0.1.13, Python 3, and `hc` with versioned document support available on Herdr's PATH. Sessionizer project roots remain your choice. No Node.js, npm, compiler, Git, or repository checkout is required to use the released files.
 
@@ -16,6 +16,7 @@ Requires Herdr 0.1.13, Python 3, and `hc` with versioned document support availa
 
 - **Keys:** Ctrl-a then `c` creates a tab; `n` goes to the previous tab and `p` to the next; digits select tabs. `w`/`_` splits down, `v`/`|` splits right, Ctrl-h/j/k/l navigates panes, and `z`/Ctrl-f zooms. Ctrl-a Ctrl-a sends U+0001 in terminal context. These are explicit sequences, not a tmux prefix mode or repeat-table. Existing layout/terminal bindings may take precedence.
 - **Picker:** Ctrl-a Ctrl-b opens fuzzy search over existing spaces/tabs, including quiet work. Arrows or Ctrl-j/k move; Enter/click selects; Escape cancels. Native ordering is preserved. No project scan, program execution, or network access.
+- **Tab tools:** Ctrl-a Alt-h/l moves the active tab left/right without wrapping; Alt-m prompts for a checked, zero-based position and revalidates the captured tab/space before converting to Herdr's one-based index. Escape cancels. Alt-r names the focused tab from its focused terminal's known cwd, including machine-qualified tabs, without local filesystem lookup. These use native `tab.move`/`tab.rename`; the existing manual `tab.rename` shortcut remains in the Tmux keys snippet. Herdr trims leading/trailing whitespace from native rename names.
 - **Sessionizer:** Ctrl-a Ctrl-p searches immediate non-hidden directories under configured absolute roots. Selection reuses a local space with the same canonical folder or creates one native space/tab. Python scans only those roots; no config/project writes or network calls. Remote spaces are not reused.
 - **History:** Ctrl-a Shift-L toggles last space; Ctrl-a Ctrl-r or Tab toggles last tab per space. Tracking requires the shown observer and two observed targets. It stores IDs under `muxcle-history.v1`, prunes missing targets, and does not launch programs or access the network.
 - **Rotation:** Ctrl-a Ctrl-o maps `[A,B,C]` to `[C,A,B]` while preserving slot sizes. Two panes use native swaps; 3–64 use Python and one versioned core-document update. Unsupported/mod/zoomed panes and stale snapshots refuse. Focus restoration depends on unchanged context. No retry after conflict or uncertain acknowledgement; an in-flight write can finish after navigation.
@@ -27,12 +28,12 @@ Rotation/Sizing helpers communicate with the intended core and preserve unrelate
 
 Use native Spaces, Tabs, and terminal pane views. Use the supplied active mods, combined keymap, and composed layout as the base. This root recipe is the pack's single guide; `components/` contains supporting snippets and blocks, not additional guides. The repository's sibling recipes provide optional deeper component design detail. Keep their command names, key actions, helper boundaries, and failure behavior. Preserve component ownership and keep the original scaffold separate from the active complete layout.
 
-The pack has no personal settings, project paths, terminals, credentials, or updater. Project discovery runs only for user-configured roots; pane helpers address the intended core. Recreating it must not change live configuration or runtime state.
+The pack has no personal settings, project paths, terminals, credentials, or updater. Project discovery runs only for user-configured roots; pane helpers address the intended core. Recreating it must not change live configuration or runtime state. Tab tools also requires its one-pixel, non-focusable command host to remain shown in the selected layout.
 
 ## Done when
 
 - All component behaviors match their recipes and remain independently usable.
-- The complete layout contains exactly one History observer and one Rotation/Sizing host, with no scaffold status row.
+- The complete layout contains exactly one History observer and one host each for Rotation, Sizing, and Tab tools, with no scaffold status row.
 - Combined key actions match component snippets without collisions.
 - Pure checks and isolated initial-load checks pass; these do not imply complete keyboard or UI verification.
 
@@ -107,7 +108,7 @@ Use your existing dotfile manager to copy or link selected files. For a Stow-sty
 
 The combined keymap contains Muxcle bindings only, not every Herdr default or your personal mappings. Adopting it as `keys.json` replaces whatever bindings your deployment previously supplied. Review terminal/layout precedence and existing shortcuts first. No automatic merge happens.
 
-Do not edit Herdr's shipped layouts. `muxcle-pack.json` is a separate personal composition. You can modify it in your dotfiles or adapt your existing personal layout, but keep exactly one History observer and one Rotation/Sizing host while using their commands.
+Do not edit Herdr's shipped layouts. `muxcle-pack.json` is a separate personal composition. You can modify it in your dotfiles or adapt your existing personal layout, but keep exactly one History observer and one host each for Rotation, Sizing, and Tab tools while using their commands.
 
 ### 3. Configure and activate deliberately
 
@@ -115,7 +116,7 @@ Do not edit Herdr's shipped layouts. `muxcle-pack.json` is a separate personal c
 2. Configure absolute project roots in `data/muxcle-sessionizer/config.json`, using the bundled example. The pack assumes no personal project paths.
 3. Check initial loading with `HERDR_APP_HOME="$APP_HOME" herdr-app check "$APP_HOME/mods/<mod-name>"` for each deployed mod. Set `APP_HOME` explicitly first. For read-only deployments, check a writable scratch copy; Herdr's check can generate local helper files.
 4. Select the **`muxcle-pack`** layout through Herdr's layout picker when you want the complete composition. Merely deploying the file does not select it.
-5. Try selected shortcuts with harmless terminals. Visit two tabs/spaces before testing History; configure roots before using Sessionizer. Confirm the intended core and focused tab before Rotation or Sizing.
+5. Try selected shortcuts with harmless terminals. Visit two tabs/spaces before testing History; configure roots before using Sessionizer. Confirm the intended core and focused tab before Rotation, Sizing, or Tab tools.
 
 Initial-load checks are not proof of keyboard dispatch or feature completion. Herdr's core remains shared unless you explicitly configure a separate core/session; changing app home alone does not isolate terminals.
 

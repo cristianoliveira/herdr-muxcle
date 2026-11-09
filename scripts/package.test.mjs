@@ -29,6 +29,7 @@ import {
   createHistoryPackage,
   createRotationPackage,
   createSizingPackage,
+  createTabToolsPackage,
   createSessionizerPackage,
   createTmuxKeysPackage,
   verifyPackage,
@@ -59,6 +60,18 @@ const expectedSessionizerFiles = [
   "RECIPE.md",
   "manifest.json",
 ].sort();
+const expectedTabToolsFiles = [
+  "RECIPE.md",
+  "check-install-targets.sh",
+  "host.json",
+  "keys.json",
+  "manifest.json",
+  "mods/muxcle-tab-tools/controller.js",
+  "mods/muxcle-tab-tools/main.js",
+  "mods/muxcle-tab-tools/mod.json",
+  "mods/muxcle-tab-tools/model.js",
+  "mods/muxcle-tab-tools/package-owner.json",
+].sort();
 const expectedPackFiles = [
   "RECIPE.md",
   "config.example.json",
@@ -80,6 +93,9 @@ const expectedPackFiles = [
   "components/muxcle-sizing/check-install-targets.sh",
   "components/muxcle-sizing/keys.json",
   "components/muxcle-sizing/host.json",
+  "components/muxcle-tab-tools/check-install-targets.sh",
+  "components/muxcle-tab-tools/host.json",
+  "components/muxcle-tab-tools/keys.json",
   "scaffold/check-install-targets.sh",
   "scaffold/layouts/muxcle.json",
   "scaffold/mods/muxcle-compat/main.js",
@@ -113,8 +129,68 @@ const expectedPackFiles = [
   "mods/muxcle-sizing/equalize.py",
   "mods/muxcle-sizing/mod.json",
   "mods/muxcle-sizing/package-owner.json",
+  "mods/muxcle-tab-tools/main.js",
+  "mods/muxcle-tab-tools/model.js",
+  "mods/muxcle-tab-tools/controller.js",
+  "mods/muxcle-tab-tools/mod.json",
+  "mods/muxcle-tab-tools/package-owner.json",
   "manifest.json",
 ].sort();
+
+test("tab-tools archive is independent, reproducible, and checks install ownership", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-tab-tools-package-"));
+  try {
+    const info = await createTabToolsPackage({ repositoryRoot, outputDirectory: temporary });
+    const verified = verifyPackage({
+      outputDirectory: temporary,
+      version: info.version,
+      packageName: "muxcle-tab-tools",
+    });
+    assert.deepEqual(verified.files, expectedTabToolsFiles);
+    assert.deepEqual(JSON.parse(await readFile(join(info.bundleDirectory, "keys.json"), "utf8")), {
+      global: {
+        "ctrl-a alt-h": "muxcle-tab-tools.move-left",
+        "ctrl-a alt-l": "muxcle-tab-tools.move-right",
+        "ctrl-a alt-m": "muxcle-tab-tools.move-position",
+        "ctrl-a alt-r": "muxcle-tab-tools.rename-from-cwd",
+      },
+    });
+
+    const original = await readFile(info.archivePath);
+    await changeTimes(info.bundleDirectory, 1);
+    const repeatedArchive = join(temporary, "repeat.tar.gz");
+    await createDeterministicArchive({
+      packageDirectory: info.bundleDirectory,
+      archivePath: repeatedArchive,
+      packageName: "muxcle-tab-tools",
+    });
+    assert.deepEqual(await readFile(repeatedArchive), original);
+
+    const appHome = join(temporary, "home");
+    const target = join(appHome, "mods/muxcle-tab-tools");
+    const checker = join(info.bundleDirectory, "check-install-targets.sh");
+    const check = (mode = []) => spawnSync("sh", [checker, ...mode, appHome]).status;
+    assert.equal(check(), 0);
+    await mkdir(target, { recursive: true });
+    assert.notEqual(check(), 0);
+    assert.notEqual(check(["--update"]), 0);
+    const marker = join(target, "package-owner.json");
+    await writeFile(marker, '{"package":"someone-else","schema":1}\n');
+    assert.notEqual(check(["--update"]), 0);
+    assert.notEqual(check(["--remove"]), 0);
+    await writeFile(marker, '{"package":"muxcle-tab-tools","schema":1}\n');
+    assert.equal(check(["--update"]), 0);
+    assert.equal(check(["--remove"]), 0);
+
+    const linked = join(temporary, "linked");
+    await mkdir(linked);
+    await rm(target, { recursive: true });
+    await symlink(linked, target);
+    for (const mode of [[], ["--update"], ["--remove"]]) assert.notEqual(check(mode), 0);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
 
 test("picker archive is independent, reproducible, and refuses unowned installation targets", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "muxcle-picker-package-"));
@@ -420,6 +496,7 @@ test("packaged ownership markers are accepted by each capability's update and re
     [createHistoryPackage, "muxcle-history"],
     [createRotationPackage, "muxcle-rotation"],
     [createSizingPackage, "muxcle-sizing"],
+    [createTabToolsPackage, "muxcle-tab-tools"],
   ];
   try {
     for (const [create, name] of capabilities) {
@@ -596,6 +673,7 @@ test("whole-pack archive composes all components without activating scaffold sta
       "packages/history/keys.json",
       "packages/rotation/keys.json",
       "packages/sizing/keys.json",
+      "packages/tab-tools/keys.json",
     ];
     const expectedKeymap = {};
 
@@ -614,6 +692,8 @@ test("whole-pack archive composes all components without activating scaffold sta
       await readFile(join(repositoryRoot, "packages/pack/RECIPE.md"), "utf8"),
     );
     assert.deepEqual(keymap, expectedKeymap);
+    assert.equal(keymap.global["ctrl-a ,"], "tab.rename");
+    assert.equal(keymap.global["ctrl-a alt-r"], "muxcle-tab-tools.rename-from-cwd");
     assert.deepEqual(
       await readFile(join(info.bundleDirectory, "config.example.json")),
       await readFile(join(repositoryRoot, "packages/sessionizer/config.example.json")),
@@ -625,6 +705,7 @@ test("whole-pack archive composes all components without activating scaffold sta
       ["muxcle-history", "packages/history/observer.json"],
       ["muxcle-rotation", "packages/rotation/host.json"],
       ["muxcle-sizing", "packages/sizing/host.json"],
+      ["muxcle-tab-tools", "packages/tab-tools/host.json"],
     ]) {
       const placed = nodes.filter((node) => node.content?.mod === modName);
       const source = JSON.parse(await readFile(join(repositoryRoot, sourcePath), "utf8"));
@@ -638,6 +719,7 @@ test("whole-pack archive composes all components without activating scaffold sta
       "muxcle-history",
       "muxcle-rotation",
       "muxcle-sizing",
+      "muxcle-tab-tools",
     ]) {
       const owner = JSON.parse(
         await readFile(join(info.bundleDirectory, "mods", modName, "package-owner.json"), "utf8"),
@@ -668,6 +750,7 @@ test("whole pack rejects an ownership marker that claims the aggregate package",
       "muxcle-history",
       "muxcle-rotation",
       "muxcle-sizing",
+      "muxcle-tab-tools",
     ]) {
       const target = join(modsDirectory, modName);
       if (modName === "muxcle-picker") {
@@ -720,7 +803,7 @@ test("package generation leaves existing app settings untouched", async () => {
   }
 });
 
-test("builds independent archives for the scaffold, Tmux keys, and Sessionizer packages", async () => {
+test("builds independent archives for the scaffold, keys, and capabilities", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "herdr-muxcle-packages-test-"));
   try {
     const packages = await createPackages({ repositoryRoot, outputDirectory: temporary });
@@ -751,6 +834,7 @@ test("builds independent archives for the scaffold, Tmux keys, and Sessionizer p
         "muxcle-history",
         "muxcle-rotation",
         "muxcle-sizing",
+        "muxcle-tab-tools",
         "muxcle-pack",
       ],
     );

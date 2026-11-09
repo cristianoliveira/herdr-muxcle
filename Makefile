@@ -36,7 +36,7 @@ format:
 	@echo 'No formatter is configured yet.'
 
 coverage: build
-	@node --test --experimental-test-coverage src/lib/example.test.mjs src/lib/keymap-merge.test.mjs mods/muxcle-sessionizer/*.test.mjs mods/muxcle-picker/*.test.mjs mods/muxcle-history/*.test.mjs mods/muxcle-rotation/*.test.mjs mods/muxcle-sizing/*.test.mjs scripts/package.test.mjs scripts/release-plan.test.mjs
+	@node --test --experimental-test-coverage src/lib/example.test.mjs src/lib/keymap-merge.test.mjs mods/muxcle-sessionizer/*.test.mjs mods/muxcle-picker/*.test.mjs mods/muxcle-history/*.test.mjs mods/muxcle-rotation/*.test.mjs mods/muxcle-sizing/*.test.mjs mods/muxcle-tab-tools/*.test.mjs scripts/package.test.mjs scripts/release-plan.test.mjs
 
 security:
 	@npm audit --package-lock-only

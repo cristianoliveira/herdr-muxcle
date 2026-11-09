@@ -22,14 +22,12 @@ Release planning formats the catalog without needing a build or contacting GitHu
 
 ## Installation
 
-The standalone Python installer is shared across all package archives. It accepts one selected Muxcle package and one explicit target, including a dotfiles staging directory. Source validation and a deterministic plan precede any target writes. Downloading does not execute package code.
+Follow Herdr's standard agent-assisted flow: read the package recipe and files, disclose program execution and filesystem/network access, review destination and key conflicts, deploy only selected files, and run native initial-load checks. Layout changes and activation require deliberate agreement. Source-tree package instructions point to compiled release archives; users do not need a repository checkout or compiler.
 
-Preview is the default. Applying files and merging keys requires `--apply`; conflict replacement is explicit and backed up. Planning preserves unrelated configuration. The installer does not invoke Herdr/core commands, configure project roots, mount blocks in arbitrary personal layouts, or activate a layout.
-
-Destination preflight scripts remain no-write checks for manual deployment. They are not the shared installer. Runtime mods never import either tool.
+Manual deployment and user-managed dotfiles remain valid alternatives. No custom package installer or dependency manager is shipped. Destination preflight scripts are no-write checks for the documented manual path. Runtime mods never import distribution tooling.
 
 ## Verification
 
-Node and Python behavior tests live beside their owners. The normal gate is headless. Packaging tests cover membership, reproducibility, generated composition, and refusal paths; installer tests cover source validation, conflict handling, and target isolation.
+Node and Python behavior tests live beside their owners. The normal gate is headless. Packaging tests cover membership, reproducibility, generated composition, and refusal paths; key-map planning tests cover conflicts and preservation of unrelated configuration.
 
 Initial native loading and optional GUI checks are separate from this gate. Neither a package build nor successful installation proves keyboard dispatch or complete interactive behavior. E2E work remains paused pending a suitable headless path.

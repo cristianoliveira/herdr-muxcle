@@ -1,7 +1,5 @@
 # Install navigation history
 
-For scripted deployment of this selected package, use the [shared installer](https://github.com/cristianoliveira/herdr-muxcle/blob/main/docs/INSTALLER.md). New archives include root `install.py`; it previews by default and writes only with `--apply`. Manual and agent-assisted steps remain available below.
-
 Choosing a capability? Start with the [installation overview](https://github.com/cristianoliveira/herdr-muxcle/blob/main/INSTALLATION.md). This guide also ships inside this package's archive.
 
 This optional package requires Herdr 0.1.13 and **one mounted observer block in a personal layout**. It does not require a particular layout or another Muxcle package, Python, Node.js, Git, or a repository checkout.

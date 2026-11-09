@@ -1,6 +1,6 @@
 # Muxcle whole pack
 
-An optional complete Muxcle distribution for a setup you manage yourself. Vendor the extracted folder in your dotfiles, review the files, and decide how to deploy them. The shared installer can deploy reviewed files on explicit request; extraction never installs or activates anything automatically.
+An optional complete Muxcle distribution for a setup you manage yourself. Vendor the extracted folder in your dotfiles, review the files, and decide how to deploy them. It does not install or activate anything automatically.
 
 Includes Tmux keys, Rotation, Sizing, History, Picker, Sessionizer, and the optional original scaffold. The individual packages remain available; installing them first is not required.
 

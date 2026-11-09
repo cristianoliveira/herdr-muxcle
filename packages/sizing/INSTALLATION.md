@@ -1,7 +1,5 @@
 # Install pane sizing
 
-For scripted deployment of this selected package, use the [shared installer](https://github.com/cristianoliveira/herdr-muxcle/blob/main/docs/INSTALLER.md). New archives include root `install.py`; it previews by default and writes only with `--apply`. Manual and agent-assisted steps remain available below.
-
 Choosing a capability? Start with the [installation overview](https://github.com/cristianoliveira/herdr-muxcle/blob/main/INSTALLATION.md). This guide also ships inside this package's archive.
 
 Requires Herdr 0.1.13, Python 3 and `hc` on Herdr's `PATH`, with versioned `doc.get` / `doc.set` support. The CLI must reach the same core/session as the app: keep `HC_SESSION` consistent for isolated or custom sessions. No rotation package, other Muxcle capability, Node.js, Git, or repository checkout is required.

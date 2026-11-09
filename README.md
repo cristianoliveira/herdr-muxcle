@@ -6,11 +6,11 @@ Bring familiar tmux workflows to Herdr. Choose individual capabilities, or take 
 
 ## Start here
 
-- **Use Muxcle:** [Choose a package](INSTALLATION.md), then [preview and install it with the shared script](docs/INSTALLER.md).
+- **Use Muxcle:** [Choose a package and ask your Herdr agent to add it](INSTALLATION.md#with-your-herdr-agent--recommended).
 - **Ship a release:** [Maintainer release process](docs/RELEASING.md).
 - **Change the code:** [Development setup and checks](DEVELOPMENT.md).
 
-Install from a published [GitHub Release](https://github.com/cristianoliveira/herdr-muxcle/releases), not by copying this repository over your Herdr home. If no release is listed, contributors can build local archives; a local build is not a published release. The `v0.1.0` assets predate the whole pack and installer—use a release that explicitly includes them, or the current checkout.
+Install from a published [GitHub Release](https://github.com/cristianoliveira/herdr-muxcle/releases), not by copying this repository over your Herdr home. If no release is listed, contributors can build local archives; a local build is not a published release.
 
 ## Capabilities
 
@@ -25,9 +25,11 @@ Install from a published [GitHub Release](https://github.com/cristianoliveira/he
 | `muxcle-sessionizer` | Find configured project folders and open or reuse local spaces |
 | `herdr-muxcle` | Optional starter layout and static status row—not an all-in-one bundle |
 
-Choose the **[whole pack](packages/pack/INSTALLATION.md)** if you want one versioned tree to vendor, customize, and replace yourself. You can deploy it through the shared installer or your own dotfile manager; activation remains your choice. Start with **Tmux keys** if you only want shortcuts. Individual capabilities do not require the scaffold or other packages. History, Rotation, and Sizing need a block mounted in a personal layout; copying their mod folders alone does not activate them. The [installation guide](INSTALLATION.md) explains each setup before you download.
+Choose the **[whole pack](packages/pack/INSTALLATION.md)** if you want one versioned tree to vendor, customize, and replace yourself. It does not install or activate anything automatically. Start with **Tmux keys** if you only want shortcuts. Individual capabilities do not require the scaffold or other packages. History, Rotation, and Sizing need a block mounted in a personal layout; copying their mod folders alone does not activate them. The [installation guide](INSTALLATION.md) explains each setup before you download.
 
-New archives include the shared `install.py`, compiled runtime files, a recipe, installation instructions, and a SHA-256 checksum. The script previews changes by default and requires `--apply` to write. End users do not need Git, Node.js, npm, TypeScript, or a repository clone. Review keys and layout changes; never replace a complete personal key map or app home.
+Installation follows Herdr's agent-assisted standard: point your agent at a package's instructions, review the proposed changes, and use the compiled release files. There is no custom Muxcle installer.
+
+Released archives include compiled runtime files, a recipe, installation instructions, and a SHA-256 checksum. End users do not need Git, Node.js, npm, TypeScript, or a repository clone. Review keys and layout changes; never replace a complete personal key map or app home.
 
 ## Repository map
 

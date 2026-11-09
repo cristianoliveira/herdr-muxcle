@@ -2,7 +2,7 @@
 
 **Choose the whole pack or one capability, download its archive, then follow its included `INSTALLATION.md`.** Use the **[whole pack](packages/pack/INSTALLATION.md)** to manage everything in your dotfiles. Individual packages remain independent; start with **Tmux keys** if you only want familiar shortcuts.
 
-You need Herdr, not a development environment. Released packages contain ready-to-use JavaScript and native files: no Git, repository clone, Node.js, npm, or TypeScript is required. Use the shared Python installer, your Herdr agent, or manual deployment. Nothing changes your configuration without explicit action.
+You need Herdr, not a development environment. Released packages contain ready-to-use JavaScript and native files: no Git, repository clone, Node.js, npm, or TypeScript is required. Follow Herdr's standard: give your agent the package location and let it review the recipe and files before making changes. Manual or dotfile-manager deployment remains available; Muxcle does not provide a custom installer.
 
 ## 1. Choose a package
 
@@ -31,6 +31,8 @@ All packages are tested with **Herdr 0.1.13**. This is a tested version, not a p
 Do not edit shipped layouts: Herdr can replace them on startup. Adapt an existing personal layout, or ask before creating and selecting a personal copy.
 
 ## 2. Get a verified archive
+
+You can do this yourself, or ask your agent to download and verify the selected package as part of the recommended flow below.
 
 Open [GitHub Releases](https://github.com/cristianoliveira/herdr-muxcle/releases). Choose a **published** version and download both your package's `.tar.gz` and matching `.tar.gz.sha256`. If there is no published release, there is no release download yet; contributors can [build local archives](DEVELOPMENT.md).
 
@@ -61,23 +63,13 @@ Keep the printed folder until installation is complete. Its `RECIPE.md` explains
 
 **Managing the whole pack yourself?** Follow its [dotfiles guide](packages/pack/INSTALLATION.md): vendor the extracted tree, deploy selected static files through your manager, and review replacements in your own commits. Keep state and caches outside the pack. The agent-assisted path below is optional.
 
-### With the shared script
+### With your Herdr agent — recommended
 
-The same script handles **any individual package or the whole pack**. It previews by default; `--apply` enables installation. From an extracted archive that includes `install.py`:
+Give your agent a package's GitHub folder URL to review its recipe and setup, or the absolute path of a verified, extracted release archive for ready-to-use compiled files. Source folders in this repository contain TypeScript; they are not compiled install payloads. Ask the agent to use the matching release archive, not copy TypeScript into your runtime or require development tools on your machine.
 
-```sh
-BUNDLE="/absolute/path/to/extracted-package"
-APP_HOME="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
-python3 "$BUNDLE/install.py" --target "$APP_HOME"
-# After reviewing the plan:
-python3 "$BUNDLE/install.py" --target "$APP_HOME" --apply
-```
+For example:
 
-You can target a dotfiles staging directory instead. The standalone script also accepts `--source` with another verified, extracted Muxcle package folder. Downloading and extraction remain separate steps. It preserves unrelated keys, checks conflicts, and does not activate layouts or configure project roots. See [installer examples and safety rules](docs/INSTALLER.md), including `--replace` and `--skip-keys`.
-
-The existing `v0.1.0` release predates the installer and whole pack. Its individual archives work as sources for the current checkout's installer, but do not contain the script themselves. Use a newer release for bundled `install.py` and the whole pack.
-
-### With your Herdr agent
+> Add Muxcle Picker to my Herdr setup using https://github.com/cristianoliveira/herdr-muxcle/tree/main/packages/picker. Read the recipe and installation guide, get the compiled package from a published release, inspect its files, explain its capabilities, and ask before replacing anything. Preserve my existing layout, bindings, settings, and runtime state. If no suitable release exists, stop and explain what is missing.
 
 Give your agent the **printed absolute package-folder path** and this request. If you want the agent to handle downloading too, give it the package name and published tag instead: ask it to fetch the archive and checksum from this project's release, verify before extracting, and stop if that release is unavailable—not clone or build the repository by default.
 

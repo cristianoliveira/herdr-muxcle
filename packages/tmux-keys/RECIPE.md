@@ -1,6 +1,6 @@
 # Recipe: Tmux keys for Herdr
 
-Add selected tmux-inspired shortcuts to Herdr's existing `keys.json` using native Herdr commands. The runtime contribution is only a key snippet, with docs and an optional standalone installer; there is no mod or layout.
+Add selected tmux-inspired shortcuts to Herdr's existing `keys.json` using native Herdr commands. This package contains only the key snippet and docs.
 
 ## Bindings
 

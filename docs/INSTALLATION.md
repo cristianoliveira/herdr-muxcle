@@ -1,7 +1,5 @@
 # Install the optional Muxcle scaffold
 
-For scripted deployment, use the [shared installer](https://github.com/cristianoliveira/herdr-muxcle/blob/main/docs/INSTALLER.md), which also supports this individual package. New archives include root `install.py`; preview first, then use `--apply` explicitly.
-
 **This is not the general installation guide or an all-in-one bundle.** To choose a capability, start with the [installation overview](https://github.com/cristianoliveira/herdr-muxcle/blob/main/INSTALLATION.md).
 
 This package is a starter layout and one static status mod. It does not implement tmux shortcuts or migrate a personal Herdr configuration. It installs no key bindings.
@@ -44,7 +42,7 @@ The package references Herdr 0.1.13's shipped `spaces`, `tabs`, and `pane` mods.
 
 ## Update or reinstall
 
-You can use the shared installer's reviewed replacement mode, or follow the manual steps here. For a manual update, repeat the download and extraction block above, then set `APP_HOME` to your Herdr app home. Use update-mode preflight to reject symlinked containers while allowing the existing package-owned paths:
+There is no automatic installer. In a shell, repeat the download and extraction block above, then set `APP_HOME` to your Herdr app home. Use update-mode preflight to reject symlinked containers while allowing the existing package-owned paths:
 
 ```sh
 sh "$BUNDLE/check-install-targets.sh" --update "$APP_HOME"

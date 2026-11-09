@@ -1,7 +1,5 @@
 # Install the Tmux keys package
 
-For scripted deployment of this selected package, use the [shared installer](https://github.com/cristianoliveira/herdr-muxcle/blob/main/docs/INSTALLER.md). New archives include root `install.py`; it previews by default and writes only with `--apply`. Manual and agent-assisted steps remain available below.
-
 Choosing a capability? Start with the [installation overview](https://github.com/cristianoliveira/herdr-muxcle/blob/main/INSTALLATION.md). This guide also ships inside this package's archive.
 
 This optional package adds the explicit tmux-inspired key bindings documented in its recipe. It contains no runtime code, mod, or layout.
@@ -38,7 +36,7 @@ BACKUP_DIR="$(mktemp -d)"
 cp -p "$APP_HOME/keys.json" "$BACKUP_DIR/keys.json"
 ```
 
-Review the resulting JSON and confirm Herdr accepts it. Manual editing does not invoke Herdr commands. The optional shared installer can merge reviewed bindings after `--apply`; it does not activate shortcuts for testing.
+Review the resulting JSON and confirm Herdr accepts it. This package does not write files or invoke Herdr commands for you.
 
 ## Update or reinstall
 

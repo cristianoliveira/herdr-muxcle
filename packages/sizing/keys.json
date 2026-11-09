@@ -1,0 +1,5 @@
+{
+  "global": {
+    "ctrl-a ctrl-e": "muxcle-sizing.equalize"
+  }
+}

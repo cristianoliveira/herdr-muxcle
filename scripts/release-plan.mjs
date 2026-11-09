@@ -43,7 +43,7 @@ export function formatReleaseNotes(plan) {
   return [
     `# Herdr Muxcle ${plan.tag}`,
     "",
-    `Choose only the capabilities you need. The [unified installation overview](${overview}) compares all seven packages. The scaffold is an optional static starter, not an all-in-one bundle. Each package is a separate archive; check its guide for prerequisites and safe installation steps.`,
+    `Choose only the capabilities you need. The [unified installation overview](${overview}) compares the available packages. The scaffold is an optional static starter, not an all-in-one bundle. Each package is a separate archive; check its guide for prerequisites and safe installation steps.`,
     "",
     "| Capability | Includes | Install guide | Archive | Checksum |",
     "| --- | --- | --- | --- | --- |",

@@ -17,6 +17,7 @@ const packageNames = [
   "muxcle-history",
   "muxcle-rotation",
   "muxcle-sizing",
+  "muxcle-pack",
 ];
 const installationPaths = [
   "docs/INSTALLATION.md",
@@ -26,9 +27,10 @@ const installationPaths = [
   "packages/history/INSTALLATION.md",
   "packages/rotation/INSTALLATION.md",
   "packages/sizing/INSTALLATION.md",
+  "packages/pack/INSTALLATION.md",
 ];
 
-test("release plan derives seven independent archives and installation links from the package catalog", () => {
+test("release plan derives archive names and installation links from the package catalog", () => {
   const plan = createReleasePlan({ version: "0.1.0", repositoryUrl });
 
   assert.deepEqual(

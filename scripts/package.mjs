@@ -219,7 +219,7 @@ const sizingPackage = {
     ["mods/muxcle-sizing/package-owner.json", "mods/muxcle-sizing/package-owner.json"],
   ],
 };
-const packageDefinitions = [
+const existingPackageDefinitions = [
   appPackage,
   tmuxKeysPackage,
   sessionizerPackage,
@@ -228,6 +228,9 @@ const packageDefinitions = [
   rotationPackage,
   sizingPackage,
 ];
+const trustedComponentNames = new Set(existingPackageDefinitions.filter(hasOwnedModSources).map(({ name }) => name));
+const packPackage = createPackDefinition(existingPackageDefinitions);
+const packageDefinitions = [...existingPackageDefinitions, packPackage];
 const packagesByName = new Map(packageDefinitions.map((definition) => [definition.name, definition]));
 export const RELEASE_CATALOG = Object.freeze(
   packageDefinitions.map(({ name, release }) => Object.freeze({ name, ...release })),
@@ -261,16 +264,296 @@ export async function createSizingPackage(options = {}) {
   return buildPackage(sizingPackage, options);
 }
 
+export async function createPackPackage(options = {}) {
+  return buildPackage(packPackage, options);
+}
+
 export async function createPackages(options = {}) {
   const results = [];
   for (const definition of packageDefinitions) results.push(await buildPackage(definition, options));
   return results;
 }
 
+export function combinePackKeymaps(snippets) {
+  const merged = {};
+  const chordOwners = new Map();
+
+  for (const { packageName, keymap } of snippets) {
+    if (typeof packageName !== "string" || packageName.length === 0) {
+      throw new TypeError("pack key snippets require a package name");
+    }
+    validatePackKeymap(packageName, keymap);
+    for (const [section, bindings] of Object.entries(keymap)) {
+      if (!merged[section]) {
+        Object.defineProperty(merged, section, {
+          value: {},
+          enumerable: true,
+          configurable: true,
+          writable: true,
+        });
+      }
+      for (const [chord, action] of Object.entries(bindings)) {
+        const previousOwner = chordOwners.get(chord);
+        if (previousOwner) {
+          throw new Error(`shortcut collision for ${section}.${chord}: ${previousOwner} and ${packageName}`);
+        }
+        chordOwners.set(chord, packageName);
+        Object.defineProperty(merged[section], chord, {
+          value: action,
+          enumerable: true,
+          configurable: true,
+          writable: true,
+        });
+      }
+    }
+  }
+
+  return merged;
+}
+
+function validatePackKeymap(packageName, keymap) {
+  if (!keymap || typeof keymap !== "object" || Array.isArray(keymap)) {
+    throw new TypeError(`${packageName} key snippet must be a JSON object`);
+  }
+  for (const [section, bindings] of Object.entries(keymap)) {
+    if (section !== "global" && section !== "terminal") {
+      throw new TypeError(`${packageName} key snippet has unsupported section: ${section}`);
+    }
+    if (!bindings || typeof bindings !== "object" || Array.isArray(bindings)) {
+      throw new TypeError(`${packageName} key section ${section} must be an object`);
+    }
+    for (const [chord, action] of Object.entries(bindings)) {
+      if (!chord.trim()) throw new TypeError(`${packageName} key section ${section} has an empty chord`);
+      if (typeof action === "string" && action.trim()) continue;
+      if (
+        action &&
+        typeof action === "object" &&
+        !Array.isArray(action) &&
+        typeof action.command === "string" &&
+        action.command.trim() &&
+        (action.args === undefined ||
+          (action.args && typeof action.args === "object" && !Array.isArray(action.args))) &&
+        Object.keys(action).every((key) => key === "command" || key === "args")
+      ) {
+        continue;
+      }
+      throw new TypeError(`${packageName} key section ${section} chord ${chord} has an invalid action`);
+    }
+  }
+}
+
+export function assertNoSourceCollisions(sources) {
+  const targets = new Map();
+  for (const [source, target] of sources) {
+    if (
+      typeof target !== "string" ||
+      target.startsWith("/") ||
+      target.includes("\\") ||
+      target.split("/").some((part) => !part || part === "." || part === "..")
+    ) {
+      throw new Error(`invalid archive target: ${target}`);
+    }
+    const existingSource = targets.get(target);
+    if (targets.has(target)) {
+      throw new Error(`archive target collision for ${target}: ${existingSource} and ${source}`);
+    }
+    targets.set(target, source);
+  }
+}
+
+export function createPackLayout(baseLayout, hostBlocks) {
+  if (!baseLayout || typeof baseLayout !== "object" || Array.isArray(baseLayout)) {
+    throw new TypeError("pack layout source must be an object");
+  }
+  const layout = cloneJson(baseLayout);
+  removeModNodes(layout, "muxcle-compat");
+
+  const expectedHostMods = ["muxcle-history", "muxcle-rotation", "muxcle-sizing"];
+  const suppliedHostMods = hostBlocks.map((block) => block?.content?.mod);
+  if (
+    hostBlocks.length !== expectedHostMods.length ||
+    [...suppliedHostMods].sort().join("\n") !== [...expectedHostMods].sort().join("\n")
+  ) {
+    throw new Error("pack layout requires one source block for History, Rotation, and Sizing");
+  }
+
+  const nodes = collectLayoutNodes(layout);
+  const workspaceNodes = nodes.filter((node) => node.id === "workspace");
+  if (workspaceNodes.length !== 1 || !Array.isArray(workspaceNodes[0].children)) {
+    throw new Error("pack layout source must contain one workspace node with children");
+  }
+  const existingIds = new Set();
+  for (const node of nodes) {
+    if (typeof node.id !== "string" || node.id.length === 0) continue;
+    if (existingIds.has(node.id)) throw new Error(`pack layout source has duplicate node ID: ${node.id}`);
+    existingIds.add(node.id);
+  }
+  for (const block of hostBlocks) {
+    if (!block || block.type !== "block" || typeof block.id !== "string" || !block.id) {
+      throw new Error("pack layout host blocks must have a block type and node ID");
+    }
+    if (existingIds.has(block.id)) throw new Error(`pack layout host node ID collides: ${block.id}`);
+    existingIds.add(block.id);
+  }
+
+  const existingHostMods = nodes.filter((node) => expectedHostMods.includes(node.content?.mod));
+  if (existingHostMods.length > 0) throw new Error("pack layout source already contains a pack host block");
+  workspaceNodes[0].children.push(...hostBlocks.map(cloneJson));
+
+  const finalNodes = collectLayoutNodes(layout);
+  for (const modName of expectedHostMods) {
+    if (finalNodes.filter((node) => node.content?.mod === modName).length !== 1) {
+      throw new Error(`pack layout must contain exactly one ${modName} host`);
+    }
+  }
+  if (finalNodes.some((node) => node.content?.mod === "muxcle-compat")) {
+    throw new Error("pack layout must not display the scaffold compatibility status");
+  }
+  return layout;
+}
+
+function createPackDefinition(definitions) {
+  const sources = createPackSources(definitions);
+  const generatedFiles = [
+    ["keys.json", (root) => readPackKeymap(root, definitions)],
+    ["layouts/muxcle-pack.json", (root) => readPackLayout(root, definitions)],
+  ];
+  const allEntries = [...sources, ...generatedFiles.map(([target]) => ["<generated>", target])];
+  assertNoSourceCollisions(allEntries);
+  const files = allEntries.map(([, target]) => target);
+
+  return {
+    name: "muxcle-pack",
+    release: {
+      title: "Whole pack",
+      summary: "Optional vendor-managed distribution of all seven packages; no installer or automatic activation.",
+      installationPath: "packages/pack/INSTALLATION.md",
+    },
+    files,
+    directories: listPackageDirectories(files),
+    sources,
+    generatedFiles,
+  };
+}
+
+function createPackSources(definitions) {
+  const componentSources = definitions.flatMap((definition) => {
+    const installation = findSource(definition, "INSTALLATION.md");
+    const recipe = findSource(definition, "RECIPE.md");
+    const guides = [
+      [installation[0], `components/${definition.name}/INSTALLATION.md`],
+      [recipe[0], `components/${definition.name}/RECIPE.md`],
+    ];
+    const resources = definition.sources
+      .filter(
+        ([, target]) =>
+          !target.startsWith("mods/") &&
+          target !== "INSTALLATION.md" &&
+          target !== "RECIPE.md" &&
+          target !== "docs/INSTALLATION.md" &&
+          target !== "layouts/muxcle.json",
+      )
+      .map(([source, target]) => [source, `components/${definition.name}/${target}`]);
+    return [...guides, ...resources];
+  });
+  const scaffoldSources = appPackage.sources.map(([source, target]) => [source, `scaffold/${target}`]);
+  const runtimeModSources = definitions
+    .filter(hasOwnedModSources)
+    .flatMap((definition) => definition.sources.filter(([, target]) => target.startsWith("mods/")));
+  const sessionizer = definitions.find((definition) => definition.name === "muxcle-sessionizer");
+  const sessionizerConfig = findSource(sessionizer, "config.example.json");
+
+  return [
+    ["packages/pack/INSTALLATION.md", "INSTALLATION.md"],
+    ["packages/pack/RECIPE.md", "RECIPE.md"],
+    [sessionizerConfig[0], "config.example.json"],
+    ...componentSources,
+    ...scaffoldSources,
+    ...runtimeModSources,
+  ];
+}
+
+async function readPackKeymap(root, definitions) {
+  const snippets = [];
+  for (const definition of definitions) {
+    const source = definition.sources.find(([, target]) => target === "keys.json");
+    if (!source) continue;
+    const keymap = JSON.parse(await readFile(join(root, source[0]), "utf8"));
+    snippets.push({ packageName: definition.name, keymap });
+  }
+  return `${JSON.stringify(combinePackKeymaps(snippets), null, 2)}\n`;
+}
+
+async function readPackLayout(root, definitions) {
+  const baseLayout = JSON.parse(await readFile(join(root, "layouts/muxcle.json"), "utf8"));
+  const history = definitions.find((definition) => definition.name === "muxcle-history");
+  const rotation = definitions.find((definition) => definition.name === "muxcle-rotation");
+  const sizing = definitions.find((definition) => definition.name === "muxcle-sizing");
+  const hostBlocks = await Promise.all(
+    [
+      [history, "observer.json"],
+      [rotation, "host.json"],
+      [sizing, "host.json"],
+    ].map(async ([definition, target]) => {
+      const source = findSource(definition, target);
+      return JSON.parse(await readFile(join(root, source[0]), "utf8"));
+    }),
+  );
+  return `${JSON.stringify(createPackLayout(baseLayout, hostBlocks), null, 2)}\n`;
+}
+
+function hasOwnedModSources(definition) {
+  return definition.sources.some(([, target]) => target.startsWith("mods/") && target.endsWith("/package-owner.json"));
+}
+
+function findSource(definition, target) {
+  const source = definition?.sources.find(([, sourceTarget]) => sourceTarget === target);
+  if (!source) throw new Error(`package ${definition?.name ?? "unknown"} has no source for ${target}`);
+  return source;
+}
+
+function listPackageDirectories(files) {
+  const directories = new Set([""]);
+  for (const file of files) {
+    const segments = file.split("/");
+    for (let index = 1; index < segments.length; index += 1) {
+      directories.add(segments.slice(0, index).join("/"));
+    }
+  }
+  return [...directories];
+}
+
+function removeModNodes(node, modName) {
+  if (!Array.isArray(node.children)) return;
+  node.children = node.children.filter((child) => child?.content?.mod !== modName);
+  for (const child of node.children) removeModNodes(child, modName);
+}
+
+function collectLayoutNodes(root) {
+  const nodes = [];
+  const visit = (node) => {
+    if (!node || typeof node !== "object" || Array.isArray(node)) return;
+    nodes.push(node);
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) visit(child);
+    }
+  };
+  visit(root);
+  return nodes;
+}
+
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 async function buildPackage(
   definition,
   { repositoryRoot: root = repositoryRoot, outputDirectory = join(root, "dist") } = {},
 ) {
+  assertNoSourceCollisions([
+    ...definition.sources,
+    ...(definition.generatedFiles ?? []).map(([target]) => ["<generated>", target]),
+  ]);
   const packageMetadata = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   const version = packageMetadata.version;
   if (!/^\d+\.\d+\.\d+$/.test(version ?? "")) {
@@ -294,13 +577,26 @@ async function buildPackage(
       await mkdir(dirname(targetPath), { recursive: true });
       if (target.endsWith("/package-owner.json")) {
         const owner = JSON.parse(await readFile(join(root, source), "utf8"));
-        if (!owner || owner.package !== definition.name || owner.schema !== 1 || Object.keys(owner).length !== 2) {
+        const modName = target.split("/")[1];
+        if (
+          !owner ||
+          !trustedComponentNames.has(owner.package) ||
+          owner.package !== modName ||
+          owner.schema !== 1 ||
+          Object.keys(owner).length !== 2
+        ) {
           throw new Error(`Unexpected package ownership marker: ${source}`);
         }
-        await writeFile(targetPath, `${JSON.stringify({ package: definition.name, schema: 1 })}\n`);
+        await writeFile(targetPath, `${JSON.stringify({ package: owner.package, schema: 1 })}\n`);
       } else {
         await copyFile(join(root, source), targetPath);
       }
+    }
+
+    for (const [target, generate] of definition.generatedFiles ?? []) {
+      const targetPath = join(stagedDirectory, target);
+      await mkdir(dirname(targetPath), { recursive: true });
+      await writeFile(targetPath, await generate(root));
     }
 
     const manifest = {

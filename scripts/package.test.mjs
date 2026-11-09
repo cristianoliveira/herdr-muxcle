@@ -1,12 +1,28 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmod, lstat, mkdtemp, mkdir, readFile, readdir, rm, symlink, utimes, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  copyFile,
+  cp,
+  lstat,
+  mkdtemp,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  symlink,
+  utimes,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import {
+  assertNoSourceCollisions,
+  combinePackKeymaps,
   createDeterministicArchive,
+  createPackPackage,
   createPackage,
   createPackages,
   createPickerPackage,
@@ -44,6 +60,80 @@ const expectedSessionizerFiles = [
   "mods/muxcle-sessionizer/sessionizer/controller.js",
   "mods/muxcle-sessionizer/sessionizer/model.js",
   "RECIPE.md",
+  "manifest.json",
+].sort();
+const expectedPackFiles = [
+  "INSTALLATION.md",
+  "RECIPE.md",
+  "config.example.json",
+  "keys.json",
+  "layouts/muxcle-pack.json",
+  "components/herdr-muxcle/INSTALLATION.md",
+  "components/herdr-muxcle/RECIPE.md",
+  "components/herdr-muxcle/check-install-targets.sh",
+  "components/muxcle-tmux-keys/INSTALLATION.md",
+  "components/muxcle-tmux-keys/RECIPE.md",
+  "components/muxcle-tmux-keys/keys.json",
+  "components/muxcle-sessionizer/INSTALLATION.md",
+  "components/muxcle-sessionizer/RECIPE.md",
+  "components/muxcle-sessionizer/check-install-targets.sh",
+  "components/muxcle-sessionizer/config.example.json",
+  "components/muxcle-sessionizer/keys.json",
+  "components/muxcle-picker/INSTALLATION.md",
+  "components/muxcle-picker/RECIPE.md",
+  "components/muxcle-picker/check-install-targets.sh",
+  "components/muxcle-picker/keys.json",
+  "components/muxcle-history/INSTALLATION.md",
+  "components/muxcle-history/RECIPE.md",
+  "components/muxcle-history/check-install-targets.sh",
+  "components/muxcle-history/keys.json",
+  "components/muxcle-history/observer.json",
+  "components/muxcle-rotation/INSTALLATION.md",
+  "components/muxcle-rotation/RECIPE.md",
+  "components/muxcle-rotation/check-install-targets.sh",
+  "components/muxcle-rotation/keys.json",
+  "components/muxcle-rotation/host.json",
+  "components/muxcle-sizing/INSTALLATION.md",
+  "components/muxcle-sizing/RECIPE.md",
+  "components/muxcle-sizing/check-install-targets.sh",
+  "components/muxcle-sizing/keys.json",
+  "components/muxcle-sizing/host.json",
+  "scaffold/INSTALLATION.md",
+  "scaffold/check-install-targets.sh",
+  "scaffold/docs/INSTALLATION.md",
+  "scaffold/layouts/muxcle.json",
+  "scaffold/mods/muxcle-compat/main.js",
+  "scaffold/mods/muxcle-compat/mod.json",
+  "scaffold/RECIPE.md",
+  "mods/muxcle-sessionizer/discover.py",
+  "mods/muxcle-sessionizer/main.js",
+  "mods/muxcle-sessionizer/mod.json",
+  "mods/muxcle-sessionizer/package-owner.json",
+  "mods/muxcle-sessionizer/sessionizer/adapter.js",
+  "mods/muxcle-sessionizer/sessionizer/controller.js",
+  "mods/muxcle-sessionizer/sessionizer/model.js",
+  "mods/muxcle-picker/main.js",
+  "mods/muxcle-picker/model.js",
+  "mods/muxcle-picker/mod.json",
+  "mods/muxcle-picker/package-owner.json",
+  "mods/muxcle-history/main.js",
+  "mods/muxcle-history/model.js",
+  "mods/muxcle-history/mod.json",
+  "mods/muxcle-history/package-owner.json",
+  "mods/muxcle-rotation/main.js",
+  "mods/muxcle-rotation/model.js",
+  "mods/muxcle-rotation/controller.js",
+  "mods/muxcle-rotation/adapter.js",
+  "mods/muxcle-rotation/rotate.py",
+  "mods/muxcle-rotation/mod.json",
+  "mods/muxcle-rotation/package-owner.json",
+  "mods/muxcle-sizing/main.js",
+  "mods/muxcle-sizing/model.js",
+  "mods/muxcle-sizing/controller.js",
+  "mods/muxcle-sizing/adapter.js",
+  "mods/muxcle-sizing/equalize.py",
+  "mods/muxcle-sizing/mod.json",
+  "mods/muxcle-sizing/package-owner.json",
   "manifest.json",
 ].sort();
 
@@ -474,6 +564,158 @@ test("rotation archive is independent, reproducible, and protects existing mod p
   }
 });
 
+test("whole-pack key composition rejects duplicate chords, including identical actions", () => {
+  const keymap = combinePackKeymaps([
+    { packageName: "muxcle-tmux-keys", keymap: { global: { "ctrl-a c": "tab.new" } } },
+    { packageName: "muxcle-picker", keymap: { global: { "ctrl-a b": "mod.open:muxcle-picker" } } },
+  ]);
+
+  assert.deepEqual(keymap, {
+    global: {
+      "ctrl-a c": "tab.new",
+      "ctrl-a b": "mod.open:muxcle-picker",
+    },
+  });
+  assert.throws(
+    () =>
+      combinePackKeymaps([
+        { packageName: "muxcle-tmux-keys", keymap: { global: { "ctrl-a c": "tab.new" } } },
+        { packageName: "muxcle-picker", keymap: { global: { "ctrl-a c": "tab.new" } } },
+      ]),
+    /shortcut collision.*muxcle-tmux-keys.*muxcle-picker/,
+  );
+});
+
+test("whole-pack source inventory rejects duplicate archive targets", () => {
+  assert.throws(
+    () =>
+      assertNoSourceCollisions([
+        ["first.json", "keys.json"],
+        ["second.json", "keys.json"],
+      ]),
+    /archive target collision.*keys.json/,
+  );
+});
+
+test("whole-pack archive composes all components without activating scaffold status", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "herdr-muxcle-pack-test-"));
+  try {
+    const info = await createPackPackage({ repositoryRoot, outputDirectory: temporary });
+    const verified = verifyPackage({ outputDirectory: temporary, version: info.version, packageName: "muxcle-pack" });
+    const firstArchive = await readFile(info.archivePath);
+    await changeTimes(info.bundleDirectory, 1);
+    const repeatedArchive = join(temporary, "muxcle-pack-repeat.tar.gz");
+    await createDeterministicArchive({
+      packageDirectory: info.bundleDirectory,
+      archivePath: repeatedArchive,
+      packageName: "muxcle-pack",
+    });
+    assert.deepEqual(await readFile(repeatedArchive), firstArchive);
+    const layout = JSON.parse(await readFile(join(info.bundleDirectory, "layouts/muxcle-pack.json"), "utf8"));
+    const nodes = collectLayoutNodes(layout);
+    const keymap = JSON.parse(await readFile(join(info.bundleDirectory, "keys.json"), "utf8"));
+    const keySources = [
+      "packages/tmux-keys/keys.json",
+      "packages/sessionizer/keys.json",
+      "packages/picker/keys.json",
+      "packages/history/keys.json",
+      "packages/rotation/keys.json",
+      "packages/sizing/keys.json",
+    ];
+    const expectedKeymap = {};
+
+    for (const source of keySources) {
+      const snippet = JSON.parse(await readFile(join(repositoryRoot, source), "utf8"));
+      for (const [section, bindings] of Object.entries(snippet)) {
+        expectedKeymap[section] ??= {};
+        Object.assign(expectedKeymap[section], bindings);
+      }
+    }
+
+    assert.equal(info.name, "muxcle-pack");
+    assert.deepEqual(verified.files, expectedPackFiles);
+    assert.equal(
+      await readFile(join(info.bundleDirectory, "INSTALLATION.md"), "utf8"),
+      await readFile(join(repositoryRoot, "packages/pack/INSTALLATION.md"), "utf8"),
+    );
+    assert.equal(
+      await readFile(join(info.bundleDirectory, "RECIPE.md"), "utf8"),
+      await readFile(join(repositoryRoot, "packages/pack/RECIPE.md"), "utf8"),
+    );
+    assert.deepEqual(keymap, expectedKeymap);
+    assert.deepEqual(
+      await readFile(join(info.bundleDirectory, "config.example.json")),
+      await readFile(join(repositoryRoot, "packages/sessionizer/config.example.json")),
+    );
+    assert.ok(verified.files.includes("mods/muxcle-sessionizer/main.js"));
+    assert.equal(nodes.filter((node) => node.content?.mod === "muxcle-compat").length, 0);
+
+    for (const [modName, sourcePath] of [
+      ["muxcle-history", "packages/history/observer.json"],
+      ["muxcle-rotation", "packages/rotation/host.json"],
+      ["muxcle-sizing", "packages/sizing/host.json"],
+    ]) {
+      const placed = nodes.filter((node) => node.content?.mod === modName);
+      const source = JSON.parse(await readFile(join(repositoryRoot, sourcePath), "utf8"));
+      assert.equal(placed.length, 1);
+      assert.deepEqual(placed[0], source);
+    }
+
+    for (const modName of [
+      "muxcle-sessionizer",
+      "muxcle-picker",
+      "muxcle-history",
+      "muxcle-rotation",
+      "muxcle-sizing",
+    ]) {
+      const owner = JSON.parse(
+        await readFile(join(info.bundleDirectory, "mods", modName, "package-owner.json"), "utf8"),
+      );
+      assert.deepEqual(owner, { package: modName, schema: 1 });
+    }
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("whole pack rejects an ownership marker that claims the aggregate package", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "herdr-muxcle-pack-owner-test-"));
+  const sourceRoot = join(temporary, "source");
+  try {
+    await mkdir(sourceRoot);
+    await copyFile(join(repositoryRoot, "package.json"), join(sourceRoot, "package.json"));
+    await symlink(join(repositoryRoot, "RECIPE.md"), join(sourceRoot, "RECIPE.md"));
+    for (const directory of [".build", "docs", "layouts", "packages", "scripts"]) {
+      await symlink(join(repositoryRoot, directory), join(sourceRoot, directory), "dir");
+    }
+    const modsDirectory = join(sourceRoot, "mods");
+    await mkdir(modsDirectory);
+    for (const modName of [
+      "muxcle-compat",
+      "muxcle-sessionizer",
+      "muxcle-picker",
+      "muxcle-history",
+      "muxcle-rotation",
+      "muxcle-sizing",
+    ]) {
+      const target = join(modsDirectory, modName);
+      if (modName === "muxcle-picker") {
+        await cp(join(repositoryRoot, "mods", modName), target, { recursive: true });
+      } else {
+        await symlink(join(repositoryRoot, "mods", modName), target, "dir");
+      }
+    }
+    await writeFile(join(modsDirectory, "muxcle-picker/package-owner.json"), '{"package":"muxcle-pack","schema":1}\n');
+
+    await assert.rejects(
+      createPackPackage({ repositoryRoot: sourceRoot, outputDirectory: join(temporary, "dist") }),
+      /Unexpected package ownership marker/,
+    );
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
 test("package generation leaves existing app settings untouched", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "herdr-muxcle-package-test-"));
   const outputDirectory = join(temporary, "dist");
@@ -510,7 +752,8 @@ test("package generation leaves existing app settings untouched", async () => {
 test("builds independent archives for the scaffold, Tmux keys, and Sessionizer packages", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "herdr-muxcle-packages-test-"));
   try {
-    const [scaffold, tmuxKeys, sessionizer] = await createPackages({ repositoryRoot, outputDirectory: temporary });
+    const packages = await createPackages({ repositoryRoot, outputDirectory: temporary });
+    const [scaffold, tmuxKeys, sessionizer] = packages;
     const scaffoldCheck = verifyPackage({ outputDirectory: temporary, version: scaffold.version });
     const keysCheck = verifyPackage({
       outputDirectory: temporary,
@@ -527,6 +770,19 @@ test("builds independent archives for the scaffold, Tmux keys, and Sessionizer p
     const sessionizerManifest = JSON.parse(await readFile(join(sessionizer.bundleDirectory, "manifest.json"), "utf8"));
     const sessionizerKeys = JSON.parse(await readFile(join(sessionizer.bundleDirectory, "keys.json"), "utf8"));
 
+    assert.deepEqual(
+      packages.map(({ name }) => name),
+      [
+        "herdr-muxcle",
+        "muxcle-tmux-keys",
+        "muxcle-sessionizer",
+        "muxcle-picker",
+        "muxcle-history",
+        "muxcle-rotation",
+        "muxcle-sizing",
+        "muxcle-pack",
+      ],
+    );
     assert.equal(scaffold.name, "herdr-muxcle");
     assert.equal(tmuxKeys.name, "muxcle-tmux-keys");
     assert.equal(sessionizer.name, "muxcle-sessionizer");
@@ -714,6 +970,18 @@ async function changeTimes(directory, seconds) {
     seconds += 100;
   }
   await utimes(directory, new Date(seconds * 1000), new Date(seconds * 1000));
+}
+
+function collectLayoutNodes(root) {
+  const nodes = [];
+  const visit = (node) => {
+    nodes.push(node);
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) visit(child);
+    }
+  };
+  visit(root);
+  return nodes;
 }
 
 function collectMods(value, result = []) {

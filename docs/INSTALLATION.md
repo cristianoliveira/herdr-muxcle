@@ -1,5 +1,7 @@
 # Install the optional Muxcle scaffold
 
+**Installation:** deploy, configure, update, or remove the released package. For the behavior and design brief used to recreate it, see [Recipe](https://github.com/cristianoliveira/herdr-muxcle/blob/main/RECIPE.md). Installing a release does not require rebuilding the recipe.
+
 **This is not the general installation guide or an all-in-one bundle.** To choose a capability, start with the [installation overview](https://github.com/cristianoliveira/herdr-muxcle/blob/main/INSTALLATION.md).
 
 This package is a starter layout and one static status mod. It does not implement tmux shortcuts or migrate a personal Herdr configuration. It installs no key bindings.

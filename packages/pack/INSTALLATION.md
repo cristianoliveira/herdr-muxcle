@@ -1,5 +1,7 @@
 # Use the whole pack in your dotfiles
 
+**Installation:** deploy, configure, update, or remove the released package. For the behavior and design brief used to recreate it, see [Recipe](RECIPE.md). Installing a release does not require rebuilding the recipe.
+
 **One download, managed by you.** `muxcle-pack` contains all Muxcle capabilities as ready-to-use files. It does not run an installer, change your keys, switch your layout, or update itself.
 
 Individual packages remain available. The older `herdr-muxcle` archive is only the scaffold; the complete archive is named **`muxcle-pack-v<version>.tar.gz`**.

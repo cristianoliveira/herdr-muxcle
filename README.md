@@ -12,6 +12,13 @@ Bring familiar tmux workflows to Herdr. Choose individual capabilities, or take 
 
 Install from a published [GitHub Release](https://github.com/cristianoliveira/herdr-muxcle/releases), not by copying this repository over your Herdr home. If no release is listed, contributors can build local archives; a local build is not a published release.
 
+### Two distinct instructions
+
+- **`RECIPE.md`:** behavior and design brief for recreating a capability.
+- **`INSTALLATION.md`:** how to add, configure, update, or remove the released implementation.
+
+Ask your agent to **install** a release or **recreate** a recipe explicitly. Neither request automatically authorizes changing your live setup beyond the agreed scope.
+
 ## Capabilities
 
 | Package | What it adds |

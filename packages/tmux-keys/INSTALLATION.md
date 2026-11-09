@@ -1,5 +1,7 @@
 # Install the Tmux keys package
 
+**Installation:** deploy, configure, update, or remove the released package. For the behavior and design brief used to recreate it, see [Recipe](RECIPE.md). Installing a release does not require rebuilding the recipe.
+
 Choosing a capability? Start with the [installation overview](https://github.com/cristianoliveira/herdr-muxcle/blob/main/INSTALLATION.md). This guide also ships inside this package's archive.
 
 This optional package adds the explicit tmux-inspired key bindings documented in its recipe. It contains no runtime code, mod, or layout.

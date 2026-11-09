@@ -4,6 +4,15 @@
 
 You need Herdr, not a development environment. Released packages contain ready-to-use JavaScript and native files: no Git, repository clone, Node.js, npm, or TypeScript is required. Follow Herdr's standard: give your agent the package location and let it review the recipe and files before making changes. Manual or dotfile-manager deployment remains available; Muxcle does not provide a custom installer.
 
+## Recipe versus installation
+
+| Goal | Read | Outcome |
+| --- | --- | --- |
+| Add the published implementation to my existing setup | Package `INSTALLATION.md` | Reviewed deployment, configuration, activation, update/removal |
+| Recreate or adapt the capability from its design brief | Package `RECIPE.md` | An implementation matching its behavior and constraints |
+
+An install request uses the released files; it does not authorize rebuilding the recipe. A recreation request does not authorize deployment into your live app home. Recipes describe capabilities and safety limits so an agent can inspect them, but installation instructions own file changes and activation.
+
 ## 1. Choose a package
 
 All packages are tested with **Herdr 0.1.13**. This is a tested version, not a promise of compatibility with every release.
@@ -69,7 +78,7 @@ Give your agent a package's GitHub folder URL to review its recipe and setup, or
 
 For example:
 
-> Add Muxcle Picker to my Herdr setup using https://github.com/cristianoliveira/herdr-muxcle/tree/main/packages/picker. Read the recipe and installation guide, get the compiled package from a published release, inspect its files, explain its capabilities, and ask before replacing anything. Preserve my existing layout, bindings, settings, and runtime state. If no suitable release exists, stop and explain what is missing.
+> Add Muxcle Picker to my Herdr setup using https://github.com/cristianoliveira/herdr-muxcle/tree/main/packages/picker. Follow its installation guide, get the compiled package from a published release, and inspect its files and recipe to understand behavior and capabilities. Install the released implementation; do not rebuild it from the recipe. Ask before replacing anything. Preserve my existing layout, bindings, settings, and runtime state. If no suitable release exists, stop and explain what is missing.
 
 Give your agent the **printed absolute package-folder path** and this request. If you want the agent to handle downloading too, give it the package name and published tag instead: ask it to fetch the archive and checksum from this project's release, verify before extracting, and stop if that release is unavailable—not clone or build the repository by default.
 

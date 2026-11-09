@@ -1,5 +1,7 @@
 # Install the spaces and tabs picker
 
+**Installation:** deploy, configure, update, or remove the released package. For the behavior and design brief used to recreate it, see [Recipe](RECIPE.md). Installing a release does not require rebuilding the recipe.
+
 Choosing a capability? Start with the [installation overview](https://github.com/cristianoliveira/herdr-muxcle/blob/main/INSTALLATION.md). This guide also ships inside this package's archive.
 
 This package requires Herdr 0.1.13. No clone, Git, Node.js, Python, custom layout, or other Muxcle package is needed.

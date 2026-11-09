@@ -1,5 +1,7 @@
 # Herdr Muxcle scaffold
 
+**Recipe:** behavior and design brief for recreating this capability. To deploy the released files into an existing setup, follow [Installation](https://github.com/cristianoliveira/herdr-muxcle/blob/main/docs/INSTALLATION.md) instead. Reading this recipe is not an instruction to install or activate anything.
+
 A small personal layout with the shipped Spaces and Tabs modules and a custom status row. The row says “Muxcle scaffold — no tmux bindings installed.” This package is an installation baseline, not a tmux compatibility implementation.
 
 ## What you see
@@ -18,10 +20,10 @@ The layout uses normal Herdr spaces, tabs, terminals, and panes. The status row 
 
 ## Watch out
 
-The layout is a complete window layout, not a patch to the current one. Select it only after installing; switch back with `ctrl-shift-l`. It does not rebind keys or migrate settings. Tested with Herdr 0.1.13. Herdr's core remains shared; `HERDR_APP_HOME` is not a core sandbox.
+The layout is a complete window layout, not a patch to the current one. It does not rebind keys or migrate settings. Tested with Herdr 0.1.13. Herdr's core remains shared; `HERDR_APP_HOME` is not a core sandbox.
 
 ## Done when
 
-- `herdr-app check <installed-home>/mods/muxcle-compat` passes.
+- The native initial-render check accepts the recreated `muxcle-compat` mod.
 - The Muxcle status row is visible when the `muxcle` layout is selected.
 - Existing keys, settings, runtime state, and terminals remain untouched.

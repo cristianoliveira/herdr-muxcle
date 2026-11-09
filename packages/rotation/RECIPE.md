@@ -1,6 +1,8 @@
 # Pane rotation
 
-An optional Herdr mod that advances terminal panes one position in the focused tab: `[A, B, C]` becomes `[C, A, B]`. Focus returns to the incoming terminal at the original screen position only while the original focus context and pane identities still match. Mount exactly one non-focusable command-host block from host.json in a personal layout. The optional shortcut is Ctrl-a Ctrl-o.
+**Recipe:** behavior and design brief for recreating this capability. To deploy the released files into an existing setup, follow [Installation](INSTALLATION.md) instead. Reading this recipe is not an instruction to install or activate anything.
+
+An optional Herdr mod that advances terminal panes one position in the focused tab: `[A, B, C]` becomes `[C, A, B]`. Focus returns to the incoming terminal at the original screen position only while the original focus context and pane identities still match. The command design requires exactly one shown, non-focusable host block in the active personal layout. The optional shortcut is Ctrl-a Ctrl-o.
 
 Two panes use native swaps without a helper. Three to 64 panes, including nested row/column grids, use a Python helper and one version-checked update to the original tab's machine-scoped Herdr core document. Slot sizes and constraints stay in place; pane IDs and terminal content move together. Unrelated tabs, containers, and document fields are preserved.
 

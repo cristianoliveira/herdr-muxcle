@@ -1,5 +1,7 @@
 # Install the Herdr Sessionizer
 
+**Installation:** deploy, configure, update, or remove the released package. For the behavior and design brief used to recreate it, see [Recipe](RECIPE.md). Installing a release does not require rebuilding the recipe.
+
 Choosing a capability? Start with the [installation overview](https://github.com/cristianoliveira/herdr-muxcle/blob/main/INSTALLATION.md). This guide also ships inside this package's archive.
 
 Sessionizer is a standalone native Herdr mod. It works in an existing layout and does not install a layout, key bindings, Git, Node.js, npm, or a repository checkout. It requires Herdr 0.1.13 and `python3` on `PATH`.

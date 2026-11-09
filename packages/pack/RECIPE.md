@@ -12,9 +12,20 @@ The combined keymap contains the component packages' existing bindings. It is a 
 
 Requires Herdr 0.1.13, Python 3, and `hc` with versioned document support available on Herdr's PATH. Sessionizer project roots remain your choice. No Node.js, npm, compiler, Git, or repository checkout is required to use the released files.
 
+## Included behavior and limits
+
+- **Keys:** Ctrl-a then `c` creates a tab; `n` goes to the previous tab and `p` to the next; digits select tabs. `w`/`_` splits down, `v`/`|` splits right, Ctrl-h/j/k/l navigates panes, and `z`/Ctrl-f zooms. Ctrl-a Ctrl-a sends U+0001 in terminal context. These are explicit sequences, not a tmux prefix mode or repeat-table. Existing layout/terminal bindings may take precedence.
+- **Picker:** Ctrl-a Ctrl-b opens fuzzy search over existing spaces/tabs, including quiet work. Arrows or Ctrl-j/k move; Enter/click selects; Escape cancels. Native ordering is preserved. No project scan, program execution, or network access.
+- **Sessionizer:** Ctrl-a Ctrl-p searches immediate non-hidden directories under configured absolute roots. Selection reuses a local space with the same canonical folder or creates one native space/tab. Python scans only those roots; no config/project writes or network calls. Remote spaces are not reused.
+- **History:** Ctrl-a Shift-L toggles last space; Ctrl-a Ctrl-r or Tab toggles last tab per space. Tracking requires the shown observer and two observed targets. It stores IDs under `muxcle-history.v1`, prunes missing targets, and does not launch programs or access the network.
+- **Rotation:** Ctrl-a Ctrl-o maps `[A,B,C]` to `[C,A,B]` while preserving slot sizes. Two panes use native swaps; 3–64 use Python and one versioned core-document update. Unsupported/mod/zoomed panes and stale snapshots refuse. Focus restoration depends on unchanged context. No retry after conflict or uncertain acknowledgement; an in-flight write can finish after navigation.
+- **Sizing:** Ctrl-a `=` recursively equalizes flexible sibling shares, not all terminal pixel areas. `muxcle-sizing.grow-width`, `shrink-width`, `grow-height`, and `shrink-height` multiply/divide the containing branch's nearest-axis weight by 1.1. Constraints, unsupported/zoomed trees, or stale identities refuse; no-progress changes do nothing. One versioned core write, no retry, no focus change. `muxcle-sizing.help` explains commands. Inspect the result before repeating an uncertain operation.
+
+Rotation/Sizing helpers communicate with the intended core and preserve unrelated document fields. Pending commands are ignored; unmounting a host does not cancel an already-started helper. No component runs an agent fleet or reads account credentials. The optional scaffold is a separate static alternative, not an extra functional capability.
+
 ## Recreate the composition
 
-Use native Spaces, Tabs, and terminal pane views. Combine the component recipes under `components/` in the release, or the sibling package recipes in this repository. Keep their command names, key actions, helper boundaries, and failure behavior. Preserve component ownership and keep the original scaffold separate from the active complete layout.
+Use native Spaces, Tabs, and terminal pane views. Use the supplied active mods, combined keymap, and composed layout as the base. This root recipe is the pack's single guide; `components/` contains supporting snippets and blocks, not additional guides. The repository's sibling recipes provide optional deeper component design detail. Keep their command names, key actions, helper boundaries, and failure behavior. Preserve component ownership and keep the original scaffold separate from the active complete layout.
 
 The pack has no personal settings, project paths, terminals, credentials, or updater. Project discovery runs only for user-configured roots; pane helpers address the intended core. Recreating it must not change live configuration or runtime state.
 
@@ -73,7 +84,7 @@ your-dotfiles/
 
 You can rename the extracted top-level folder. Keep `manifest.json` to identify the upstream version. Keep your customizations in your dotfiles commits so you can review them against the next release.
 
-Bundled component recipes and guides explain individual behavior and limits. Their manual install examples describe separate component archives; use this guide for the combined tree rather than treating reference folders as independent extracted packages.
+This recipe covers the complete tree. Supporting resources under `components/` retain the individual key snippets, observer/host blocks, and preflight scripts for reference. They are not independent extracted packages.
 
 ### Agent-assisted alternative
 
@@ -88,7 +99,7 @@ You can also ask your Herdr agent to read this guide, `RECIPE.md`, and the verif
 | `keys.json` | Combined Muxcle keymap: review/merge, or adopt as your owned replacement deliberately |
 | `scaffold/layouts/` and `scaffold/mods/` | Original scaffold as an optional alternative, not needed for the complete setup |
 | `config.example.json` | Starting point for your own `data/muxcle-sessionizer/config.json` |
-| `components/*`, recipes, guides, and manifest | Component references to keep in your vendor folder; no need to deploy into Herdr |
+| `components/*`, this recipe, and manifest | Supporting references to keep in your vendor folder; no need to deploy into Herdr |
 
 Use your existing dotfile manager to copy or link selected files. For a Stow-style setup, place managed paths beneath `.config/herdr-app/` in your dotfiles package; the archive itself is not a prearranged Stow package. With Home Manager or another manager, declare the destination paths explicitly.
 

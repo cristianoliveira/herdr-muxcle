@@ -69,6 +69,6 @@ Back up `keys.json`. Remove only entries whose key and action still exactly matc
 
 ### Key behavior and limits
 
-Herdr matches explicit key sequences; this is not a tmux prefix mode or repeat-table. `ctrl-a` starts the listed sequences, so a lone Ctrl-a may be delayed or consumed while Herdr waits for the next key. `ctrl-a ctrl-a` sends the U+0001 control character only when terminal context applies.
+Herdr matches explicit key sequences; this package is not a tmux prefix mode or repeat-table. The separate optional Navigation repeat package provides a visible, bounded navigation mode; it is not included here. `ctrl-a` starts the listed sequences, so a lone Ctrl-a may be delayed or consumed while Herdr waits for the next key. `ctrl-a ctrl-a` sends the U+0001 control character only when terminal context applies.
 
 Herdr's precedence is `terminal` over `layout:<name>`, then `layout:<name>` over `global`. Review all three scopes before merging. Layout-specific behavior is active only while that layout is shown. Command-catalog validation does not prove actual key handling; verify the shortcuts with the intended focus, layout, and higher-priority bindings.

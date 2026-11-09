@@ -34,11 +34,16 @@ declare module "gpui-kit" {
     readonly shift?: boolean;
   }
 
+  export interface Timer {
+    after(milliseconds: number, callback: (cx: AsyncContext) => void): Task;
+  }
+
   export interface Context {
     notify(target?: Entity): void;
     stop_propagation(): void;
     focus_handle(): FocusHandle;
     spawn(body: (cx: AsyncContext) => unknown): Task;
+    timer: Timer;
   }
 
   export interface AsyncContext extends Context {}

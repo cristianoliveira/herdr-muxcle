@@ -1,0 +1,11 @@
+{
+  "place": "none",
+  "title": "Navigation repeat",
+  "overlay": {
+    "kind": "popup",
+    "at": "top",
+    "offset": 40,
+    "width": 580,
+    "height": 108
+  }
+}

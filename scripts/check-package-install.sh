@@ -67,6 +67,17 @@ HERDR_APP_HOME="$temporary/sizing-home" herdr-app check "$temporary/sizing-home/
 printf '%s\n' '{"unrelated":"keep"}' > "$temporary/sizing-settings.json"
 cmp "$temporary/sizing-settings.json" "$temporary/sizing-home/settings.json"
 
+repeat_bundle="muxcle-repeat-v$version"
+mkdir "$temporary/repeat-home"
+tar -xzf "dist/$repeat_bundle.tar.gz" -C "$temporary"
+printf '%s\n' '{"unrelated":"keep"}' > "$temporary/repeat-home/settings.json"
+cp "$temporary/repeat-home/settings.json" "$temporary/repeat-settings.json"
+sh "$temporary/$repeat_bundle/check-install-targets.sh" "$temporary/repeat-home"
+mkdir "$temporary/repeat-home/mods"
+cp -R "$temporary/$repeat_bundle/mods/muxcle-repeat" "$temporary/repeat-home/mods/"
+HERDR_APP_HOME="$temporary/repeat-home" herdr-app check "$temporary/repeat-home/mods/muxcle-repeat"
+cmp "$temporary/repeat-settings.json" "$temporary/repeat-home/settings.json"
+
 tab_tools_bundle="muxcle-tab-tools-v$version"
 mkdir "$temporary/tab-tools-home"
 tar -xzf "dist/$tab_tools_bundle.tar.gz" -C "$temporary"

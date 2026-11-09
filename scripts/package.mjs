@@ -207,6 +207,33 @@ const sizingPackage = {
     ["mods/muxcle-sizing/package-owner.json", "mods/muxcle-sizing/package-owner.json"],
   ],
 };
+const repeatPackage = {
+  name: "muxcle-repeat",
+  release: {
+    title: "Navigation repeat",
+    summary: "Enter a visible, timed mode for allowlisted native tab and pane navigation.",
+    installationPath: "packages/repeat/RECIPE.md",
+  },
+  files: [
+    "check-install-targets.sh",
+    "keys.json",
+    "RECIPE.md",
+    "mods/muxcle-repeat/main.js",
+    "mods/muxcle-repeat/repeat.js",
+    "mods/muxcle-repeat/mod.json",
+    "mods/muxcle-repeat/package-owner.json",
+  ],
+  directories: ["", "mods", "mods/muxcle-repeat"],
+  sources: [
+    ["packages/repeat/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/repeat/keys.json", "keys.json"],
+    ["packages/repeat/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-repeat/main.js", "mods/muxcle-repeat/main.js"],
+    [".build/mods/muxcle-repeat/repeat.js", "mods/muxcle-repeat/repeat.js"],
+    ["mods/muxcle-repeat/mod.json", "mods/muxcle-repeat/mod.json"],
+    ["mods/muxcle-repeat/package-owner.json", "mods/muxcle-repeat/package-owner.json"],
+  ],
+};
 const tabToolsPackage = {
   name: "muxcle-tab-tools",
   release: {
@@ -246,6 +273,7 @@ const existingPackageDefinitions = [
   historyPackage,
   rotationPackage,
   sizingPackage,
+  repeatPackage,
   tabToolsPackage,
 ];
 const trustedComponentNames = new Set(existingPackageDefinitions.filter(hasOwnedModSources).map(({ name }) => name));
@@ -282,6 +310,10 @@ export async function createRotationPackage(options = {}) {
 
 export async function createSizingPackage(options = {}) {
   return buildPackage(sizingPackage, options);
+}
+
+export async function createRepeatPackage(options = {}) {
+  return buildPackage(repeatPackage, options);
 }
 
 export async function createTabToolsPackage(options = {}) {

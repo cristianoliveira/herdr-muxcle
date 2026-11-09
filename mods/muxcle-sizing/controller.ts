@@ -50,7 +50,7 @@ export class SizingController {
         return false;
       }
 
-      const result = parseResult(await this.adapter.document(plan.context, operation));
+      const result = parseResult(await this.adapter.document(plan.context, operation), operation);
       if (!result.changed) return false;
       if (!this.closed) this.adapter.notice(successMessage(operation, result.splits), "info");
       return true;
@@ -85,7 +85,7 @@ interface EqualizationResult {
   splits: number;
 }
 
-function parseResult(raw: string): EqualizationResult {
+function parseResult(raw: string, operation: SizingOperation): EqualizationResult {
   if (raw.length > 8_192) throw new Error("Sizing helper returned too much data; outcome may be uncertain.");
   let value: unknown;
   try {
@@ -107,6 +107,9 @@ function parseResult(raw: string): EqualizationResult {
     value.changed !== value.splits > 0
   ) {
     throw new Error("Sizing helper returned an unexpected result; outcome may be uncertain.");
+  }
+  if (operation !== "equalize" && value.splits > 1) {
+    throw new Error("Sizing helper returned an unexpected resize result; outcome may be uncertain.");
   }
   return { changed: value.changed, splits: value.splits };
 }

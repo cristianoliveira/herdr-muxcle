@@ -52,6 +52,14 @@ test("dispatches named resize commands and reports the requested axis", async ()
   assert.deepEqual(value.calls.notices, [{ message: "Grew pane width.", level: "info" }]);
 });
 
+test("rejects a resize result claiming more than one changed split", async () => {
+  const value = harness({ document: async () => '{"changed":true,"splits":2}' });
+
+  assert.equal(await value.controller.execute("grow-width"), false);
+  assert.equal(value.calls.notices[0].level, "error");
+  assert.match(value.calls.notices[0].message, /unexpected resize result.*uncertain/);
+});
+
 test("shows native help without reading a snapshot or invoking the helper", async () => {
   const value = harness();
 

@@ -19,7 +19,6 @@ test: build
 	@python3 -B -m unittest discover -s mods/muxcle-sessionizer -p 'test_*.py'
 	@python3 -B -m unittest discover -s mods/muxcle-rotation -p 'test_*.py'
 	@python3 -B -m unittest discover -s mods/muxcle-sizing -p 'test_*.py'
-	@python3 -B -m unittest discover -s scripts -p 'test_*.py'
 	@python3 -B -m unittest discover -s tests/e2e -p 'test_*.py'
 
 watch:

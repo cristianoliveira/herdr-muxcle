@@ -38,7 +38,6 @@ import { assertReleaseTag } from "./release-tag.mjs";
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
 const expectedFiles = [
   "INSTALLATION.md",
-  "install.py",
   "check-install-targets.sh",
   "docs/INSTALLATION.md",
   "layouts/muxcle.json",
@@ -47,10 +46,9 @@ const expectedFiles = [
   "RECIPE.md",
   "manifest.json",
 ].sort();
-const expectedTmuxKeysFiles = ["INSTALLATION.md", "install.py", "keys.json", "RECIPE.md", "manifest.json"].sort();
+const expectedTmuxKeysFiles = ["INSTALLATION.md", "keys.json", "RECIPE.md", "manifest.json"].sort();
 const expectedSessionizerFiles = [
   "check-install-targets.sh",
-  "install.py",
   "config.example.json",
   "INSTALLATION.md",
   "keys.json",
@@ -67,7 +65,6 @@ const expectedSessionizerFiles = [
 const expectedPackFiles = [
   "INSTALLATION.md",
   "RECIPE.md",
-  "install.py",
   "config.example.json",
   "keys.json",
   "layouts/muxcle-pack.json",
@@ -152,7 +149,6 @@ test("picker archive is independent, reproducible, and refuses unowned installat
         "RECIPE.md",
         "check-install-targets.sh",
         "keys.json",
-        "install.py",
         "manifest.json",
         "mods/muxcle-picker/main.js",
         "mods/muxcle-picker/model.js",
@@ -207,7 +203,6 @@ test("history archive is independent, reproducible, and scopes installation to i
         "RECIPE.md",
         "check-install-targets.sh",
         "keys.json",
-        "install.py",
         "manifest.json",
         "observer.json",
         "mods/muxcle-history/main.js",
@@ -260,7 +255,6 @@ test("sizing archive is independent, reproducible, and protects existing install
         "check-install-targets.sh",
         "keys.json",
         "host.json",
-        "install.py",
         "manifest.json",
         "mods/muxcle-sizing/main.js",
         "mods/muxcle-sizing/model.js",
@@ -530,7 +524,6 @@ test("rotation archive is independent, reproducible, and protects existing mod p
         "RECIPE.md",
         "check-install-targets.sh",
         "keys.json",
-        "install.py",
         "manifest.json",
         "host.json",
         "mods/muxcle-rotation/main.js",
@@ -756,7 +749,7 @@ test("package generation leaves existing app settings untouched", async () => {
   }
 });
 
-test("builds all package archives and runs the shared installer for each", async () => {
+test("builds independent archives for the scaffold, Tmux keys, and Sessionizer packages", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "herdr-muxcle-packages-test-"));
   try {
     const packages = await createPackages({ repositoryRoot, outputDirectory: temporary });
@@ -776,7 +769,6 @@ test("builds all package archives and runs the shared installer for each", async
     const keysSnippet = JSON.parse(await readFile(join(tmuxKeys.bundleDirectory, "keys.json"), "utf8"));
     const sessionizerManifest = JSON.parse(await readFile(join(sessionizer.bundleDirectory, "manifest.json"), "utf8"));
     const sessionizerKeys = JSON.parse(await readFile(join(sessionizer.bundleDirectory, "keys.json"), "utf8"));
-    const installerSource = await readFile(join(repositoryRoot, "scripts/install.py"));
 
     assert.deepEqual(
       packages.map(({ name }) => name),
@@ -794,9 +786,6 @@ test("builds all package archives and runs the shared installer for each", async
     assert.equal(scaffold.name, "herdr-muxcle");
     assert.equal(tmuxKeys.name, "muxcle-tmux-keys");
     assert.equal(sessionizer.name, "muxcle-sessionizer");
-    for (const packageInfo of packages) {
-      assert.deepEqual(await readFile(join(packageInfo.bundleDirectory, "install.py")), installerSource);
-    }
     assert.deepEqual(scaffoldCheck.files, expectedFiles);
     assert.deepEqual(keysCheck.files, expectedTmuxKeysFiles);
     assert.deepEqual(sessionizerCheck.files, expectedSessionizerFiles);
@@ -807,19 +796,6 @@ test("builds all package archives and runs the shared installer for each", async
     assert.equal(sessionizerKeys.global["ctrl-a ctrl-p"], "mod.open:muxcle-sessionizer");
     assert.ok(!keysCheck.files.some((path) => path.startsWith("layouts/") || path.startsWith("mods/")));
     assert.ok(!sessionizerCheck.files.some((path) => path.startsWith("layouts/") || path.includes("main.ts")));
-
-    for (const packageInfo of packages) {
-      const installTarget = join(temporary, `installer-${packageInfo.name}`);
-      const result = spawnSync(
-        "python3",
-        [join(packageInfo.bundleDirectory, "install.py"), "--target", installTarget, "--apply"],
-        {
-          encoding: "utf8",
-        },
-      );
-      assert.equal(result.status, 0, result.stderr);
-      assert.ok(!(await readdir(installTarget)).includes("install.py"));
-    }
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

@@ -23,13 +23,17 @@ def document():
                         "root": {
                             "id": "root",
                             "type": "row",
-                            "size": {"weight": 1},
+                            "size": {"px": 900},
+                            "min": 700,
+                            "resizable": False,
+                            "extension": "preserve-root",
                             "children": [
                                 leaf("a", "ta", size={"weight": 4}),
                                 {
                                     "id": "nested",
                                     "type": "column",
-                                    "size": {"weight": 2, "extension": "preserve"},
+                                    "size": {"weight": 2},
+                                    "extension": "preserve",
                                     "children": [
                                         leaf("b", "tb", size={"weight": 3}),
                                         leaf("c", "tc"),
@@ -68,25 +72,59 @@ class EqualizeDocumentTests(unittest.TestCase):
         self.assertEqual(count, 2)
         self.assertEqual([child["size"]["weight"] for child in root["children"]], [1, 1])
         self.assertEqual([child["size"]["weight"] for child in nested["children"]], [1, 1])
-        self.assertEqual(nested["size"], {"weight": 1, "extension": "preserve"})
+        self.assertEqual(nested["size"], {"weight": 1})
+        self.assertEqual(nested["extension"], "preserve")
+        self.assertEqual(root["size"], {"px": 900})
+        self.assertEqual(root["min"], 700)
+        self.assertFalse(root["resizable"])
+        self.assertEqual(root["extension"], "preserve-root")
         self.assertEqual(root["children"][0]["content"], {"terminal": "ta"})
         self.assertEqual(result["spaces"][0]["tabs"][1], original["spaces"][0]["tabs"][1])
         self.assertEqual(result["spaces"][1], original["spaces"][1])
         self.assertEqual(result["extension"], original["extension"])
         self.assertEqual(original["spaces"][0]["tabs"][0]["root"]["children"][0]["size"]["weight"], 4)
 
-    def test_equal_layout_is_unchanged(self):
+    def test_equal_layout_is_unchanged_and_omitted_sizes_mean_weight_one(self):
         value = document()
         root = value["spaces"][0]["tabs"][0]["root"]
-        root["children"][0]["size"] = {"weight": 1}
-        root["children"][1]["size"] = {"weight": 1}
-        root["children"][1]["children"][0]["size"] = {"weight": 1}
+        root["children"][0]["size"] = {"weight": 2}
+        root["children"][1]["size"] = {"weight": 2}
+        root["children"][1]["children"][0].pop("size")
         root["children"][1]["children"][1]["size"] = {"weight": 1}
 
         result, count = equalize.equalize_document(value, context())
 
         self.assertEqual(result, value)
         self.assertEqual(count, 0)
+
+    def test_equal_fixed_pixel_siblings_are_unchanged(self):
+        value = document()
+        root = value["spaces"][0]["tabs"][0]["root"]
+        root["children"][0]["size"] = {"px": 120}
+        root["children"][1]["size"] = {"px": 120}
+        root["children"][1]["children"][0].pop("size")
+        root["children"][1]["children"][1]["size"] = {"weight": 1}
+
+        result, count = equalize.equalize_document(value, context())
+
+        self.assertEqual(result, value)
+        self.assertEqual(count, 0)
+
+    def test_rejects_invalid_or_ambiguous_size_semantics(self):
+        for size in (
+            {"weight": True},
+            {"weight": 0},
+            {"weight": -1},
+            {"weight": float("inf")},
+            {"px": 100, "weight": 2},
+            {"weight": 2, "distribution": "mystery"},
+            {},
+        ):
+            value = document()
+            value["spaces"][0]["tabs"][0]["root"]["children"][0]["size"] = size
+            with self.subTest(size=size):
+                with self.assertRaises(ValueError):
+                    equalize.equalize_document(value, context())
 
     def test_one_pane_is_a_noop(self):
         value = document()

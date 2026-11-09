@@ -99,7 +99,6 @@ def equalize_document(value, context):
             raise ValueError("Pane layout exceeds the safe equalizing bounds.")
         if not isinstance(node, dict) or node.get("hidden"):
             raise ValueError("Hidden or unsupported pane layout; no sizing change was sent.")
-        validate_geometry(node)
 
         kind = node.get("type")
         if kind in ("row", "column"):
@@ -143,22 +142,32 @@ def equalize_document(value, context):
     return result, changed_splits
 
 
-def validate_geometry(node):
-    if "min" in node or "max" in node or node.get("resizable") is False:
-        raise ValueError("Pane constraints prevent safe equalizing; no sizing change was sent.")
-    size = node.get("size")
-    if size is None:
-        return
-    if not isinstance(size, dict) or "px" in size:
-        raise ValueError("Fixed-pixel or invalid pane sizing prevents safe equalizing; no sizing change was sent.")
-    weight = size.get("weight", 1)
+def node_share(node):
+    if "size" not in node:
+        return "weight", 1
+    size = node["size"]
+    if not isinstance(size, dict):
+        raise ValueError("Unknown pane sizing semantics; no sizing change was sent.")
+    if "px" in size:
+        if set(size) != {"px"}:
+            raise ValueError("Ambiguous pixel and weighted sizing; no sizing change was sent.")
+        value = size["px"]
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+            raise ValueError("Invalid fixed-pixel pane size; no sizing change was sent.")
+        return "px", value
+    if set(size) != {"weight"}:
+        raise ValueError("Unknown pane sizing semantics; no sizing change was sent.")
+    weight = size["weight"]
     if isinstance(weight, bool) or not isinstance(weight, (int, float)) or not math.isfinite(weight) or weight <= 0:
         raise ValueError("Invalid pane weight; no sizing change was sent.")
+    return "weight", weight
 
 
-def node_weight(node):
-    size = node.get("size")
-    return 1 if size is None else size.get("weight", 1)
+def can_resize(node):
+    if "min" in node or "max" in node or node.get("resizable") is False:
+        raise ValueError("Pane constraints prevent safe equalizing; no sizing change was sent.")
+    if "resizable" in node and not isinstance(node["resizable"], bool):
+        raise ValueError("Unknown pane resize constraint; no sizing change was sent.")
 
 
 def set_equal_weight(node):
@@ -180,12 +189,21 @@ def equalize_splits(node, depth=0, counter=None):
 
     children = node["children"]
     changed = 0
-    weights = [node_weight(child) for child in children]
-    equal = all(math.isclose(weight, weights[0], rel_tol=1e-9, abs_tol=1e-9) for weight in weights[1:])
-    if len(children) > 1 and not equal:
-        for child in children:
-            set_equal_weight(child)
-        changed += 1
+    if len(children) > 1:
+        shares = [node_share(child) for child in children]
+        unit = shares[0][0]
+        equal = all(
+            other_unit == unit and math.isclose(value, shares[0][1], rel_tol=1e-9, abs_tol=1e-9)
+            for other_unit, value in shares[1:]
+        )
+        if not equal:
+            if unit != "weight" or any(other_unit != "weight" for other_unit, _ in shares):
+                raise ValueError("Fixed-pixel sizing prevents safe equalizing; no sizing change was sent.")
+            for child in children:
+                can_resize(child)
+            for child in children:
+                set_equal_weight(child)
+            changed += 1
     for child in children:
         changed += equalize_splits(child, depth + 1, counter)
     return changed

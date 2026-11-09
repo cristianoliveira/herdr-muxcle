@@ -1,7 +1,18 @@
 import { View, div, type Context, type AsyncContext, type NativeElement } from "gpui-kit";
 import { h_flex, v_flex, Input, InputState, v_virtual_list, VirtualListScrollHandle } from "gpui-base";
-import { spaces, run, theme, props, closeOverlay } from "herdr";
-import { pickerRows, selectedRowKey, selectionAction, type PickerRow } from "./model.js";
+import { appHome, closeOverlay, layout, props, readTextFile, run, shared, spaces, theme } from "herdr";
+import {
+  hasVisibleHistoryBlock,
+  parsePickerOrder,
+  pickerRows,
+  selectedRowKey,
+  selectionAction,
+  type PickerOrder,
+  type PickerRow,
+} from "./model.js";
+
+const MOD_NAME = "muxcle-picker";
+const RECENT_TABS_KEY = "muxcle-history.recent-tabs.v1";
 
 export default class MuxclePicker extends View {
   private input!: InputState;
@@ -11,6 +22,7 @@ export default class MuxclePicker extends View {
   private query = "";
   private message = "";
   private closed = false;
+  private order: PickerOrder = "native";
 
   init(_props: Record<string, unknown> | undefined, cx: AsyncContext): void {
     this.focus = cx.focus_handle();
@@ -27,6 +39,14 @@ export default class MuxclePicker extends View {
       if (this.selected) this.choose(this.selected, eventCx);
     });
     this.input.focus();
+    cx.spawn(async (taskCx) => {
+      try {
+        this.order = parsePickerOrder(await readTextFile(appHomePath("data", MOD_NAME, "config.json")));
+      } catch {
+        this.order = "native";
+      }
+      if (!this.closed) taskCx.notify();
+    });
   }
 
   close(): void {
@@ -114,7 +134,18 @@ export default class MuxclePicker extends View {
   }
 
   private rows(): PickerRow[] {
-    return pickerRows(spaces(), this.query);
+    let historyBlockVisible = false;
+    let recentState: unknown = null;
+    if (this.order === "recent") {
+      try {
+        historyBlockVisible = hasVisibleHistoryBlock(layout());
+        if (historyBlockVisible) recentState = shared(RECENT_TABS_KEY);
+      } catch {
+        historyBlockVisible = false;
+        recentState = null;
+      }
+    }
+    return pickerRows(spaces(), this.query, this.order, recentState, historyBlockVisible);
   }
 
   private move(delta: -1 | 1): void {
@@ -155,6 +186,13 @@ export default class MuxclePicker extends View {
     const overlay = props().overlay;
     if (overlay) closeOverlay(overlay);
   }
+}
+
+function appHomePath(...parts: string[]): string {
+  const base = appHome();
+  const separator = base.includes("\\") ? "\\" : "/";
+  const trimmedBase = base.replace(/[\\/]+$/u, "");
+  return [trimmedBase, ...parts].join(separator);
 }
 
 function display(value: string): string {

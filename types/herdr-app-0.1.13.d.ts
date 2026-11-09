@@ -155,6 +155,8 @@ declare module "herdr" {
     options?: { cwd?: string; on?: string | null },
   ): Promise<ExecResult>;
   export function spaces(): SpaceReference[];
+  /** The currently shown layout tree from layouts/<name>.json. */
+  export function layout(): unknown;
   export function panes(): {
     pane: string;
     terminal: string | null;

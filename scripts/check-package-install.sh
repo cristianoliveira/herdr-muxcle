@@ -36,6 +36,7 @@ mkdir "$temporary/picker-home/mods"
 cp -R "$temporary/$picker_bundle/mods/muxcle-picker" "$temporary/picker-home/mods/"
 HERDR_APP_HOME="$temporary/picker-home" herdr-app check "$temporary/picker-home/mods/muxcle-picker"
 cmp "$temporary/expected-settings.json" "$temporary/picker-home/settings.json"
+test ! -e "$temporary/picker-home/data/muxcle-picker/config.json"
 
 history_bundle="muxcle-history-v$version"
 mkdir "$temporary/history-home"

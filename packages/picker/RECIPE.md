@@ -6,15 +6,15 @@ Use the supplied compiled implementation as your base. Read this recipe and the 
 
 An optional Herdr popup that searches existing spaces and tabs. Compact fuzzy queries match ordered characters across the space and tab names, ignoring case and whitespace. Quiet spaces remain visible; empty spaces are selectable.
 
-Use arrows or Ctrl-J/K to move, Enter or a click to select, and Escape to cancel. Results keep Herdr's native ordering, not most-recent-first ordering. The current tab is selected initially when visible. Both local and connected remote spaces use their existing native IDs.
+Use arrows or Ctrl-J/K to move, Enter or a click to select, and Escape to cancel. Native ordering is the default; an explicit per-user config can opt into most-recent-first ordering. The current tab is selected initially when visible. Both local and connected remote spaces use their existing native IDs.
 
-The picker does not create or close tabs, spaces, or terminals. It does not track history, scan files, run programs, or access the network. It requires Herdr 0.1.13, but no Python, Node.js, custom layout, or other Muxcle package. The optional shortcut is Ctrl-a Ctrl-b.
+The picker does not create or close tabs, spaces, or terminals. On open it reads only its optional config file under the Herdr app home. In recency mode it checks the current layout snapshot for a visible History block before reading the History MRU shared-state key; a missing/hidden block or missing/invalid data leaves results in native order. This is configuration evidence, not proof that the observer is healthy: a visible but non-running observer can leave valid persisted visits stale. The picker does not scan files, run programs, or access the network. It requires Herdr 0.1.13; default native-order use needs no Python, Node.js, custom layout, or other Muxcle package. New recency data requires the optional History observer. The optional shortcut is Ctrl-a Ctrl-b.
 
 ## Add this package to Herdr
 
 For a published package, use its versioned archive and matching checksum; no source rebuild or development tooling is required. A GitHub source folder is an instruction entrypoint, not necessarily a compiled runtime payload. If a suitable release is unavailable, stop and explain what is missing rather than silently inventing a download or compiling on the user's machine.
 
-This package requires Herdr 0.1.13. No clone, Git, Node.js, Python, custom layout, or other Muxcle package is needed.
+This package requires Herdr 0.1.13. Native-order use needs no clone, Git, Node.js, Python, custom layout, or other Muxcle package. Recency ordering is optional and uses the independently installable History observer when installed and mounted.
 
 ### Get the package
 
@@ -51,6 +51,23 @@ HERDR_APP_HOME="${HERDR_APP_HOME:-$HOME/.config/herdr-app}" herdr-app do mod.ope
 
 Optionally merge the bundled `keys.json` entry into the existing global section: `ctrl-a ctrl-b` opens `mod.open:muxcle-picker`. Never replace the entire key map. Review exact bindings and higher-priority terminal/layout sections first. Herdr reloads key changes live.
 
+### Opt in to recent ordering
+
+The picker stays in native order unless you explicitly add its config. The bundle's `config.example.json` selects recent order; copy it only if you want that behavior and do not overwrite an existing config:
+
+```sh
+CONFIG_DIR="$APP_HOME/data/muxcle-picker"
+CONFIG_PATH="$CONFIG_DIR/config.json"
+if test -e "$CONFIG_PATH"; then
+  echo "Config already exists; inspect it before editing: $CONFIG_PATH" >&2
+  exit 1
+fi
+mkdir -p "$CONFIG_DIR"
+cp "$BUNDLE/config.example.json" "$CONFIG_PATH"
+```
+
+Recent order consumes only `muxcle-history.recent-tabs.v1` and only when the current layout snapshot contains a visible History block. Install and mount the separate History observer in the active personal layout to collect new visits. Picker remains usable in native order when that block or valid MRU data is absent. The layout check proves configured visibility only, not observer health; cached visits may be stale if the shown observer is not running. No History package is required for ordinary native-order use.
+
 ### Update or remove
 
 Close the popup first. For an update, verify and extract the new package, inspect the differences, then run its preflight in update mode. Preserve local edits in a backup before replacing only the picker folder:
@@ -71,8 +88,8 @@ BACKUP_DIR="$(mktemp -d)"
 mv "$APP_HOME/mods/muxcle-picker" "$BACKUP_DIR/muxcle-picker"
 ```
 
-Remove an optional shortcut only if its key and action still match this package. Settings, runtime state, other packages, and later key edits stay untouched.
+Remove an optional shortcut only if its key and action still match this package. The optional `data/muxcle-picker/config.json`, settings, runtime state, other packages, and later key edits stay untouched. Remove only this config file if you deliberately want to disable recency.
 
 ### Behavior limits
 
-Results use native order, not focus history. Search covers space/tab names, not agent metadata or project directories. A target removed or moved after rendering is not selected. Native initial-render checks do not prove deferred list rendering or keyboard delivery; verify these in the intended Herdr setup.
+Native order is the default. In explicit recent mode, visited tabs sort newest-first within their spaces; spaces with visited tabs sort by their newest tab. Unvisited tabs and spaces keep native order, including empty spaces. The MRU stores space/tab IDs only, is bounded to 256 visits, and is pruned against live targets by the mounted History observer. A missing/hidden/inactive History block or corrupt, old, or absent data falls back to native order. The layout snapshot is configuration evidence, not an observer-health signal; a visible block may leave cached visits stale if its code is not running. Search covers space/tab names, not agent metadata or project directories. A target removed or moved after rendering is not selected. Native initial-render checks do not prove deferred list rendering or keyboard delivery; verify these in the intended Herdr setup.

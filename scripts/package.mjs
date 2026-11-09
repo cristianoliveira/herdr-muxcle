@@ -82,11 +82,12 @@ const pickerPackage = {
   name: "muxcle-picker",
   release: {
     title: "Spaces and tabs picker",
-    summary: "Browse and switch between Herdr spaces and tabs.",
+    summary: "Browse and switch between Herdr spaces and tabs, with optional recency ordering.",
     installationPath: "packages/picker/RECIPE.md",
   },
   files: [
     "check-install-targets.sh",
+    "config.example.json",
     "keys.json",
     "RECIPE.md",
     "mods/muxcle-picker/main.js",
@@ -97,6 +98,7 @@ const pickerPackage = {
   directories: ["", "mods", "mods/muxcle-picker"],
   sources: [
     ["packages/picker/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/picker/config.example.json", "config.example.json"],
     ["packages/picker/keys.json", "keys.json"],
     ["packages/picker/RECIPE.md", "RECIPE.md"],
     [".build/mods/muxcle-picker/main.js", "mods/muxcle-picker/main.js"],
@@ -109,7 +111,8 @@ const historyPackage = {
   name: "muxcle-history",
   release: {
     title: "Navigation history",
-    summary: "Toggle between recently visited tabs or spaces using one mounted observer block.",
+    summary:
+      "Toggle between recent tabs or spaces and optionally provide full recency data to the Picker using one mounted observer block.",
     installationPath: "packages/history/RECIPE.md",
   },
   files: [

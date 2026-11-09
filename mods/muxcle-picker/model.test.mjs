@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { pickerRows, selectedRowKey, selectionAction } from "../../.build/mods/muxcle-picker/model.js";
+import { observeRecentTabs } from "../../.build/mods/muxcle-history/model.js";
+import {
+  hasVisibleHistoryBlock,
+  parsePickerOrder,
+  pickerRows,
+  selectedRowKey,
+  selectionAction,
+} from "../../.build/mods/muxcle-picker/model.js";
 
 const spaces = [
   {
@@ -81,4 +88,163 @@ test("does not dispatch stale, filtered, or cross-space row identities", () => {
   assert.equal(selectionAction(spaces, "editor", row.key), null);
   assert.equal(selectionAction(moved, "", row.key), null);
   assert.equal(selectionAction(spaces, "", "unknown"), null);
+});
+
+test("native order stays the default even when valid MRU data exists", () => {
+  const recent = { schema: 1, visits: [{ space: "server:project", tab: "server:terminal" }] };
+
+  assert.deepEqual(pickerRows(spaces, "", "native", recent), pickerRows(spaces, ""));
+});
+
+test("explicit recent order ranks visited tabs and spaces, then preserves unvisited native order", () => {
+  let recent = observeRecentTabs(null, [
+    {
+      id: "local",
+      active: true,
+      tabs: [
+        { id: "terminal", active: true },
+        { id: "editor", active: false },
+      ],
+    },
+    { id: "server:project", active: false, tabs: [{ id: "server:terminal", active: false }] },
+  ]);
+  recent = observeRecentTabs(recent, [
+    {
+      id: "local",
+      active: false,
+      tabs: [
+        { id: "terminal", active: false },
+        { id: "editor", active: false },
+      ],
+    },
+    { id: "server:project", active: true, tabs: [{ id: "server:terminal", active: true }] },
+  ]);
+  const before = structuredClone(spaces);
+  const rows = pickerRows(spaces, "", "recent", recent, true);
+
+  assert.deepEqual(
+    rows.map(({ label }) => label),
+    ["project → logs", "dotfiles → crew", "dotfiles → editor", "empty space"],
+  );
+  assert.deepEqual(spaces, before);
+  assert.equal(selectedRowKey(rows, null), rows.find((row) => row.active)?.key);
+  assert.deepEqual(pickerRows(spaces, "", "native", recent), pickerRows(spaces, ""));
+});
+
+test("missing observer data falls back to native order and stale visits cannot rank targets", () => {
+  assert.deepEqual(pickerRows(spaces, "", "recent", null, true), pickerRows(spaces, ""));
+  assert.deepEqual(
+    pickerRows(spaces, "", "recent", { schema: 2, visits: [{ space: "local", tab: "terminal" }] }, true),
+    pickerRows(spaces, ""),
+  );
+  assert.deepEqual(
+    pickerRows(spaces, "", "recent", { schema: 1, visits: [{ space: "gone", tab: "closed" }] }, true),
+    pickerRows(spaces, ""),
+  );
+});
+
+test("only visible History blocks in the active layout count as providers", () => {
+  const historyBlock = { id: "history", type: "block", content: { mod: "muxcle-history" } };
+  const hiddenHistory = { ...historyBlock, hidden: true };
+
+  assert.equal(
+    hasVisibleHistoryBlock({
+      id: "root",
+      type: "row",
+      children: [{ id: "nested", type: "column", children: [historyBlock] }],
+    }),
+    true,
+  );
+  assert.equal(
+    hasVisibleHistoryBlock({
+      id: "root",
+      type: "stack",
+      active: "other",
+      children: [historyBlock, { id: "other", type: "block", content: { mod: "other" } }],
+    }),
+    false,
+  );
+  assert.equal(
+    hasVisibleHistoryBlock({
+      id: "root",
+      type: "stack",
+      active: "history",
+      children: [historyBlock, { id: "other", type: "block", content: { mod: "other" } }],
+    }),
+    true,
+  );
+  assert.equal(hasVisibleHistoryBlock({ id: "root", type: "row", children: [hiddenHistory] }), false);
+  assert.equal(
+    hasVisibleHistoryBlock({
+      id: "root",
+      type: "block",
+      content: { mod: "ordinary", props: { mod: "muxcle-history" } },
+      props: { mod: "muxcle-history" },
+    }),
+    false,
+  );
+  assert.equal(
+    hasVisibleHistoryBlock({
+      id: "root",
+      type: "block",
+      content: { mod: "ordinary" },
+      floating: [{ id: "history-float", hidden: false, content: { mod: "muxcle-history" } }],
+    }),
+    true,
+  );
+  assert.equal(hasVisibleHistoryBlock({ type: "row", children: "not-a-tree" }), false);
+});
+
+test("valid cached MRU stays native when no visible History provider is in the layout", () => {
+  const recent = { schema: 1, visits: [{ space: "server:project", tab: "server:terminal" }] };
+  const layoutWithoutHistory = { id: "root", type: "row", children: [] };
+
+  assert.equal(hasVisibleHistoryBlock(layoutWithoutHistory), false);
+  assert.deepEqual(
+    pickerRows(spaces, "", "recent", recent, hasVisibleHistoryBlock(layoutWithoutHistory)),
+    pickerRows(spaces, ""),
+  );
+  assert.deepEqual(recent.visits, [{ space: "server:project", tab: "server:terminal" }]);
+});
+
+test("unmount, remount, and restart-like layout changes gate persisted MRU without erasing it", () => {
+  const recent = { schema: 1, visits: [{ space: "server:project", tab: "server:terminal" }] };
+  const historyBlock = { id: "history", type: "block", content: { mod: "muxcle-history" } };
+  const mountedLayout = { id: "root", type: "row", children: [historyBlock] };
+  const unmountedLayout = { id: "root", type: "row", children: [] };
+  const rowsFor = (currentLayout) => pickerRows(spaces, "", "recent", recent, hasVisibleHistoryBlock(currentLayout));
+
+  assert.equal(rowsFor(mountedLayout)[0].label, "project → logs");
+  assert.deepEqual(rowsFor(unmountedLayout), pickerRows(spaces, ""));
+  assert.equal(rowsFor(mountedLayout)[0].label, "project → logs");
+  assert.deepEqual(rowsFor(unmountedLayout), pickerRows(spaces, ""));
+  assert.deepEqual(recent.visits, [{ space: "server:project", tab: "server:terminal" }]);
+});
+
+test("layout provider detection fails closed on oversized or excessively deep trees", () => {
+  const wideLayout = {
+    id: "root",
+    type: "row",
+    children: Array.from({ length: 2050 }, (_, index) => ({
+      id: `child-${index}`,
+      type: "block",
+      content: { mod: index === 2049 ? "muxcle-history" : "other" },
+    })),
+  };
+  let deepLayout = { id: "history", type: "block", content: { mod: "muxcle-history" } };
+  for (let depth = 0; depth < 70; depth += 1) {
+    deepLayout = { id: `container-${depth}`, type: "row", children: [deepLayout] };
+  }
+
+  assert.equal(hasVisibleHistoryBlock(wideLayout), false);
+  assert.equal(hasVisibleHistoryBlock(deepLayout), false);
+});
+
+test("picker config is an explicit, bounded opt-in and corrupt values default to native", () => {
+  assert.equal(parsePickerOrder(null), "native");
+  assert.equal(parsePickerOrder("not json"), "native");
+  assert.equal(parsePickerOrder(" ".repeat(4097)), "native");
+  assert.equal(parsePickerOrder('{"schema":2,"order":"recent"}'), "native");
+  assert.equal(parsePickerOrder('{"schema":1,"order":"native"}'), "native");
+  assert.equal(parsePickerOrder('{"schema":1,"order":"recent"}'), "recent");
 });

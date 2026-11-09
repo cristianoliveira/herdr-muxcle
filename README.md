@@ -22,13 +22,13 @@ For one capability, substitute its recipe URL below. No custom installer or nati
 | [Tmux keys](packages/tmux-keys/RECIPE.md) (`muxcle-tmux-keys`) | Tab, split, focus, and zoom shortcuts | Review and merge selected bindings; no runtime mod |
 | [Rotation](packages/rotation/RECIPE.md) (`muxcle-rotation`) | Rotate terminal panes without changing slot sizes | One mounted host; 3+ panes also need Python 3 and `hc` |
 | [Sizing](packages/sizing/RECIPE.md) (`muxcle-sizing`) | Equalize nested splits or adjust width/height weights | One mounted host, Python 3 and `hc` |
-| [History](packages/history/RECIPE.md) (`muxcle-history`) | Last-tab per space and last-space toggles | One mounted observer |
-| [Picker](packages/picker/RECIPE.md) (`muxcle-picker`) | Search existing spaces and tabs | Popup mod; no custom layout |
+| [History](packages/history/RECIPE.md) (`muxcle-history`) | Last-tab/space toggles and optional bounded tab MRU | One mounted observer |
+| [Picker](packages/picker/RECIPE.md) (`muxcle-picker`) | Search existing spaces and tabs; optional recency order when a visible History block is configured | Popup mod; History observer only for recency |
 | [Tab tools](packages/tab-tools/RECIPE.md) (`muxcle-tab-tools`) | Move tabs and name one from the focused terminal folder | One mounted host; optional shortcuts |
 | [Sessionizer](packages/sessionizer/RECIPE.md) (`muxcle-sessionizer`) | Open or reuse local spaces from project folders | Python 3, configured project roots; no custom layout |
 | [Scaffold](RECIPE.md) (`herdr-muxcle`) | Optional starter layout and static status row | Not an all-in-one bundle; select deliberately |
 
-Start with **Tmux keys** if you only want shortcuts. Individual capabilities do not require the scaffold or other packages. For History, Rotation, Sizing, and Tab tools, copying a mod alone is not enough: its host/observer must remain shown in the active personal layout. The whole-pack layout already composes these blocks.
+Start with **Tmux keys** if you only want shortcuts. Individual capabilities do not require the scaffold or other packages. For History, Rotation, Sizing, and Tab tools, copying a mod alone is not enough: its host/observer must remain shown in the active personal layout. Picker checks the active layout snapshot for a visible History block before using recency; this proves configuration, not observer health. The whole-pack layout already composes these blocks.
 
 ## Ready-to-use files
 

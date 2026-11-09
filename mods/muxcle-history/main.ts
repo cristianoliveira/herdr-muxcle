@@ -1,8 +1,15 @@
 import { View, type AsyncContext } from "gpui-kit";
 import { spaces, shared, setShared, nextCommand, run, notify } from "herdr";
-import { observeHistory, previousAction, type HistoryState } from "./model.js";
+import {
+  matchesRecentTabsState,
+  observeHistory,
+  observeRecentTabs,
+  previousAction,
+  type HistoryState,
+} from "./model.js";
 
 const HISTORY_KEY = "muxcle-history.v1";
+const RECENT_TABS_KEY = "muxcle-history.recent-tabs.v1";
 
 export default class MuxcleHistory extends View {
   private closed = false;
@@ -46,6 +53,12 @@ export default class MuxcleHistory extends View {
     const previous = shared(HISTORY_KEY);
     const next = observeHistory(previous, snapshot);
     if (JSON.stringify(previous) !== JSON.stringify(next)) setShared(HISTORY_KEY, next);
+
+    const previousRecentTabs = shared(RECENT_TABS_KEY);
+    const nextRecentTabs = observeRecentTabs(previousRecentTabs, snapshot);
+    if (!matchesRecentTabsState(previousRecentTabs, nextRecentTabs)) {
+      setShared(RECENT_TABS_KEY, nextRecentTabs);
+    }
     return next;
   }
 }

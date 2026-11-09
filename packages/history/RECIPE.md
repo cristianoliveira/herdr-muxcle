@@ -4,13 +4,13 @@ Use the supplied compiled implementation as your base. Read this recipe and the 
 
 ## Behavior and design
 
-An optional non-focusable Herdr observer that remembers the last two visited spaces and the last two visited tabs independently in each space. Repeating a last-tab or last-space command toggles between the two observed targets.
+An optional non-focusable Herdr observer that remembers the last two visited spaces and the last two visited tabs independently in each space. Repeating a last-tab or last-space command toggles between the two observed targets. Separately, it keeps a bounded list of up to 256 recent live tab targets for the Picker's explicit recency mode.
 
 The design requires exactly one observer block in the active personal layout. History tracks focus changes while mounted, including changes made through native shortcuts, the sidebar, or other pickers. Inactive spaces do not record unseen tab selections. Missing spaces/tabs are pruned from history.
 
 Optional shortcuts: Ctrl-a Shift-L for the last space; Ctrl-a Ctrl-R or Ctrl-a Tab for the last tab. With no previous target, no navigation occurs and a notice is posted.
 
-The mod persists only space/tab IDs under its own shared-state key, `muxcle-history.v1`. It does not create, close, or reorder anything; run programs; scan files; or access the network. Requires Herdr 0.1.13, but no other Muxcle package, Python, or Node.js.
+The mod persists only space/tab IDs under two separate shared-state keys: `muxcle-history.v1` for the unchanged last-two toggles and `muxcle-history.recent-tabs.v1` for the bounded full MRU. Recency tracking occurs only while this observer is mounted. The optional Picker reads that MRU only when Herdr's current layout snapshot contains a visible History block; that snapshot proves configured visibility, not observer health. History does not open or depend on Picker. The mod does not create, close, or reorder anything; run programs; scan files; or access the network. Requires Herdr 0.1.13, but no other Muxcle package, Python, or Node.js.
 
 ## Add this package to Herdr
 
@@ -70,8 +70,8 @@ Restore the backup if copying or checking fails. Keep the existing observer and 
 
 To uninstall, remove only this observer block from the personal layout and package shortcuts that still match the bundled actions. Then run `sh "$BUNDLE/check-install-targets.sh" --remove "$APP_HOME"` and move only `$APP_HOME/mods/muxcle-history` to a backup. Keep unrelated layout blocks, keys, mods, and settings.
 
-Persisted IDs under `muxcle-history.v1` remain after removal. Do not delete or replace `shared.json`; it contains other mods' state.
+Persisted IDs under `muxcle-history.v1` and `muxcle-history.recent-tabs.v1` remain after removal. Do not delete or replace `shared.json`; it contains other mods' state.
 
 ### Limits
 
-History records only focus changes observed while mounted. Switching to a layout without the observer pauses tracking. Commands use native IDs, including qualified remote IDs, and missing targets are pruned. History is not a complete visit log or a most-recent-first picker ordering. Native initial-render checks do not prove interactive command delivery or persistence across a desktop restart; verify these in the intended setup.
+History records only focus changes observed while mounted. Switching to a layout without the observer pauses both toggle updates and MRU tracking. Commands and MRU entries use native IDs, including qualified remote IDs; missing targets are pruned. The full MRU is limited to the 256 most recent live tabs and stores no names or terminal content. It does not change last-tab/last-space behavior. The Picker remains optional and uses native ordering unless its separate recency setting is explicitly enabled. Its visible-layout check is configuration evidence only; it cannot prove the observer is healthy or that cached visits are fresh. Native initial-render checks do not prove interactive command delivery or persistence across a desktop restart; verify these in the intended setup.

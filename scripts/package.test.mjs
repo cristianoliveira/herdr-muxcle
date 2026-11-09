@@ -83,6 +83,7 @@ const expectedPackFiles = [
   "components/muxcle-sessionizer/config.example.json",
   "components/muxcle-sessionizer/keys.json",
   "components/muxcle-picker/check-install-targets.sh",
+  "components/muxcle-picker/config.example.json",
   "components/muxcle-picker/keys.json",
   "components/muxcle-history/check-install-targets.sh",
   "components/muxcle-history/keys.json",
@@ -202,6 +203,7 @@ test("picker archive is independent, reproducible, and refuses unowned installat
       [
         "RECIPE.md",
         "check-install-targets.sh",
+        "config.example.json",
         "keys.json",
         "manifest.json",
         "mods/muxcle-picker/main.js",
@@ -211,6 +213,10 @@ test("picker archive is independent, reproducible, and refuses unowned installat
       ].sort(),
     );
 
+    assert.deepEqual(JSON.parse(await readFile(join(info.bundleDirectory, "config.example.json"), "utf8")), {
+      schema: 1,
+      order: "recent",
+    });
     const original = await readFile(info.archivePath);
     await changeTimes(info.bundleDirectory, 1);
     const repeatedArchive = join(temporary, "repeat.tar.gz");
@@ -697,6 +703,10 @@ test("whole-pack archive composes all components without activating scaffold sta
     assert.deepEqual(
       await readFile(join(info.bundleDirectory, "config.example.json")),
       await readFile(join(repositoryRoot, "packages/sessionizer/config.example.json")),
+    );
+    assert.deepEqual(
+      await readFile(join(info.bundleDirectory, "components/muxcle-picker/config.example.json")),
+      await readFile(join(repositoryRoot, "packages/picker/config.example.json")),
     );
     assert.ok(verified.files.includes("mods/muxcle-sessionizer/main.js"));
     assert.equal(nodes.filter((node) => node.content?.mod === "muxcle-compat").length, 0);

@@ -1,6 +1,6 @@
 # Release Muxcle packages
 
-This guide is for maintainers. Installing a capability? Use [Installation](../INSTALLATION.md).
+This guide is for maintainers. Installing a capability? Choose [a recipe](../README.md#choose-a-recipe).
 
 **Prepare locally → push a reviewed version tag → inspect the CI-created draft → publish explicitly.** Setting up this process does not create a tag or release.
 
@@ -8,7 +8,7 @@ This guide is for maintainers. Installing a capability? Use [Installation](../IN
 
 One shared stable `X.Y.Z` version from `package.json` produces **eight optional archives and eight SHA-256 files**. This process currently supports stable tags such as `v0.1.0`, not prerelease tags. `private: true` is intentional: these are native Herdr packages, not npm publications.
 
-The package catalog in `scripts/package.mjs` drives both archive construction and the release plan. Do not maintain a separate hand-written release asset list. Each archive includes `RECIPE.md` and root `INSTALLATION.md`; the scaffold also keeps its previous `docs/INSTALLATION.md` path.
+The package catalog in `scripts/package.mjs` drives both archive construction and the release plan. Do not maintain a separate hand-written release asset list. Each archive includes one root `RECIPE.md` covering behavior, use of the supplied implementation, setup, updates, and removal. There is no separate installation guide.
 
 `muxcle-pack` is the optional complete distribution for user-managed dotfiles. The seven individual packages remain available. `herdr-muxcle` is only the original scaffold, not the complete pack.
 
@@ -25,7 +25,7 @@ npm ci --ignore-scripts
 make release-plan
 ```
 
-The preview lists the packages, tagged installation guides, archive downloads, and checksums. It does not create a release, tag, or installation, and it does not require a desktop window. The preview's download URLs work only after that version is published.
+The preview lists the packages, tagged package recipes, archive downloads, and checksums. It does not create a release, tag, or installation, and it does not require a desktop window. The preview's download URLs work only after that version is published.
 
 For the CLI options or a machine-readable list of upload paths:
 
@@ -89,7 +89,7 @@ Check:
 
 - The tag points to the intended commit and matches the version.
 - All eight archive/checksum pairs are attached; no developer files are included.
-- Each archive has readable standalone instructions and a recipe suitable for Herdr's agent-assisted installation flow. Source links explain how to obtain compiled files; they must not imply TypeScript source folders are ready runtime payloads.
+- Each archive has a complete standalone recipe suitable for Herdr's agent-assisted flow. Source links explain how to obtain compiled files; they must not imply TypeScript source folders are ready runtime payloads.
 - Download, checksum, and tagged guide links use this release version.
 - Notes describe changed behavior, prerequisites, compatibility limits, and any validation gaps. Add a short human summary of changes; generated installation notes are not a changelog.
 - The complete `muxcle-pack` and optional `herdr-muxcle` scaffold are clearly distinguished. No notes imply automatic installation or replacement of personal files.
@@ -106,7 +106,7 @@ gh release edit "$TAG" --repo cristianoliveira/herdr-muxcle --draft=false
 
 This is the publication step. No local preview, archive build, or tag-validation command publishes a release.
 
-Verify the public release page and download links after publication. The main README sends users to [Installation](../INSTALLATION.md), which explains package selection and activation; release notes link directly to guides at the matching tag.
+Verify the public release page and download links after publication. The main README helps users [choose a recipe](../README.md#choose-a-recipe); release notes link directly to the recipes at the matching tag.
 
 ## Failure and recovery
 
@@ -119,6 +119,6 @@ Verify the public release page and download links after publication. The main RE
 
 ## Adding a capability later
 
-Add its runtime source and standalone package instructions, register its package definition and release metadata in the shared catalog, and add behavioral packaging tests. The generated release table and asset list must then agree with what the packager actually builds. Update the installation choice table so users can identify the capability and its activation requirements.
+Add its runtime source and standalone package recipes, register its package definition and release metadata in the shared catalog, and add behavioral packaging tests. The generated release table and asset list must then agree with what the packager actually builds. Update the README recipe table so users can identify the capability and its activation requirements.
 
 Public Herdr gallery submission is a separate process. GitHub release publication does not submit a gallery listing or fabricate a preview image.

@@ -1,6 +1,6 @@
 # Development
 
-Installing a capability? Start with [Installation](INSTALLATION.md). Preparing a versioned download? Follow the [release process](docs/RELEASING.md). This page covers source changes and local checks.
+Installing a capability? Start with [the package recipes](README.md#choose-a-recipe). Preparing a versioned download? Follow the [release process](docs/RELEASING.md). This page covers source changes and local checks.
 
 ## Prerequisites
 
@@ -65,7 +65,7 @@ Hooks invoke the gate before commit and push. The commit-msg hook enforces `type
 - `make e2e` reports a prerequisite or ownership error → read `make e2e-help`; use a new `--output` directory and resolve the reported app/core identity issue. Never recover with broad process kills.
 - Hook blocks a commit message → use a conventional message such as `fix(mod): handle missing pane`.
 
-Do not write to live `~/.config/herdr-app` state, copy personal configuration into fixtures, or treat the helper as product functionality. `HERDR_APP_HOME` alone does not isolate the separate Herdr core state; do not launch a development app against a live core. `herdr-app check` validates initial loading only and may generate helper files, so the target checks the extracted package in a temporary app home and removes it afterward. See [Installation](INSTALLATION.md) for package selection and links to standalone install/update/removal instructions. See [Release process](docs/RELEASING.md) for versioning, draft review, and explicit publication. The scaffold's `docs/INSTALLATION.md` is specific to that optional layout, not the project's installation entrypoint.
+Do not write to live `~/.config/herdr-app` state, copy personal configuration into fixtures, or treat the helper as product functionality. `HERDR_APP_HOME` alone does not isolate the separate Herdr core state; do not launch a development app against a live core. `herdr-app check` validates initial loading only and may generate helper files, so the target checks the extracted package in a temporary app home and removes it afterward. See [the package recipes](README.md#choose-a-recipe) for package selection and standalone setup/update/removal instructions. See [Release process](docs/RELEASING.md) for versioning, draft review, and explicit publication. The root `RECIPE.md` describes only the optional scaffold; `packages/pack/RECIPE.md` covers the complete setup.
 
 ## Completion
 

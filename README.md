@@ -4,47 +4,43 @@ You left tmux. Your fingers didn't.
 
 Bring familiar tmux workflows to Herdr. Choose individual capabilities, or take the whole pack and manage it in your dotfiles. Reuse native Herdr commands where possible; keep control of your setup.
 
-## Start here
+## Add it to Herdr
 
-- **Use Muxcle:** [Choose a package and ask your Herdr agent to add it](INSTALLATION.md#with-your-herdr-agent--recommended).
-- **Ship a release:** [Maintainer release process](docs/RELEASING.md).
-- **Change the code:** [Development setup and checks](DEVELOPMENT.md).
+**Point your Herdr agent at the recipe you want.** Each recipe includes behavior, prerequisites, release-file setup, checks, updates, and removal. Use our working implementation as the base; adapt only where needed or requested. Rebuilding from scratch is a fallback, not a prerequisite.
 
-Install from a published [GitHub Release](https://github.com/cristianoliveira/herdr-muxcle/releases), not by copying this repository over your Herdr home. If no release is listed, contributors can build local archives; a local build is not a published release.
+For the complete setup, tell your agent:
 
-### Two distinct instructions
+> Add the Muxcle whole pack using https://github.com/cristianoliveira/herdr-muxcle/blob/main/packages/pack/RECIPE.md. Read the recipe and package files, use the compiled implementation from a suitable published release as the base, and fit it to my setup. Preserve unrelated configuration; explain helper execution and file access, and ask before replacing files, bindings, or switching layouts. If no matching release exists, stop and explain what is missing.
 
-- **`RECIPE.md`:** behavior and design brief for recreating a capability.
-- **`INSTALLATION.md`:** how to add, configure, update, or remove the released implementation.
+For one capability, substitute its recipe URL below. No custom installer or native `herdr-app install` command is required.
 
-Ask your agent to **install** a release or **recreate** a recipe explicitly. Neither request automatically authorizes changing your live setup beyond the agreed scope.
+## Choose a recipe
 
-## Capabilities
+| Recipe | What it adds | Setup beyond Herdr |
+| --- | --- | --- |
+| **[Whole pack](packages/pack/RECIPE.md)** (`muxcle-pack`) | **All capabilities**, combined keys, and a ready personal layout | Python 3, `hc`, project roots; select the layout deliberately |
+| [Tmux keys](packages/tmux-keys/RECIPE.md) (`muxcle-tmux-keys`) | Tab, split, focus, and zoom shortcuts | Review and merge selected bindings; no runtime mod |
+| [Rotation](packages/rotation/RECIPE.md) (`muxcle-rotation`) | Rotate terminal panes without changing slot sizes | One mounted host; 3+ panes also need Python 3 and `hc` |
+| [Sizing](packages/sizing/RECIPE.md) (`muxcle-sizing`) | Equalize nested splits or adjust width/height weights | One mounted host, Python 3 and `hc` |
+| [History](packages/history/RECIPE.md) (`muxcle-history`) | Last-tab per space and last-space toggles | One mounted observer |
+| [Picker](packages/picker/RECIPE.md) (`muxcle-picker`) | Search existing spaces and tabs | Popup mod; no custom layout |
+| [Sessionizer](packages/sessionizer/RECIPE.md) (`muxcle-sessionizer`) | Open or reuse local spaces from project folders | Python 3, configured project roots; no custom layout |
+| [Scaffold](RECIPE.md) (`herdr-muxcle`) | Optional starter layout and static status row | Not an all-in-one bundle; select deliberately |
 
-| Package | What it adds |
-| --- | --- |
-| **`muxcle-pack`** | **All capabilities**, combined keys, and a ready personal layout for your dotfiles |
-| `muxcle-tmux-keys` | Selected tmux-inspired tab, split, focus, and zoom shortcuts |
-| `muxcle-rotation` | Rotate terminal panes without changing slot sizes |
-| `muxcle-sizing` | Equalize nested splits or adjust width/height weights |
-| `muxcle-history` | Toggle last tab per space and last space |
-| `muxcle-picker` | Search existing spaces and tabs |
-| `muxcle-sessionizer` | Find configured project folders and open or reuse local spaces |
-| `herdr-muxcle` | Optional starter layout and static status row—not an all-in-one bundle |
+Start with **Tmux keys** if you only want shortcuts. Individual capabilities do not require the scaffold or other packages. For History, Rotation, and Sizing, copying a mod alone is not enough: its host/observer must remain shown in the active personal layout. The whole-pack layout already composes these blocks.
 
-Choose the **[whole pack](packages/pack/INSTALLATION.md)** if you want one versioned tree to vendor, customize, and replace yourself. It does not install or activate anything automatically. Start with **Tmux keys** if you only want shortcuts. Individual capabilities do not require the scaffold or other packages. History, Rotation, and Sizing need a block mounted in a personal layout; copying their mod folders alone does not activate them. The [installation guide](INSTALLATION.md) explains each setup before you download.
+## Ready-to-use files
 
-Installation follows Herdr's agent-assisted standard: point your agent at a package's instructions, review the proposed changes, and use the compiled release files. There is no custom Muxcle installer.
+Download a package's archive and matching SHA-256 file from a published [GitHub Release](https://github.com/cristianoliveira/herdr-muxcle/releases), or ask your agent to do that. Each archive includes compiled runtime files and a root `RECIPE.md` containing the complete instructions. Repository package folders are instruction entrypoints, not compiled installation payloads.
 
-Released archives include compiled runtime files, a recipe, installation instructions, and a SHA-256 checksum. End users do not need Git, Node.js, npm, TypeScript, or a repository clone. Review keys and layout changes; never replace a complete personal key map or app home.
+End users do not need Git, Node.js, npm, TypeScript, or a repository clone. Manual copying and dotfile-manager deployment remain options. Keep runtime state outside the package and review key conflicts; never replace a complete personal key map or app home silently.
 
-## Repository map
+The published `v0.1.0` release predates the whole pack. Use a newer release that includes it, or ask a contributor for a local archive; do not assume an absent release URL works.
 
-- `packages/`: capability recipes, installation instructions, shortcut snippets, and layout blocks.
-- `mods/`: native runtime views, adapters, and behavior helpers.
-- `src/`: Herdr-independent decisions and shared logic.
-- `layouts/`: optional window composition.
-- `scripts/`: development checks, archive construction, and release preparation.
-- `docs/`: architecture, scaffold details, and maintainer release instructions.
+## Development and releases
 
-Packages share one release version, but users select and install them independently. This is a native Herdr package project, not an npm package or mandatory replacement configuration.
+- [Development](DEVELOPMENT.md): source setup and checks.
+- [Release process](docs/RELEASING.md): prepare, review a draft, and publish explicitly.
+- [Architecture](docs/ARCHITECTURE.md): runtime and distribution boundaries.
+
+`packages/` owns recipes/snippets/host blocks; `mods/` owns native runtime views and adapters; `src/` owns pure decisions; `layouts/` owns optional composition; `scripts/` owns build and distribution tools. Packages share one release version but remain independently selectable. This is not an npm package or mandatory replacement configuration.

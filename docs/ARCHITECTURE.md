@@ -14,7 +14,7 @@ Keep native calls at adapters. Pure decisions do not import Herdr or deployment 
 
 ## Distribution
 
-`packages/` owns recipes, shortcut snippets, configuration examples, host/observer blocks, and standalone installation instructions. `scripts/package.mjs` registers package sources and release metadata in one catalog. The optional `muxcle-pack` derives its files, combined keys, and layout from those component inputs; individual packages remain independently selectable.
+`packages/` owns recipes, shortcut snippets, configuration examples, host/observer blocks, and standalone recipes containing both behavior and setup instructions. `scripts/package.mjs` registers package sources and release metadata in one catalog. The optional `muxcle-pack` derives its files, combined keys, and layout from those component inputs; individual packages remain independently selectable.
 
 `make package` compiles to ignored `.build/` and constructs allowlisted archives under ignored `dist/`. Manifests, SHA-256 files, and normalized archive metadata make package membership reviewable and builds reproducible. `package.json` supplies the shared version; this is not an npm runtime publication.
 
@@ -22,9 +22,9 @@ Release planning formats the catalog without needing a build or contacting GitHu
 
 ## Installation
 
-Follow Herdr's standard agent-assisted flow: read the package recipe and files, disclose program execution and filesystem/network access, review destination and key conflicts, deploy only selected files, and run native initial-load checks. Layout changes and activation require deliberate agreement. Source-tree package instructions point to compiled release archives; users do not need a repository checkout or compiler.
+Follow Herdr's standard agent-assisted flow: read the package recipe and files, disclose program execution and filesystem/network access, review destination and key conflicts, deploy only selected files, and run native initial-load checks. Layout changes and activation require deliberate agreement. Each package recipe points to compiled release archives and explains how to fit the supplied implementation to the user's setup; users do not need a repository checkout or compiler.
 
-Manual deployment and user-managed dotfiles remain valid alternatives. No custom package installer or dependency manager is shipped. Destination preflight scripts are no-write checks for the documented manual path. Runtime mods never import distribution tooling.
+Recipes also cover manual deployment and user-managed dotfiles. A separate INSTALLATION.md is not required. No custom package installer or dependency manager is shipped. Destination preflight scripts are no-write checks for the documented manual path. Runtime mods never import distribution tooling.
 
 ## Verification
 

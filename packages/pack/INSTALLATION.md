@@ -36,9 +36,11 @@ your-dotfiles/
       RECIPE.md
       manifest.json
       keys.json
+      config.example.json
       layouts/
       mods/
-      ...
+      components/
+      scaffold/
 ```
 
 You can rename the extracted top-level folder. Keep `manifest.json` to identify the upstream version. Keep your customizations in your dotfiles commits so you can review them against the next release.
@@ -52,9 +54,9 @@ Bundled component recipes and guides explain individual behavior and limits. The
 | `mods/*` | Matching folders under your Herdr app home's `mods/` |
 | `layouts/muxcle-pack.json` | Personal layout under `layouts/`; mounts all required hosts/observer |
 | `keys.json` | Combined Muxcle keymap: review/merge, or adopt as your owned replacement deliberately |
-| Original scaffold layout/mod | Optional alternative, not needed to activate the complete setup |
-| Sessionizer configuration example | Starting point for your own `data/muxcle-sessionizer/config.json` |
-| Recipes, guides, and manifest | Keep in your vendor folder; no need to deploy into Herdr |
+| `scaffold/layouts/` and `scaffold/mods/` | Original scaffold as an optional alternative, not needed for the complete setup |
+| `config.example.json` | Starting point for your own `data/muxcle-sessionizer/config.json` |
+| `components/*`, recipes, guides, and manifest | Component references to keep in your vendor folder; no need to deploy into Herdr |
 
 Use your existing dotfile manager to copy or link selected files. For a Stow-style setup, place managed paths beneath `.config/herdr-app/` in your dotfiles package; the archive itself is not a prearranged Stow package. With Home Manager or another manager, declare the destination paths explicitly.
 

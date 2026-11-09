@@ -102,6 +102,7 @@ test("unsupported snapshots fail closed before reading the core document", async
   assert.equal(await value.controller.equalize(), false);
   assert.deepEqual(value.calls.docs, []);
   assert.equal(value.calls.notices[0].level, "info");
+  assert.match(value.calls.notices[0].message, /before changing pane sizes/);
 });
 
 test("already-equal layouts report no change", async () => {
@@ -142,7 +143,7 @@ test("uses a fallback message for failures that are not Error instances", async 
   const value = harness({ document: async () => Promise.reject(null) });
 
   assert.equal(await value.controller.equalize(), false);
-  assert.deepEqual(value.calls.notices, [{ message: "Equalizing could not be confirmed.", level: "error" }]);
+  assert.deepEqual(value.calls.notices, [{ message: "Pane sizing could not be confirmed.", level: "error" }]);
 });
 
 test("dispose prevents future commands and suppresses late notices", async () => {

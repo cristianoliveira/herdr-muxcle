@@ -56,7 +56,7 @@ export class SizingController {
       return true;
     } catch (error) {
       if (!this.closed) {
-        const message = error instanceof Error ? error.message : "Equalizing could not be confirmed.";
+        const message = error instanceof Error ? error.message : "Pane sizing could not be confirmed.";
         this.adapter.notice(message, "error");
       }
       return false;

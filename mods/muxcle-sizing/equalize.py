@@ -24,7 +24,7 @@ def validate_operation(operation):
 
 def normalize_context(value):
     if not isinstance(value, dict):
-        raise ValueError("Equalizing needs an explicit tab context.")
+        raise ValueError("Pane sizing needs an explicit tab context.")
     machine = value.get("machine")
     if machine is not None and (
         not isinstance(machine, str) or not machine or len(machine) > 256 or "/" in machine or "\0" in machine
@@ -50,7 +50,7 @@ def normalize_context(value):
         or not isinstance(terminals, list)
         or len(terminals) != len(panes)
     ):
-        raise ValueError("Equalizing supports at most 64 explicit terminal panes.")
+        raise ValueError("Pane sizing supports at most 64 explicit terminal panes.")
     result = {
         "space": local_id(value.get("space")),
         "tab": local_id(value.get("tab")),
@@ -104,7 +104,7 @@ def equalize_document(value, context, operation="equalize"):
         nonlocal visited
         visited += 1
         if visited > MAX_NODES or depth > MAX_DEPTH:
-            raise ValueError("Pane layout exceeds the safe equalizing bounds.")
+            raise ValueError("Pane layout exceeds the safe pane-sizing bounds.")
         if not isinstance(node, dict) or node.get("hidden"):
             raise ValueError("Hidden or unsupported pane layout; no sizing change was sent.")
 
@@ -128,7 +128,7 @@ def equalize_document(value, context, operation="equalize"):
             or content.get("mod") is not None
             or "children" in node
         ):
-            raise ValueError("Equalizing requires ordinary terminal panes; no sizing change was sent.")
+            raise ValueError("Pane sizing requires ordinary terminal panes; no sizing change was sent.")
         leaves.append(node)
 
     inspect(tabs[0].get("root"))
@@ -381,7 +381,7 @@ def rpc(method, params):
             error = response["error"]
             data = error.get("data") if isinstance(error, dict) else None
             if isinstance(data, dict) and data.get("kind") == "conflict":
-                raise RuntimeError("Layout conflict: the document changed; no equalize write applied.")
+                raise RuntimeError("Layout conflict: the document changed; no pane-sizing write applied.")
             raise RuntimeError(f"Core rejected {method}. {suffix}")
         if isinstance(response.get("result"), dict):
             return response["result"]
@@ -396,7 +396,7 @@ def main(arguments):
         operation = arguments[1] if len(arguments) == 2 else "equalize"
         validate_operation(operation)
         if len(arguments[0].encode("utf-8")) > MAX_INPUT_BYTES:
-            raise ValueError("Equalizing requires one bounded JSON context.")
+            raise ValueError("Pane sizing requires one bounded JSON context.")
         result = equalize(json.loads(arguments[0]), operation=operation)
         print(json.dumps(result, separators=(",", ":")))
         return 0

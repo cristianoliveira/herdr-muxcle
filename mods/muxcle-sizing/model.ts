@@ -57,24 +57,33 @@ export function sizingPlan(
   machine: string | null = null,
 ): SizingPlan {
   if (!focus?.pane || !focus.terminal || focus.shown !== null) {
-    return { kind: "unsupported", message: "Focus an ordinary terminal pane before equalizing." };
+    return { kind: "unsupported", message: "Focus an ordinary terminal pane before changing pane sizes." };
   }
   if (!tab || tab.id !== focus.tab) {
-    return { kind: "unsupported", message: "The focused tab is unavailable. Select it again before equalizing." };
+    return {
+      kind: "unsupported",
+      message: "The focused tab is unavailable. Select it again before changing pane sizes.",
+    };
   }
 
   const panes = allPanes.filter((pane) => pane.tab === focus.tab);
   const ids = panes.map((pane) => pane.pane);
   const current = panes.find((pane) => pane.pane === focus.pane);
   if (panes.length !== tab.panes || new Set(ids).size !== ids.length || current?.terminal !== focus.terminal) {
-    return { kind: "unsupported", message: "The pane layout is not ready. Wait for it to settle before equalizing." };
+    return {
+      kind: "unsupported",
+      message: "The pane layout is not ready. Wait for it to settle before changing pane sizes.",
+    };
   }
   if (tab.zoomed || panes.some((pane) => pane.zoomed || !pane.terminal || pane.mod)) {
-    return { kind: "unsupported", message: "Unzoom the tab and use ordinary terminal panes before equalizing." };
+    return {
+      kind: "unsupported",
+      message: "Unzoom the tab and use ordinary terminal panes before changing pane sizes.",
+    };
   }
   if (panes.length === 1) return { kind: "noop" };
   if (panes.length > 64) {
-    return { kind: "unsupported", message: "Equalizing supports at most 64 panes in one tab." };
+    return { kind: "unsupported", message: "Pane sizing supports at most 64 panes in one tab." };
   }
 
   return {

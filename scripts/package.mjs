@@ -8,7 +8,13 @@ import { fileURLToPath } from "node:url";
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
 const appPackage = {
   name: "herdr-muxcle",
+  release: {
+    title: "Herdr Muxcle scaffold",
+    summary: "Optional static starter layout and compatibility status; not an all-in-one bundle.",
+    installationPath: "docs/INSTALLATION.md",
+  },
   files: [
+    "INSTALLATION.md",
     "check-install-targets.sh",
     "docs/INSTALLATION.md",
     "layouts/muxcle.json",
@@ -18,6 +24,7 @@ const appPackage = {
   ],
   directories: ["", "docs", "layouts", "mods", "mods/muxcle-compat"],
   sources: [
+    ["docs/INSTALLATION.md", "INSTALLATION.md"],
     ["scripts/check-install-targets.sh", "check-install-targets.sh"],
     ["docs/INSTALLATION.md", "docs/INSTALLATION.md"],
     ["layouts/muxcle.json", "layouts/muxcle.json"],
@@ -28,6 +35,11 @@ const appPackage = {
 };
 const tmuxKeysPackage = {
   name: "muxcle-tmux-keys",
+  release: {
+    title: "Tmux-inspired keys",
+    summary: "Optional tmux-inspired key bindings for Herdr.",
+    installationPath: "packages/tmux-keys/INSTALLATION.md",
+  },
   files: ["INSTALLATION.md", "keys.json", "RECIPE.md"],
   directories: [""],
   sources: [
@@ -38,6 +50,11 @@ const tmuxKeysPackage = {
 };
 const sessionizerPackage = {
   name: "muxcle-sessionizer",
+  release: {
+    title: "Sessionizer",
+    summary: "Find configured project folders and open or reuse one local Herdr space.",
+    installationPath: "packages/sessionizer/INSTALLATION.md",
+  },
   files: [
     "check-install-targets.sh",
     "config.example.json",
@@ -70,6 +87,11 @@ const sessionizerPackage = {
 };
 const pickerPackage = {
   name: "muxcle-picker",
+  release: {
+    title: "Spaces and tabs picker",
+    summary: "Browse and switch between Herdr spaces and tabs.",
+    installationPath: "packages/picker/INSTALLATION.md",
+  },
   files: [
     "check-install-targets.sh",
     "INSTALLATION.md",
@@ -94,6 +116,11 @@ const pickerPackage = {
 };
 const historyPackage = {
   name: "muxcle-history",
+  release: {
+    title: "Navigation history",
+    summary: "Toggle between recently visited tabs or spaces using one mounted observer block.",
+    installationPath: "packages/history/INSTALLATION.md",
+  },
   files: [
     "check-install-targets.sh",
     "INSTALLATION.md",
@@ -120,6 +147,11 @@ const historyPackage = {
 };
 const rotationPackage = {
   name: "muxcle-rotation",
+  release: {
+    title: "Pane rotation",
+    summary: "Rotate pane contents in a personal layout using one command-host block.",
+    installationPath: "packages/rotation/INSTALLATION.md",
+  },
   files: [
     "check-install-targets.sh",
     "INSTALLATION.md",
@@ -152,6 +184,11 @@ const rotationPackage = {
 };
 const sizingPackage = {
   name: "muxcle-sizing",
+  release: {
+    title: "Pane sizing",
+    summary: "Equalize and resize flexible pane groups using one command-host block.",
+    installationPath: "packages/sizing/INSTALLATION.md",
+  },
   files: [
     "check-install-targets.sh",
     "INSTALLATION.md",
@@ -182,15 +219,19 @@ const sizingPackage = {
     ["mods/muxcle-sizing/package-owner.json", "mods/muxcle-sizing/package-owner.json"],
   ],
 };
-const packagesByName = new Map([
-  [appPackage.name, appPackage],
-  [tmuxKeysPackage.name, tmuxKeysPackage],
-  [sessionizerPackage.name, sessionizerPackage],
-  [pickerPackage.name, pickerPackage],
-  [historyPackage.name, historyPackage],
-  [rotationPackage.name, rotationPackage],
-  [sizingPackage.name, sizingPackage],
-]);
+const packageDefinitions = [
+  appPackage,
+  tmuxKeysPackage,
+  sessionizerPackage,
+  pickerPackage,
+  historyPackage,
+  rotationPackage,
+  sizingPackage,
+];
+const packagesByName = new Map(packageDefinitions.map((definition) => [definition.name, definition]));
+export const RELEASE_CATALOG = Object.freeze(
+  packageDefinitions.map(({ name, release }) => Object.freeze({ name, ...release })),
+);
 
 export async function createPackage(options = {}) {
   return buildPackage(appPackage, options);
@@ -221,15 +262,9 @@ export async function createSizingPackage(options = {}) {
 }
 
 export async function createPackages(options = {}) {
-  return [
-    await createPackage(options),
-    await createTmuxKeysPackage(options),
-    await createSessionizerPackage(options),
-    await createPickerPackage(options),
-    await createHistoryPackage(options),
-    await createRotationPackage(options),
-    await createSizingPackage(options),
-  ];
+  const results = [];
+  for (const definition of packageDefinitions) results.push(await buildPackage(definition, options));
+  return results;
 }
 
 async function buildPackage(

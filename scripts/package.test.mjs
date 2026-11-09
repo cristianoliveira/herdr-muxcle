@@ -21,6 +21,7 @@ import { assertReleaseTag } from "./release-tag.mjs";
 
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
 const expectedFiles = [
+  "INSTALLATION.md",
   "check-install-targets.sh",
   "docs/INSTALLATION.md",
   "layouts/muxcle.json",
@@ -494,6 +495,10 @@ test("package generation leaves existing app settings untouched", async () => {
     const verified = verifyPackage({ outputDirectory, version: packageInfo.version });
 
     assert.deepEqual(verified.files, expectedFiles);
+    assert.equal(
+      await readFile(join(packageInfo.bundleDirectory, "INSTALLATION.md"), "utf8"),
+      await readFile(join(packageInfo.bundleDirectory, "docs/INSTALLATION.md"), "utf8"),
+    );
     assert.equal(await readFile(existingSettings, "utf8"), existingValue);
   } finally {
     if (previousHome === undefined) delete process.env.HERDR_APP_HOME;

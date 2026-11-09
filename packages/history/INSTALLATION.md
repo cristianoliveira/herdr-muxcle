@@ -1,10 +1,12 @@
 # Install navigation history
 
+Choosing a capability? Start with the [installation overview](https://github.com/cristianoliveira/herdr-muxcle/blob/main/INSTALLATION.md). This guide also ships inside this package's archive.
+
 This optional package requires Herdr 0.1.13 and **one mounted observer block in a personal layout**. It does not require a particular layout or another Muxcle package, Python, Node.js, Git, or a repository checkout.
 
 ## Get and inspect the package
 
-Download `muxcle-history-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). No release is published yet. For local archives, verify and extract from the directory containing both files:
+Download `muxcle-history-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). Choose a published tag; if none exists, use the installation overview's local-build path. For local archives, verify and extract from the directory containing both files:
 
 ```sh
 shasum -a 256 -c muxcle-history-v0.1.0.tar.gz.sha256

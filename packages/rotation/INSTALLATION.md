@@ -1,12 +1,14 @@
 # Install pane rotation
 
+Choosing a capability? Start with the [installation overview](https://github.com/cristianoliveira/herdr-muxcle/blob/main/INSTALLATION.md). This guide also ships inside this package's archive.
+
 Requires Herdr 0.1.13 and exactly one shown command-host block in a personal layout. No other Muxcle package, Node.js, Git, or repository checkout is required. Three or more panes also require Python 3 and `hc` on Herdr's `PATH`, with core support for versioned `doc.get` / `doc.set`. Two-pane native rotation needs neither helper.
 
 The `hc` CLI must reach the same core/session as Herdr. Keep `HC_SESSION` consistent for isolated or custom sessions; do not direct the helper at a different core.
 
 ## Get the package
 
-Download `muxcle-rotation-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). No release is published yet. For a local archive, verify and extract in the directory containing both files:
+Download `muxcle-rotation-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). Choose a published tag; if none exists, use the installation overview's local-build path. For a local archive, verify and extract in the directory containing both files:
 
 ```sh
 shasum -a 256 -c muxcle-rotation-v0.1.0.tar.gz.sha256

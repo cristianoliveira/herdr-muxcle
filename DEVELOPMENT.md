@@ -1,5 +1,7 @@
 # Development
 
+Installing a capability? Start with [Installation](INSTALLATION.md). Preparing a versioned download? Follow the [release process](docs/RELEASING.md). This page covers source changes and local checks.
+
 ## Prerequisites
 
 - Git
@@ -10,7 +12,7 @@
 - `tar` for package archives
 - `herdr-app` for native package verification and release checks
 
-The project pins npm 10.9.9 and disables lifecycle scripts in its local `.npmrc`. Install locked development tools with `npm ci --ignore-scripts`; TypeScript 5.9.3 is the only development dependency. TypeScript output is written under ignored `.build/`; `node_modules/` and build output are not committed.
+The project pins npm 10.9.9 and disables lifecycle scripts in its local `.npmrc`. Install locked development tools with `npm ci --ignore-scripts`. TypeScript output is written under ignored `.build/`; `node_modules/` and build output are not committed.
 
 ```sh
 make lint          # strict typecheck + syntax-check JavaScript
@@ -21,6 +23,7 @@ make herdr-check   # package, install into a temporary app home, preserve settin
 make e2e-help      # prerequisites and coverage of opt-in native IPC scenarios
 make e2e           # real isolated macOS app/core, PTY geometry, focus, screenshots
 make package       # build each optional capability archive with SHA-256
+make release-plan  # preview versioned package downloads and installation notes; no publication
 make release-check # release CI checks plus isolated native check
 make release-ci    # checks available on the hosted release runner
 make release-tag TAG=v0.1.0  # verify tag matches package.json; does not publish
@@ -49,7 +52,8 @@ Hooks invoke the gate before commit and push. The commit-msg hook enforces `type
 - `make package`: create separate precompiled archives and checksums for each optional capability listed in README; does not install or merge packages.
 - `make herdr-check`: unpack into a clean temporary app home, preserve a sentinel settings file, and ask Herdr to load the packaged mod. This checks initial mod loading only, not layout activation or interactive behavior.
 - `make e2e`: run packaged capabilities through a copied native app and a private core on macOS. Check sizing, rotation, history, Help visibility, and popup/discovery smoke behavior. Requires a GUI login and `swiftc` for offline screenshot text checks. Opens a separate test window; never sends keyboard/mouse events. See [native E2E coverage and explicit gaps](tests/e2e/README.md). The normal gate runs only mocked harness/oracle unit tests, not this suite.
-- `make release-ci`: gate, network-dependent audit, and package build/verification; this is what hosted tag automation can run.
+- `make release-plan`: preview the shared package catalog's versioned download links and installation notes; does not build, publish, create tags, or contact GitHub.
+- `make release-ci`: gate, network-dependent audit, and package build/verification; this is what hosted tag automation runs before preparing a draft release.
 - `make release-check`: `make release-ci` plus a native check in a clean temporary app home. Run this locally before creating a release tag; GitHub-hosted runners do not have Herdr installed.
 
 ## Failure and recovery
@@ -61,7 +65,7 @@ Hooks invoke the gate before commit and push. The commit-msg hook enforces `type
 - `make e2e` reports a prerequisite or ownership error → read `make e2e-help`; use a new `--output` directory and resolve the reported app/core identity issue. Never recover with broad process kills.
 - Hook blocks a commit message → use a conventional message such as `fix(mod): handle missing pane`.
 
-Do not write to live `~/.config/herdr-app` state, copy personal configuration into fixtures, or treat the helper as product functionality. `HERDR_APP_HOME` alone does not isolate the separate Herdr core state; do not launch a development app against a live core. `herdr-app check` validates initial loading only and may generate helper files, so the target checks the extracted package in a temporary app home and removes it afterward. See [Installation](docs/INSTALLATION.md) for manual no-overwrite install, reviewed update, scoped uninstall, and tagged release instructions.
+Do not write to live `~/.config/herdr-app` state, copy personal configuration into fixtures, or treat the helper as product functionality. `HERDR_APP_HOME` alone does not isolate the separate Herdr core state; do not launch a development app against a live core. `herdr-app check` validates initial loading only and may generate helper files, so the target checks the extracted package in a temporary app home and removes it afterward. See [Installation](INSTALLATION.md) for package selection and links to standalone install/update/removal instructions. See [Release process](docs/RELEASING.md) for versioning, draft review, and explicit publication. The scaffold's `docs/INSTALLATION.md` is specific to that optional layout, not the project's installation entrypoint.
 
 ## Completion
 

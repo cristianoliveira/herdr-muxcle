@@ -1,10 +1,12 @@
 # Install pane sizing
 
+Choosing a capability? Start with the [installation overview](https://github.com/cristianoliveira/herdr-muxcle/blob/main/INSTALLATION.md). This guide also ships inside this package's archive.
+
 Requires Herdr 0.1.13, Python 3 and `hc` on Herdr's `PATH`, with versioned `doc.get` / `doc.set` support. The CLI must reach the same core/session as the app: keep `HC_SESSION` consistent for isolated or custom sessions. No rotation package, other Muxcle capability, Node.js, Git, or repository checkout is required.
 
 ## Get the package
 
-Download `muxcle-sizing-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). No release is published yet. For a local archive, verify and extract in the directory containing both files:
+Download `muxcle-sizing-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). Choose a published tag; if none exists, use the installation overview's local-build path. For a local archive, verify and extract in the directory containing both files:
 
 ```sh
 shasum -a 256 -c muxcle-sizing-v0.1.0.tar.gz.sha256

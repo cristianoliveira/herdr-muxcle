@@ -1,10 +1,12 @@
 # Install the Tmux keys package
 
+Choosing a capability? Start with the [installation overview](https://github.com/cristianoliveira/herdr-muxcle/blob/main/INSTALLATION.md). This guide also ships inside this package's archive.
+
 This optional package adds the explicit tmux-inspired key bindings documented in its recipe. It contains no runtime code, mod, or layout.
 
 ## Download
 
-**The v0.1.0 release is not published yet.** Until a matching GitHub Release exists, these asset URLs return 404. When it is published, download the archive and checksum from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). No Git, repository clone, Node.js, or npm is required.
+Choose a published tag from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases) and download its archive and checksum. The example below uses `v0.1.0`; use it only if that release exists, or replace it with your selected tag. If no release is published, use the installation overview's local-build path. No Git, repository clone, Node.js, or npm is required to install a release.
 
 ```sh
 set -eu

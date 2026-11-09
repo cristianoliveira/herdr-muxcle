@@ -1,10 +1,12 @@
 # Install the spaces and tabs picker
 
+Choosing a capability? Start with the [installation overview](https://github.com/cristianoliveira/herdr-muxcle/blob/main/INSTALLATION.md). This guide also ships inside this package's archive.
+
 This package requires Herdr 0.1.13. No clone, Git, Node.js, Python, custom layout, or other Muxcle package is needed.
 
 ## Get the package
 
-Download `muxcle-picker-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). No release is published yet; download URLs become available only after publication.
+Download `muxcle-picker-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). Choose a published tag; if none exists, use the installation overview's local-build path.
 
 Verify the checksum before extraction. For a local package, run from the directory containing both files:
 

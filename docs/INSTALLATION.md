@@ -1,10 +1,12 @@
-# Install the Herdr Muxcle scaffold
+# Install the optional Muxcle scaffold
+
+**This is not the general installation guide or an all-in-one bundle.** To choose a capability, start with the [installation overview](https://github.com/cristianoliveira/herdr-muxcle/blob/main/INSTALLATION.md).
 
 This package is a starter layout and one static status mod. It does not implement tmux shortcuts or migrate a personal Herdr configuration. It installs no key bindings.
 
 ## End-user download and install
 
-**No versioned GitHub release has been published yet.** The download steps below are ready for the first release; until then, the listed asset URL returns 404. Check the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases) for availability. This is a manual app-home install; it does not require Git, Node.js, npm, or a repository clone.
+Choose a published tag from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). If none exists, contributors can build local archives using the development guide linked from the installation overview. The example below uses `v0.1.0`; replace it with the published tag you selected. This is a manual app-home install; it does not require Git, Node.js, npm, or a repository clone.
 
 After a release exists, set `VERSION` to its tag and run this from a shell. The install checker refuses existing package paths and symlinked app-home containers rather than overwriting or following them.
 
@@ -87,15 +89,8 @@ make package
 
 `package.json` is the sole package-version source. The archive includes the compiled app-home paths, this installation guide, the no-overwrite checker, `RECIPE.md`, and a manifest/checksum. It excludes TypeScript source and development dependencies. `make release-check` also checks a temporary app home and does not launch the desktop app or touch the real Herdr core.
 
-## Versioned release and public gallery
+## Releasing this package
 
-The release workflow runs only when a `v<package-version>` tag is pushed. It checks the tag, runs `make release-ci` (gate, lockfile audit, deterministic package verification), and attaches the archive and checksum to a GitHub Release. Hosted runners do not have Herdr installed; run `make release-check` locally before creating a tag. For example:
+Maintainer instructions live in the [release process](https://github.com/cristianoliveira/herdr-muxcle/blob/main/docs/RELEASING.md), alongside the other independently installable packages. Tag automation prepares a draft; publication is a separate maintainer decision.
 
-```sh
-make release-check
-make release-tag TAG=v0.1.0
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-No tag or release has been created by this setup. The package is not submitted to Herdr's public gallery; that listing requires a genuine `preview.png`. No isolated UI screenshot was captured, so none is included and no gallery submission is claimed.
+GitHub release publication does not submit a package to Herdr's public gallery. Gallery publication requires its own review and a genuine `preview.png`; no gallery submission is automated here.

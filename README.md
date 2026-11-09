@@ -2,36 +2,39 @@
 
 You left tmux. Your fingers didn't.
 
-Herdr experience without fighting against your tmux muscle memory.
+Bring familiar tmux workflows to Herdr as optional, independently installable capabilities. Reuse native Herdr commands where possible; keep your existing setup.
 
-Bring your familiar tmux workflows, shortcuts, and behaviors into Herdr without starting from scratch.
+## Start here
 
-## Goals
+- **Use Muxcle:** [Choose a package and install it](INSTALLATION.md).
+- **Ship a release:** [Maintainer release process](docs/RELEASING.md).
+- **Change the code:** [Development setup and checks](DEVELOPMENT.md).
 
-So this project is to make the Herdr app as close to a tmux experience as possible, with the traditional features as well as some customizations but nothing opinionated
+Install from a published [GitHub Release](https://github.com/cristianoliveira/herdr-muxcle/releases), not by copying this repository over your Herdr home. If no release is listed, contributors can build local archives; a local build is not a published release.
 
-Reuse native Herdr commands where possible.
+## Capabilities
 
-## Packages
+| Package | What it adds |
+| --- | --- |
+| `muxcle-tmux-keys` | Selected tmux-inspired tab, split, focus, and zoom shortcuts |
+| `muxcle-rotation` | Rotate terminal panes without changing slot sizes |
+| `muxcle-sizing` | Equalize nested splits or adjust width/height weights |
+| `muxcle-history` | Toggle last tab per space and last space |
+| `muxcle-picker` | Search existing spaces and tabs |
+| `muxcle-sessionizer` | Find configured project folders and open or reuse local spaces |
+| `herdr-muxcle` | Optional starter layout and static status row—not an all-in-one bundle |
 
-Install capabilities independently; none requires the whole Muxcle setup.
+Start with **Tmux keys** if you only want shortcuts. No capability requires the scaffold or the other packages. History, Rotation, and Sizing need a block mounted in a personal layout; copying their mod folders alone does not activate them. The [installation guide](INSTALLATION.md) explains each setup before you download.
 
-- **[Tmux keys](packages/tmux-keys/INSTALLATION.md)**: optional prefix, tab, split, pane-navigation, and zoom shortcuts using native Herdr commands. No custom layout or runtime mod required.
-- **[Pane rotation](packages/rotation/INSTALLATION.md)**: rotate ordinary terminal panes in splits or nested grids. Requires a mounted command-host block; three or more panes also need Python 3 and `hc`.
-- **[Pane sizing](packages/sizing/INSTALLATION.md)**: equalize nested splits or adjust width/height weights without moving panes or focus. Requires one command host, Python 3 and `hc`.
-- **[Navigation history](packages/history/INSTALLATION.md)**: last-tab per space and last-space toggles. Requires one observer block mounted in a personal layout.
-- **[Spaces and tabs picker](packages/picker/INSTALLATION.md)**: fuzzy search existing spaces and tabs without hiding quiet work. No Python or custom layout required.
-- **[Sessionizer](packages/sessionizer/INSTALLATION.md)**: search configured project roots and open or reuse local spaces. Requires Python 3, but no custom layout or Tmux keys package.
-- **[Muxcle layout scaffold](docs/INSTALLATION.md)**: optional starter layout with a static status mod, not a tmux compatibility implementation.
+Released archives include compiled runtime files, a recipe, installation instructions, and a SHA-256 checksum. End users do not need Git, Node.js, npm, TypeScript, or a repository clone. Review keys and layout changes; never replace a complete personal key map or app home.
 
-Each package is optional; installing one does not require the others.
+## Repository map
 
-## Installation
+- `packages/`: capability recipes, installation instructions, shortcut snippets, and layout blocks.
+- `mods/`: native runtime views, adapters, and behavior helpers.
+- `src/`: Herdr-independent decisions and shared logic.
+- `layouts/`: optional window composition.
+- `scripts/`: development checks, archive construction, and release preparation.
+- `docs/`: architecture, scaffold details, and maintainer release instructions.
 
-Download only the package you want from a versioned GitHub release and follow its installation guide above. No repository clone, Git, Node.js, or TypeScript is needed to install. Keep existing layouts and settings; review shortcut conflicts before merging selected bindings. Never replace your whole Herdr app home or key map.
-
-Developers build packages locally with `make package`; versioned release automation is configured separately. This repository setup does not mean a release has already been published.
-
-## Development
-
-See [Development](DEVELOPMENT.md) for prerequisites, the local quality gate, hooks, and watcher.
+Packages share one release version, but users select and install them independently. This is a native Herdr package project, not an npm package or mandatory replacement configuration.

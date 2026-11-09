@@ -97,6 +97,20 @@ class EqualizeDocumentTests(unittest.TestCase):
         self.assertEqual(result, value)
         self.assertEqual(count, 0)
 
+    def test_detects_small_but_unequal_weights(self):
+        value = document()
+        root = value["spaces"][0]["tabs"][0]["root"]
+        root["children"][0]["size"] = {"weight": 1e-12}
+        root["children"][1]["size"] = {"weight": 2e-12}
+        root["children"][1]["children"][0]["size"] = {"weight": 1}
+        root["children"][1]["children"][1]["size"] = {"weight": 1}
+
+        result, count = equalize.equalize_document(value, context())
+        result_root = result["spaces"][0]["tabs"][0]["root"]
+
+        self.assertEqual(count, 1)
+        self.assertEqual([child["size"]["weight"] for child in result_root["children"]], [1, 1])
+
     def test_equal_fixed_pixel_siblings_are_unchanged(self):
         value = document()
         root = value["spaces"][0]["tabs"][0]["root"]
@@ -116,6 +130,7 @@ class EqualizeDocumentTests(unittest.TestCase):
             {"weight": 0},
             {"weight": -1},
             {"weight": float("inf")},
+            {"weight": 10**400},
             {"px": 100, "weight": 2},
             {"weight": 2, "distribution": "mystery"},
             {},

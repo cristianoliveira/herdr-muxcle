@@ -152,15 +152,24 @@ def node_share(node):
         if set(size) != {"px"}:
             raise ValueError("Ambiguous pixel and weighted sizing; no sizing change was sent.")
         value = size["px"]
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+        if not is_finite_number(value) or value <= 0:
             raise ValueError("Invalid fixed-pixel pane size; no sizing change was sent.")
         return "px", value
     if set(size) != {"weight"}:
         raise ValueError("Unknown pane sizing semantics; no sizing change was sent.")
     weight = size["weight"]
-    if isinstance(weight, bool) or not isinstance(weight, (int, float)) or not math.isfinite(weight) or weight <= 0:
+    if not is_finite_number(weight) or weight <= 0:
         raise ValueError("Invalid pane weight; no sizing change was sent.")
     return "weight", weight
+
+
+def is_finite_number(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
 
 
 def can_resize(node):
@@ -193,7 +202,7 @@ def equalize_splits(node, depth=0, counter=None):
         shares = [node_share(child) for child in children]
         unit = shares[0][0]
         equal = all(
-            other_unit == unit and math.isclose(value, shares[0][1], rel_tol=1e-9, abs_tol=1e-9)
+            other_unit == unit and value == shares[0][1]
             for other_unit, value in shares[1:]
         )
         if not equal:

@@ -1,6 +1,6 @@
 # Recipe: Project popup for Herdr
 
-This optional mod opens the focused local project's executable `.tmp/popup` in a native terminal overlay. It runs only after the user opens the launcher and chooses **Run**. It needs no custom layout, mounted host, sessionizer, or assembly package.
+This optional mod opens the focused local project's executable `.tmp/popup` in a native terminal overlay. It runs only after the user opens the launcher and chooses **Run**. It requires Herdr 0.1.13's shipped built-in `peek` mod for the native header; do not copy or install `peek` separately. It needs no custom layout, mounted host, sessionizer, or assembly package.
 
 ## Behavior and limits
 
@@ -8,7 +8,7 @@ This optional mod opens the focused local project's executable `.tmp/popup` in a
 - The launcher requires a normal local terminal in the active local space, a matching active tab and pane, and a known absolute POSIX working directory. It refuses `..` parent-traversal and leading `//` paths rather than rewriting potentially symlink-sensitive locations.
 - **Run** executes a fixed `/bin/sh -c 'exec "$1"'` wrapper with the absolute project script path as a positional argument and that project directory as `cwd`. This forces Herdr's `hc run` CLI to send separate argv values, avoids template-name lookup, and never interpolates the project path into shell source.
 - The project script is arbitrary code. Review it first. It runs with the permissions and environment available to Herdr and may access files or the network.
-- The popup uses a separately owned Herdr terminal with Herdr's native `peek` header. Closing `peek` closes only the dialog; it does not stop the program. A short-lived script may exit before the terminal is shown.
+- The popup uses a separately owned Herdr terminal with Herdr's native `peek` header. The header provides keep-as-tab, go-to, and close controls. Close dismisses only the dialog; it does not stop the program. A short-lived script may exit before the terminal is shown.
 - Dismissing the overlay leaves the terminal running. Herdr 0.1.13 has no atomic compare-and-stop API, so a check followed by `hc kill` cannot guarantee that a terminal was not kept or reassigned between calls. The mod does not send an automatic stop command; inspect the exact terminal and stop it manually if desired.
 - A token-bound receipt remains after the dialog closes. The next explicit Run checks that terminal before launching again: a live or kept terminal blocks duplicates, while a gone or finished terminal clears the receipt and proceeds with the new, explicitly requested run. For uncertainty, the UI gives an exact recovery command such as `hc get <address>` or `hc ls --all`; inspect the state before trying again.
 

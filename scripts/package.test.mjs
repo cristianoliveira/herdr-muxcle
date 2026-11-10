@@ -32,6 +32,7 @@ import {
   createRepeatPackage,
   createProjectPopupPackage,
   createTabToolsPackage,
+  createSpaceCloserPackage,
   createSessionizerPackage,
   createTmuxKeysPackage,
   verifyPackage,
@@ -62,6 +63,17 @@ const expectedSessionizerFiles = [
   "mods/muxcle-sessionizer/sessionizer/model.js",
   "RECIPE.md",
   "manifest.json",
+].sort();
+const expectedSpaceCloserFiles = [
+  "RECIPE.md",
+  "check-install-targets.sh",
+  "manifest.json",
+  "mods/muxcle-space-closer/adapter.js",
+  "mods/muxcle-space-closer/controller.js",
+  "mods/muxcle-space-closer/main.js",
+  "mods/muxcle-space-closer/model.js",
+  "mods/muxcle-space-closer/mod.json",
+  "mods/muxcle-space-closer/package-owner.json",
 ].sort();
 const expectedTabToolsFiles = [
   "RECIPE.md",
@@ -124,6 +136,7 @@ const expectedPackFiles = [
   "components/muxcle-tab-tools/check-install-targets.sh",
   "components/muxcle-tab-tools/host.json",
   "components/muxcle-tab-tools/keys.json",
+  "components/muxcle-space-closer/check-install-targets.sh",
   "scaffold/check-install-targets.sh",
   "scaffold/layouts/muxcle.json",
   "scaffold/mods/muxcle-compat/main.js",
@@ -171,6 +184,12 @@ const expectedPackFiles = [
   "mods/muxcle-tab-tools/controller.js",
   "mods/muxcle-tab-tools/mod.json",
   "mods/muxcle-tab-tools/package-owner.json",
+  "mods/muxcle-space-closer/adapter.js",
+  "mods/muxcle-space-closer/controller.js",
+  "mods/muxcle-space-closer/main.js",
+  "mods/muxcle-space-closer/model.js",
+  "mods/muxcle-space-closer/mod.json",
+  "mods/muxcle-space-closer/package-owner.json",
   "manifest.json",
 ].sort();
 
@@ -301,6 +320,35 @@ test("tab-tools archive is independent, reproducible, and checks install ownersh
     await rm(target, { recursive: true });
     await symlink(linked, target);
     for (const mode of [[], ["--update"], ["--remove"]]) assert.notEqual(check(mode), 0);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("space closer package is compiled, independently installable, and refuses unowned targets", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-space-closer-package-"));
+  try {
+    const info = await createSpaceCloserPackage({ repositoryRoot, outputDirectory: temporary });
+    const verified = verifyPackage({ outputDirectory: temporary, version: info.version, packageName: info.name });
+    assert.deepEqual(verified.files, expectedSpaceCloserFiles);
+    assert.equal(info.name, "muxcle-space-closer");
+    assert.equal(
+      await readFile(join(info.bundleDirectory, "mods/muxcle-space-closer/main.js"), "utf8").then((value) =>
+        value.includes("sourceMappingURL"),
+      ),
+      false,
+    );
+
+    const appHome = join(temporary, "home");
+    const target = join(appHome, "mods/muxcle-space-closer");
+    const checker = join(info.bundleDirectory, "check-install-targets.sh");
+    const check = (mode = []) => spawnSync("sh", [checker, ...mode, appHome]).status;
+    assert.equal(check(), 0);
+    await mkdir(target, { recursive: true });
+    assert.notEqual(check(), 0);
+    await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-space-closer","schema":1}\n');
+    assert.equal(check(["--update"]), 0);
+    assert.equal(check(["--remove"]), 0);
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }
@@ -631,6 +679,7 @@ test("packaged ownership markers are accepted by each capability's update and re
     [createRepeatPackage, "muxcle-repeat"],
     [createProjectPopupPackage, "muxcle-project-popup"],
     [createTabToolsPackage, "muxcle-tab-tools"],
+    [createSpaceCloserPackage, "muxcle-space-closer"],
   ];
   try {
     for (const [create, name] of capabilities) {
@@ -984,6 +1033,7 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
         "muxcle-repeat",
         "muxcle-project-popup",
         "muxcle-tab-tools",
+        "muxcle-space-closer",
         "muxcle-pack",
       ],
     );

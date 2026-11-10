@@ -295,6 +295,36 @@ const tabToolsPackage = {
     ["mods/muxcle-tab-tools/package-owner.json", "mods/muxcle-tab-tools/package-owner.json"],
   ],
 };
+const spaceCloserPackage = {
+  name: "muxcle-space-closer",
+  release: {
+    title: "Review and close spaces",
+    summary:
+      "Select exact local or remote Herdr spaces, review their machine and tab identities, then explicitly dispatch native close requests.",
+    installationPath: "packages/space-closer/RECIPE.md",
+  },
+  files: [
+    "check-install-targets.sh",
+    "RECIPE.md",
+    "mods/muxcle-space-closer/adapter.js",
+    "mods/muxcle-space-closer/controller.js",
+    "mods/muxcle-space-closer/main.js",
+    "mods/muxcle-space-closer/model.js",
+    "mods/muxcle-space-closer/mod.json",
+    "mods/muxcle-space-closer/package-owner.json",
+  ],
+  directories: ["", "mods", "mods/muxcle-space-closer"],
+  sources: [
+    ["packages/space-closer/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/space-closer/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-space-closer/adapter.js", "mods/muxcle-space-closer/adapter.js"],
+    [".build/mods/muxcle-space-closer/controller.js", "mods/muxcle-space-closer/controller.js"],
+    [".build/mods/muxcle-space-closer/main.js", "mods/muxcle-space-closer/main.js"],
+    [".build/mods/muxcle-space-closer/model.js", "mods/muxcle-space-closer/model.js"],
+    ["mods/muxcle-space-closer/mod.json", "mods/muxcle-space-closer/mod.json"],
+    ["mods/muxcle-space-closer/package-owner.json", "mods/muxcle-space-closer/package-owner.json"],
+  ],
+};
 const existingPackageDefinitions = [
   appPackage,
   tmuxKeysPackage,
@@ -306,6 +336,7 @@ const existingPackageDefinitions = [
   repeatPackage,
   projectPopupPackage,
   tabToolsPackage,
+  spaceCloserPackage,
 ];
 const trustedComponentNames = new Set(existingPackageDefinitions.filter(hasOwnedModSources).map(({ name }) => name));
 const packPackage = createPackDefinition(existingPackageDefinitions);
@@ -353,6 +384,10 @@ export async function createProjectPopupPackage(options = {}) {
 
 export async function createTabToolsPackage(options = {}) {
   return buildPackage(tabToolsPackage, options);
+}
+
+export async function createSpaceCloserPackage(options = {}) {
+  return buildPackage(spaceCloserPackage, options);
 }
 
 export async function createPackPackage(options = {}) {

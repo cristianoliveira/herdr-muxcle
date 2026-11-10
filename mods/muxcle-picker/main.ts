@@ -193,7 +193,7 @@ export default class MuxclePicker extends View {
   private dismiss(): void {
     if (this.closed) return;
     this.closed = true;
-    const overlay = props().overlay;
+    const overlay = props()?.overlay;
     if (overlay) closeOverlay(overlay);
   }
 }

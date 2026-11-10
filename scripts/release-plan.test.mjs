@@ -20,6 +20,7 @@ const packageNames = [
   "muxcle-repeat",
   "muxcle-project-popup",
   "muxcle-tab-tools",
+  "muxcle-space-closer",
   "muxcle-pack",
 ];
 const recipePaths = [
@@ -33,6 +34,7 @@ const recipePaths = [
   "packages/repeat/RECIPE.md",
   "packages/project-popup/RECIPE.md",
   "packages/tab-tools/RECIPE.md",
+  "packages/space-closer/RECIPE.md",
   "packages/pack/RECIPE.md",
 ];
 

@@ -170,6 +170,8 @@ declare module "herdr" {
   ): Promise<ExecResult>;
   export function hc(args: string[]): Promise<ExecResult>;
   export function spaces(): SpaceReference[];
+  /** Native layout-document readiness per machine; null names this computer. */
+  export function machines(): { name: string | null; layout: "loading" | "ready" | "unavailable" }[];
   /** Live status-reporting terminals with machine-scoped space and tab IDs. */
   export function agents(): AgentInfo[];
   /** The currently shown layout tree from layouts/<name>.json. */
@@ -201,7 +203,7 @@ declare module "herdr" {
   }
   export function openOverlay(spec: OverlaySpec): string;
   export function closeOverlay(id: string): null;
-  export function props(): ModProps;
+  export function props(): ModProps | null;
   export function shared(key: string): unknown;
   export function setShared(key: string, value: unknown): null;
   export function nextCommand(): Promise<string>;

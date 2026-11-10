@@ -1,0 +1,19 @@
+{
+  "pane-header": {
+    "position": "bottom",
+    "reveal": "always",
+    "content": {
+      "mod": "muxcle-workspace-chrome",
+      "props": { "role": "pane-footer" }
+    }
+  },
+  "workspace-status-clock-column": {
+    "id": "muxcle-workspace-chrome-clock-column",
+    "type": "block",
+    "size": { "px": 24 },
+    "content": {
+      "mod": "muxcle-workspace-chrome",
+      "props": { "role": "status-clock" }
+    }
+  }
+}

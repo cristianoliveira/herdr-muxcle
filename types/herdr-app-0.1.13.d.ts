@@ -61,23 +61,32 @@ declare module "gpui-kit" {
     font_semibold(): this;
     gap(value: number): this;
     h(value: number): this;
-    hover(declare: (element: NativeElement) => NativeElement | void): this;
+    hover(declare: (element: NativeElement) => NativeElement | undefined): this;
     items_center(): this;
+    max_w(value: number): this;
     mode(value: import("gpui-base").ScrollbarMode): this;
     justify_between(): this;
     justify_center(): this;
     max_h(value: number): this;
     min_h(value: number): this;
     on_click(handler: (event: unknown, cx: Context) => void): this;
+    on_hover(handler: (hovered: boolean, cx: Context) => void): this;
     on_item_click(handler: (key: string, cx: Context) => void): this;
     on_mouse_down(button: "left" | "right" | "middle", handler: (event: unknown, cx: Context) => void): this;
     on_key_down(handler: (event: KeyEvent, cx: Context) => void): this;
     overflow_y_scrollbar(): this;
     p(value: number): this;
     px(value: number): this;
+    size(value: number): this;
+    size_full(): this;
     py(value: number): this;
     rounded(value: number): this;
     text_color(color: string): this;
+    when(condition: boolean, transform: (element: NativeElement) => NativeElement | undefined): this;
+    font_medium(): this;
+    truncate(): this;
+    border_t(width: number): this;
+    spin(duration: number): this;
     text_size(value: number): this;
     track_focus(handle: FocusHandle): this;
     disabled(value: boolean): this;
@@ -86,7 +95,6 @@ declare module "gpui-kit" {
     h_full(): this;
     min_w(value: number): this;
     selected(value: boolean): this;
-    truncate(): this;
     w_full(): this;
     track_scroll(handle: import("gpui-base").VirtualListScrollHandle): this;
     w(value: number): this;
@@ -102,6 +110,8 @@ declare module "gpui-kit" {
   }
 
   export function div(): NativeElement;
+  export function image(path: string): NativeElement;
+  export function svg(path: string): NativeElement;
 }
 
 declare module "gpui-base" {
@@ -168,6 +178,7 @@ declare module "herdr" {
     id: string;
     index: number;
     name: string;
+    branch: string | null;
     tabs: { id: string; name: string; active: boolean; zoomed: boolean; panes: number }[];
     folder: string;
     machine: string | null;
@@ -196,6 +207,8 @@ declare module "herdr" {
   export interface ModProps {
     overlay?: string;
     role?: string;
+    pane?: string;
+    terminal?: string;
   }
 
   export function appHome(): string;
@@ -214,13 +227,22 @@ declare module "herdr" {
   export function agents(): AgentInfo[];
   /** The currently shown layout tree from layouts/<name>.json. */
   export function layout(): unknown;
-  export function panes(): {
+  export interface PaneReference {
     pane: string;
     terminal: string | null;
     mod?: string;
     tab: string;
+    title: string;
+    cwd: string | null;
+    branch: string | null;
+    status: AgentStatus | null;
+    app: string | null;
+    program: { name: string; icon: string | null; tint: boolean; agent: boolean; shell: boolean };
+    focused: boolean;
     zoomed: boolean;
-  }[];
+    movable: boolean;
+  }
+  export function panes(): PaneReference[];
   /** Every Core terminal's current address, state and metadata, including live host-local terminals. */
   export function terminals(): unknown[];
   export function focused(): {

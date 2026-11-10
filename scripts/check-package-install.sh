@@ -143,3 +143,17 @@ HC_SESSION="muxcle-numbered-sidebars-install-$$" HERDR_APP_HOME="$temporary/numb
   herdr-app check "$temporary/numbered-sidebars-home/mods/muxcle-numbered-sidebars"
 sh ./scripts/check-numbered-sidebars-load.sh \
   "$temporary/$numbered_sidebars_bundle/mods/muxcle-numbered-sidebars"
+
+workspace_chrome_bundle="muxcle-workspace-chrome-v$version"
+mkdir "$temporary/workspace-chrome-home"
+printf '%s\n' '{"unrelated":"keep"}' > "$temporary/workspace-chrome-home/settings.json"
+cp "$temporary/workspace-chrome-home/settings.json" "$temporary/workspace-chrome-settings.json"
+tar -xzf "dist/$workspace_chrome_bundle.tar.gz" -C "$temporary"
+sh "$temporary/$workspace_chrome_bundle/check-install-targets.sh" "$temporary/workspace-chrome-home"
+mkdir "$temporary/workspace-chrome-home/mods"
+cp -R "$temporary/$workspace_chrome_bundle/mods/muxcle-workspace-chrome" "$temporary/workspace-chrome-home/mods/"
+HC_SESSION="muxcle-workspace-chrome-install-$$" HERDR_APP_HOME="$temporary/workspace-chrome-home" \
+  herdr-app check "$temporary/workspace-chrome-home/mods/muxcle-workspace-chrome"
+sh ./scripts/check-workspace-chrome-load.sh \
+  "$temporary/$workspace_chrome_bundle/mods/muxcle-workspace-chrome"
+cmp "$temporary/workspace-chrome-settings.json" "$temporary/workspace-chrome-home/settings.json"

@@ -227,6 +227,33 @@ const numberedSidebarsPackage = {
     ["mods/muxcle-numbered-sidebars/package-owner.json", "mods/muxcle-numbered-sidebars/package-owner.json"],
   ],
 };
+const workspaceChromePackage = {
+  name: "muxcle-workspace-chrome",
+  release: {
+    title: "Workspace chrome",
+    summary: "Add a per-pane branch footer and local clock while preserving native status and pane actions.",
+    installationPath: "packages/workspace-chrome/RECIPE.md",
+  },
+  files: [
+    "check-install-targets.sh",
+    "layout-snippets.json",
+    "RECIPE.md",
+    "mods/muxcle-workspace-chrome/main.js",
+    "mods/muxcle-workspace-chrome/model.js",
+    "mods/muxcle-workspace-chrome/mod.json",
+    "mods/muxcle-workspace-chrome/package-owner.json",
+  ],
+  directories: ["", "mods", "mods/muxcle-workspace-chrome"],
+  sources: [
+    ["packages/workspace-chrome/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/workspace-chrome/layout-snippets.json", "layout-snippets.json"],
+    ["packages/workspace-chrome/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-workspace-chrome/main.js", "mods/muxcle-workspace-chrome/main.js"],
+    [".build/mods/muxcle-workspace-chrome/model.js", "mods/muxcle-workspace-chrome/model.js"],
+    ["mods/muxcle-workspace-chrome/mod.json", "mods/muxcle-workspace-chrome/mod.json"],
+    ["mods/muxcle-workspace-chrome/package-owner.json", "mods/muxcle-workspace-chrome/package-owner.json"],
+  ],
+};
 const rotationPackage = {
   name: "muxcle-rotation",
   release: {
@@ -517,6 +544,7 @@ const existingPackageDefinitions = [
   funzzyStatusPackage,
   agentIntrayPackage,
   numberedSidebarsPackage,
+  workspaceChromePackage,
   rotationPackage,
   sizingPackage,
   repeatPackage,
@@ -568,6 +596,9 @@ export async function createAgentIntrayPackage(options = {}) {
 }
 export async function createNumberedSidebarsPackage(options = {}) {
   return buildPackage(numberedSidebarsPackage, options);
+}
+export async function createWorkspaceChromePackage(options = {}) {
+  return buildPackage(workspaceChromePackage, options);
 }
 export async function createRotationPackage(options = {}) {
   return buildPackage(rotationPackage, options);

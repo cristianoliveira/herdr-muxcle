@@ -3,6 +3,7 @@ import test from "node:test";
 import { observeRecentTabs } from "../../.build/mods/muxcle-history/model.js";
 import {
   hasVisibleHistoryBlock,
+  parsePickerConfig,
   parsePickerOrder,
   pickerRows,
   selectedRowKey,
@@ -422,11 +423,344 @@ test("malformed agent metadata and oversized names cannot break search", () => {
   );
 });
 
-test("picker config is an explicit, bounded opt-in and corrupt values default to native", () => {
-  assert.equal(parsePickerOrder(null), "native");
-  assert.equal(parsePickerOrder("not json"), "native");
-  assert.equal(parsePickerOrder(" ".repeat(4097)), "native");
-  assert.equal(parsePickerOrder('{"schema":2,"order":"recent"}'), "native");
-  assert.equal(parsePickerOrder('{"schema":1,"order":"native"}'), "native");
+test("picker config keeps order and agent context as independent explicit options", () => {
+  assert.deepEqual(parsePickerConfig(null), { order: "native", agentContext: false });
+  assert.deepEqual(parsePickerConfig("not json"), { order: "native", agentContext: false });
+  assert.deepEqual(parsePickerConfig(" ".repeat(4097)), { order: "native", agentContext: false });
+  assert.deepEqual(parsePickerConfig('{"schema":2,"order":"recent","agentContext":true}'), {
+    order: "native",
+    agentContext: false,
+  });
+  assert.deepEqual(parsePickerConfig('{"schema":1,"order":"recent"}'), {
+    order: "recent",
+    agentContext: false,
+  });
+  assert.deepEqual(parsePickerConfig('{"schema":1,"agentContext":true}'), {
+    order: "native",
+    agentContext: true,
+  });
+  assert.deepEqual(parsePickerConfig('{"schema":1,"order":"recent","agentContext":"yes"}'), {
+    order: "recent",
+    agentContext: false,
+  });
+  assert.deepEqual(parsePickerConfig('{"schema":1,"order":"other","agentContext":true}'), {
+    order: "native",
+    agentContext: false,
+  });
   assert.equal(parsePickerOrder('{"schema":1,"order":"recent"}'), "recent");
+});
+
+test("optional row context uses exact IDs and counts unique live descendants, excluding agent roots", () => {
+  const contextualSpaces = [
+    {
+      ...spaces[0],
+      tabs: spaces[0].tabs.map((tab) => (tab.id === "editor" ? { ...tab, status: "blocked" } : tab)),
+    },
+    {
+      id: "remote/project",
+      name: "dotfiles",
+      machine: "remote",
+      active: false,
+      tabs: [{ id: "remote/editor", name: "editor", active: false, status: "idle" }],
+    },
+  ];
+  const contextualAgents = [
+    {
+      address: "local/root",
+      space: "local",
+      tab: "editor",
+      status: "working",
+      app: "claude-code",
+      program: { name: "Claude Code", agent: true },
+    },
+    {
+      address: "remote/root",
+      space: "remote/project",
+      tab: "remote/editor",
+      app: "codex",
+      program: { name: "Codex", agent: true },
+    },
+    {
+      address: "wrong/root",
+      space: "another/project",
+      tab: "editor",
+      app: "wrong-agent",
+      program: { name: "Wrong Agent", agent: true },
+    },
+  ];
+  const terminals = [
+    { address: "local/root", parent: null, state: "live" },
+    { address: "local/worker", parent: "local/root", state: "live" },
+    { address: "local/worker", parent: "local/root", state: "live" },
+    { address: "local/child", parent: "local/worker", state: "live" },
+    { address: "local/closed", parent: "local/root", state: "exited" },
+    { address: "remote/root", parent: null, state: "live" },
+    { address: "remote/worker", parent: "remote/root", state: "live" },
+  ];
+  const plainRows = pickerRows(contextualSpaces, "", { agents: contextualAgents });
+  const contextRows = pickerRows(contextualSpaces, "", {
+    agents: contextualAgents,
+    agentContext: true,
+    terminals,
+  });
+  const localEditor = contextRows.find((row) => row.id === "editor");
+  const remoteEditor = contextRows.find((row) => row.id === "remote/editor");
+
+  assert.equal("context" in plainRows.find((row) => row.id === "editor"), false);
+  assert.deepEqual(
+    contextRows.map(({ key, label }) => [key, label]),
+    plainRows.map(({ key, label }) => [key, label]),
+  );
+  assert.deepEqual(localEditor.context, {
+    status: "blocked",
+    programs: ["Claude Code"],
+    programsTruncated: false,
+    descendants: { kind: "exact", count: 2 },
+  });
+  assert.deepEqual(remoteEditor.context, {
+    status: "idle",
+    programs: ["Codex"],
+    programsTruncated: false,
+    descendants: { kind: "exact", count: 1 },
+  });
+  assert.deepEqual(
+    pickerRows(contextualSpaces, "claude", { agents: contextualAgents, agentContext: true, terminals }).map(
+      ({ id }) => id,
+    ),
+    ["editor"],
+  );
+  const recentOptions = {
+    agents: contextualAgents,
+    order: "recent",
+    recentState: { schema: 1, visits: [{ space: "remote/project", tab: "remote/editor" }] },
+    historyBlockVisible: true,
+  };
+  assert.deepEqual(
+    pickerRows(contextualSpaces, "", { ...recentOptions, agentContext: true, terminals }).map(({ key }) => key),
+    pickerRows(contextualSpaces, "", recentOptions).map(({ key }) => key),
+  );
+});
+
+test("context reports unavailable or lower-bound descendants for missing and conflicting metadata", () => {
+  const target = spaces[0].tabs[0];
+  const targetSpaces = [{ ...spaces[0], tabs: [{ ...target, status: null }] }];
+  const rootAgent = {
+    address: "local/root",
+    space: "local",
+    tab: "terminal",
+    status: "working",
+    app: "pi",
+    program: { name: "Pi", agent: true },
+  };
+  const rowsFor = (agents, terminals) =>
+    pickerRows(targetSpaces, "", { agents, agentContext: true, terminals })[0].context;
+
+  assert.deepEqual(rowsFor([rootAgent], null).descendants, { kind: "unavailable" });
+  assert.deepEqual(rowsFor([{ ...rootAgent, address: null }], []), {
+    status: "working",
+    programs: ["Pi"],
+    programsTruncated: false,
+    descendants: { kind: "unavailable" },
+  });
+  assert.deepEqual(
+    rowsFor(
+      [rootAgent],
+      [
+        { address: "local/root", parent: null, state: "live" },
+        { address: "local/child", parent: "orphan/parent", state: "live" },
+      ],
+    ).descendants,
+    { kind: "lower-bound", count: 0 },
+  );
+  assert.deepEqual(
+    rowsFor(
+      [rootAgent],
+      [
+        { address: "local/root", parent: null, state: "live" },
+        { address: "local/child", parent: "local/root", state: "live" },
+        { address: "local/child", parent: "other/root", state: "live" },
+      ],
+    ).descendants,
+    { kind: "lower-bound", count: 0 },
+  );
+  const conflictedAgent = rowsFor(
+    [rootAgent, { ...rootAgent, program: { name: "Different", agent: true } }],
+    [{ address: "local/root", parent: null, state: "live" }],
+  );
+  assert.deepEqual(conflictedAgent.programs, []);
+  assert.deepEqual(conflictedAgent.descendants, { kind: "lower-bound", count: 0 });
+});
+
+test("conflicting or unknown agent roots cannot inflate descendant lower bounds", () => {
+  const spacesFor = (ids) => [
+    {
+      id: "local/space",
+      name: "Space",
+      machine: null,
+      active: true,
+      tabs: ids.map((id) => ({ id, name: id, active: false })),
+    },
+  ];
+  const row = (tabId, agents, terminals) =>
+    pickerRows(spacesFor([tabId]), "", { agents, agentContext: true, terminals })[0].context;
+  const agent = (address, space, tab, program, status = "working") => ({
+    address,
+    space,
+    tab,
+    status,
+    app: program,
+    program: { name: program, agent: true },
+  });
+
+  const nestedConflict = row(
+    "local/tab",
+    [
+      agent("local/a", "local/space", "local/tab", "A"),
+      agent("local/a", "local/space", "local/tab", "conflicting A", "blocked"),
+      agent("local/b", "local/space", "local/tab", "B"),
+    ],
+    [
+      { address: "local/b", parent: null, state: "live" },
+      { address: "local/a", parent: "local/b", state: "live" },
+    ],
+  );
+  assert.deepEqual(nestedConflict.descendants, { kind: "lower-bound", count: 0 });
+
+  const unknownRoot = row(
+    "local/tab",
+    [agent("local/b", "local/space", "local/tab", "B"), agent(null, "local/space", "local/tab", "Unknown")],
+    [
+      { address: "local/b", parent: null, state: "live" },
+      { address: "local/unknown", parent: "local/b", state: "live" },
+    ],
+  );
+  assert.deepEqual(unknownRoot.descendants, { kind: "unavailable" });
+
+  const conflictingTargetRows = pickerRows([...spacesFor(["local/first", "local/second"])], "", {
+    agents: [
+      agent("local/a", "local/space", "local/first", "A"),
+      agent("local/a", "local/space", "local/second", "A elsewhere"),
+      agent("local/b", "local/space", "local/second", "B"),
+    ],
+    agentContext: true,
+    terminals: [
+      { address: "local/b", parent: null, state: "live" },
+      { address: "local/a", parent: "local/b", state: "live" },
+    ],
+  });
+  assert.deepEqual(conflictingTargetRows[1].context.descendants, { kind: "unavailable" });
+
+  const ambiguousRootRows = pickerRows(spacesFor(["local/first", "local/second"]), "", {
+    agents: [
+      agent("local/a", "local/space", "local/first", "A"),
+      agent("local/a", "local/space", "local/second", "A elsewhere"),
+      agent("local/b", "local/space", "local/second", "B"),
+    ],
+    agentContext: true,
+    terminals: [
+      { address: "local/a", parent: null, state: "live" },
+      { address: "local/child", parent: "local/a", state: "live" },
+      { address: "local/b", parent: null, state: "live" },
+    ],
+  });
+  assert.deepEqual(ambiguousRootRows[0].context.descendants, { kind: "unavailable" });
+  assert.deepEqual(ambiguousRootRows[1].context.descendants, { kind: "unavailable" });
+});
+
+test("context deduplicates identical agents and avoids cycles and unbounded descendant walks", () => {
+  const targetSpaces = [
+    {
+      ...spaces[0],
+      tabs: [{ ...spaces[0].tabs[0], status: "working" }],
+    },
+  ];
+  const rootAgent = {
+    address: "local/root",
+    space: "local",
+    tab: "terminal",
+    app: "pi",
+    program: { name: "Pi", agent: true },
+  };
+  const rowsFor = (terminals) =>
+    pickerRows(targetSpaces, "", {
+      agents: [rootAgent, { ...rootAgent }],
+      agentContext: true,
+      terminals,
+    })[0].context;
+  const cycle = [
+    { address: "local/root", parent: "local/worker", state: "live" },
+    { address: "local/worker", parent: "local/root", state: "live" },
+  ];
+  const deep = [{ address: "local/root", parent: null, state: "live" }];
+  for (let index = 0; index < 40; index += 1) {
+    deep.push({
+      address: `local/child-${index}`,
+      parent: index === 0 ? "local/root" : `local/child-${index - 1}`,
+      state: "live",
+    });
+  }
+
+  assert.deepEqual(rowsFor(cycle).descendants, { kind: "lower-bound", count: 1 });
+  assert.deepEqual(rowsFor(deep).descendants, { kind: "lower-bound", count: 32 });
+  const broad = [
+    { address: "local/root", parent: null, state: "live" },
+    ...Array.from({ length: 2050 }, (_, index) => ({
+      address: `local/child-${index}`,
+      parent: "local/root",
+      state: "live",
+    })),
+  ];
+  assert.deepEqual(rowsFor(broad).descendants, { kind: "lower-bound", count: 2048 });
+  const oversized = [
+    { address: "local/root", parent: null, state: "live" },
+    { address: "local/worker", parent: "local/root", state: "live" },
+    ...Array.from({ length: 4095 }, (_, index) => ({
+      address: `orphan/${index}`,
+      parent: null,
+      state: "live",
+    })),
+  ];
+  assert.deepEqual(rowsFor(oversized).descendants, { kind: "lower-bound", count: 1 });
+  const sharedChildren = Array.from({ length: 2048 }, (_, index) => ({
+    address: `group/child-${index}`,
+    parent: "group/root-4",
+    state: "live",
+  }));
+  const groupSpaces = [
+    {
+      id: "group",
+      name: "group",
+      machine: null,
+      active: true,
+      tabs: Array.from({ length: 5 }, (_, index) => ({
+        id: `tab-${index}`,
+        name: `tab-${index}`,
+        active: index === 0,
+      })),
+    },
+  ];
+  const groupAgents = Array.from({ length: 5 }, (_, index) => ({
+    address: `group/root-${index}`,
+    space: "group",
+    tab: `tab-${index}`,
+    program: { name: "Agent", agent: true },
+  }));
+  const groupTerminals = [
+    ...Array.from({ length: 5 }, (_, index) => ({
+      address: `group/root-${index}`,
+      parent: index === 0 ? null : `group/root-${index - 1}`,
+      state: "live",
+    })),
+    ...sharedChildren,
+  ];
+  const boundedRows = pickerRows(groupSpaces, "", {
+    agents: groupAgents,
+    agentContext: true,
+    terminals: groupTerminals,
+  });
+  assert.deepEqual(boundedRows[4].context.descendants, { kind: "lower-bound", count: 0 });
+  assert.deepEqual(rowsFor([{ address: "local/root", parent: null, state: "live" }]).descendants, {
+    kind: "exact",
+    count: 0,
+  });
 });

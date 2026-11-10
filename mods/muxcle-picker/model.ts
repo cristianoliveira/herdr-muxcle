@@ -1,9 +1,23 @@
+export type PickerAgentStatus = "working" | "blocked" | "done" | "idle";
+
 export interface PickerSpace {
   id: string;
   name: string;
   machine: string | null;
   active: boolean;
-  tabs: readonly { id: string; name: string; active: boolean }[];
+  tabs: readonly { id: string; name: string; active: boolean; status?: unknown }[];
+}
+
+export type PickerDescendants =
+  | { kind: "exact"; count: number }
+  | { kind: "lower-bound"; count: number }
+  | { kind: "unavailable" };
+
+export interface PickerRowContext {
+  status: PickerAgentStatus | null;
+  programs: string[];
+  programsTruncated: boolean;
+  descendants: PickerDescendants;
 }
 
 export interface PickerRow {
@@ -13,6 +27,7 @@ export interface PickerRow {
   label: string;
   machine: string | null;
   active: boolean;
+  context?: PickerRowContext;
 }
 
 export interface PickerAction {
@@ -22,16 +37,30 @@ export interface PickerAction {
 
 export type PickerOrder = "native" | "recent";
 
+export interface PickerConfig {
+  order: PickerOrder;
+  agentContext: boolean;
+}
+
 export interface PickerOptions {
   agents?: readonly unknown[];
   order?: PickerOrder;
   recentState?: unknown;
   historyBlockVisible?: boolean;
+  agentContext?: boolean;
+  terminals?: unknown;
 }
 
 interface RecentTabVisit {
   space: string;
   tab: string;
+}
+
+interface PickerCandidate {
+  row: PickerRow;
+  searchText: string;
+  spaceId?: string;
+  tab?: PickerSpace["tabs"][number];
 }
 
 const MAX_CONFIG_LENGTH = 4096;
@@ -40,18 +69,35 @@ const MAX_TARGET_ID_LENGTH = 4096;
 const MAX_LAYOUT_NODES = 2048;
 const MAX_LAYOUT_DEPTH = 64;
 const MAX_AGENT_NAME_LENGTH = 512;
+const MAX_CONTEXT_PROGRAMS = 8;
+const MAX_CONTEXT_PROGRAM_LENGTH = 128;
+const MAX_TERMINAL_RECORDS = 4096;
+const MAX_DESCENDANT_DEPTH = 32;
+const MAX_DESCENDANT_VISITS = 2048;
+const MAX_CONTEXT_VISITS = 8192;
+const MAX_CONTEXT_ROOTS = 128;
 const LOCAL_MACHINE_ALIAS = "local";
 
-export function parsePickerOrder(raw: string | null): PickerOrder {
-  if (raw === null || raw.length > MAX_CONFIG_LENGTH) return "native";
+export function parsePickerConfig(raw: string | null): PickerConfig {
+  const fallback = { order: "native", agentContext: false } as const;
+  if (raw === null || raw.length > MAX_CONFIG_LENGTH) return fallback;
 
   try {
     const value: unknown = JSON.parse(raw);
-    if (isRecord(value) && value.schema === 1 && value.order === "recent") return "recent";
+    if (!isRecord(value) || value.schema !== 1) return fallback;
+    const orderIsValid = !Object.hasOwn(value, "order") || value.order === "native" || value.order === "recent";
+    const order = value.order === "recent" ? "recent" : "native";
+    return {
+      order,
+      agentContext: orderIsValid && value.agentContext === true,
+    };
   } catch {
-    return "native";
+    return fallback;
   }
-  return "native";
+}
+
+export function parsePickerOrder(raw: string | null): PickerOrder {
+  return parsePickerConfig(raw).order;
 }
 
 export function pickerRows(spaces: readonly PickerSpace[], query: string, options: PickerOptions = {}): PickerRow[] {
@@ -61,7 +107,7 @@ export function pickerRows(spaces: readonly PickerSpace[], query: string, option
   const agentRecords = Array.isArray(options.agents) ? options.agents : [];
   const agentsByTarget = agentNamesByTarget(agentRecords);
   const orderedSpaces = useRecentOrder ? sortSpacesByRecent(spaces, ranks) : spaces;
-  const candidates = orderedSpaces.flatMap((space): { row: PickerRow; searchText: string }[] => {
+  const candidates = orderedSpaces.flatMap((space): PickerCandidate[] => {
     if (space.tabs.length === 0) {
       const row: PickerRow = {
         key: JSON.stringify(["space", space.machine, space.id]),
@@ -85,11 +131,21 @@ export function pickerRows(spaces: readonly PickerSpace[], query: string, option
         active: space.active && tab.active,
       };
       const agentNames = agentsByTarget.get(targetKey(space.id, tab.id)) ?? [];
-      return { row, searchText: searchText(row, agentNames) };
+      return { row, searchText: searchText(row, agentNames), spaceId: space.id, tab };
     });
   });
 
-  return candidates.filter(({ searchText: text }) => matches(text, letters)).map(({ row }) => row);
+  const matching = candidates.filter(({ searchText: text }) => matches(text, letters));
+  if (options.agentContext !== true || matching.length === 0) return matching.map(({ row }) => row);
+
+  const agentContexts = agentContextsByTarget(agentRecords);
+  const graph = terminalGraph(options.terminals);
+  const budget = { remaining: MAX_CONTEXT_VISITS };
+  return matching.map(({ row, spaceId, tab }) => {
+    if (!spaceId || !tab) return row;
+    const context = rowContext(spaceId, tab, agentContexts, graph, budget);
+    return context ? { ...row, context } : row;
+  });
 }
 
 export function hasVisibleHistoryBlock(layout: unknown): boolean {
@@ -151,6 +207,270 @@ function agentNamesByTarget(raw: readonly unknown[]): Map<string, string[]> {
     if (searchNames.length > 0) namesByTarget.set(target, searchNames);
   }
   return namesByTarget;
+}
+
+interface ContextAgent {
+  target: string;
+  address: string | null;
+  status: PickerAgentStatus | null;
+  app: string | null;
+  program: string | null;
+}
+
+interface ContextAgentBucket {
+  entries: ContextAgent[];
+  rootAddresses: string[];
+  rootMembershipUnknown: boolean;
+  incomplete: boolean;
+}
+
+interface TerminalGraph {
+  children: Map<string, string[]>;
+  states: Map<string, string>;
+  missingParents: Set<string>;
+  complete: boolean;
+}
+
+function agentContextsByTarget(raw: readonly unknown[]): Map<string, ContextAgentBucket> {
+  const byAddress = new Map<string, ContextAgent>();
+  const rootAddresses = new Map<string, Set<string>>();
+  const targetsByAddress = new Map<string, Set<string>>();
+  const conflictedAddresses = new Set<string>();
+  const conflictedTargets = new Set<string>();
+  const ambiguousRootTargets = new Set<string>();
+  const withoutAddress: ContextAgent[] = [];
+
+  for (const candidate of raw) {
+    const entry = contextAgent(candidate);
+    if (!entry) continue;
+    if (!entry.address) {
+      withoutAddress.push(entry);
+      continue;
+    }
+    const addresses = rootAddresses.get(entry.target) ?? new Set<string>();
+    addresses.add(entry.address);
+    rootAddresses.set(entry.target, addresses);
+    const targets = targetsByAddress.get(entry.address) ?? new Set<string>();
+    if (targets.size > 0 && !targets.has(entry.target)) {
+      ambiguousRootTargets.add(entry.target);
+      for (const target of targets) ambiguousRootTargets.add(target);
+    }
+    targets.add(entry.target);
+    targetsByAddress.set(entry.address, targets);
+    if (conflictedAddresses.has(entry.address)) {
+      conflictedTargets.add(entry.target);
+      continue;
+    }
+
+    const previous = byAddress.get(entry.address);
+    if (!previous) {
+      byAddress.set(entry.address, entry);
+      continue;
+    }
+    if (sameContextAgent(previous, entry)) continue;
+
+    byAddress.delete(entry.address);
+    conflictedAddresses.add(entry.address);
+    conflictedTargets.add(previous.target);
+    conflictedTargets.add(entry.target);
+  }
+
+  const buckets = new Map<string, ContextAgentBucket>();
+  const bucketFor = (target: string): ContextAgentBucket => {
+    let bucket = buckets.get(target);
+    if (!bucket) {
+      bucket = { entries: [], rootAddresses: [], rootMembershipUnknown: false, incomplete: false };
+      buckets.set(target, bucket);
+    }
+    return bucket;
+  };
+
+  for (const [target, addresses] of rootAddresses) {
+    bucketFor(target).rootAddresses = [...addresses];
+  }
+  for (const entry of byAddress.values()) bucketFor(entry.target).entries.push(entry);
+  for (const entry of withoutAddress) {
+    const bucket = bucketFor(entry.target);
+    bucket.entries.push(entry);
+    bucket.rootMembershipUnknown = true;
+    bucket.incomplete = true;
+  }
+  for (const target of conflictedTargets) bucketFor(target).incomplete = true;
+  for (const target of ambiguousRootTargets) bucketFor(target).rootMembershipUnknown = true;
+  return buckets;
+}
+
+function contextAgent(value: unknown): ContextAgent | null {
+  if (!isRecord(value) || !isTargetId(value.space) || !isTargetId(value.tab)) return null;
+  const program = isRecord(value.program) ? boundedContextName(value.program.name) : null;
+  return {
+    target: targetKey(value.space, value.tab),
+    address: isTargetId(value.address) ? value.address : null,
+    status: isPickerAgentStatus(value.status) ? value.status : null,
+    app: boundedContextName(value.app),
+    program,
+  };
+}
+
+function sameContextAgent(left: ContextAgent, right: ContextAgent): boolean {
+  return (
+    left.target === right.target &&
+    left.status === right.status &&
+    left.app === right.app &&
+    left.program === right.program
+  );
+}
+
+function boundedContextName(value: unknown): string | null {
+  if (typeof value !== "string" || value.length === 0) return null;
+  return value.slice(0, MAX_CONTEXT_PROGRAM_LENGTH);
+}
+
+function isPickerAgentStatus(value: unknown): value is PickerAgentStatus {
+  return value === "working" || value === "blocked" || value === "done" || value === "idle";
+}
+
+function terminalGraph(value: unknown): TerminalGraph | null {
+  if (!Array.isArray(value)) return null;
+  const graph: TerminalGraph = {
+    children: new Map(),
+    states: new Map(),
+    missingParents: new Set(),
+    complete: value.length <= MAX_TERMINAL_RECORDS,
+  };
+  const records = new Map<string, { parent: string | null; state: string }>();
+  const conflicts = new Set<string>();
+
+  for (const candidate of value.slice(0, MAX_TERMINAL_RECORDS)) {
+    if (
+      !isRecord(candidate) ||
+      !isTargetId(candidate.address) ||
+      !(candidate.parent === null || candidate.parent === undefined || isTargetId(candidate.parent)) ||
+      typeof candidate.state !== "string"
+    ) {
+      graph.complete = false;
+      continue;
+    }
+
+    const record = { parent: candidate.parent ?? null, state: candidate.state };
+    if (conflicts.has(candidate.address)) {
+      graph.complete = false;
+      continue;
+    }
+    const previous = records.get(candidate.address);
+    if (previous) {
+      if (previous.parent === record.parent && previous.state === record.state) continue;
+      records.delete(candidate.address);
+      conflicts.add(candidate.address);
+      graph.complete = false;
+      continue;
+    }
+    records.set(candidate.address, record);
+  }
+
+  for (const [address, record] of records) {
+    graph.states.set(address, record.state);
+    if (!record.parent) continue;
+    const children = graph.children.get(record.parent) ?? [];
+    children.push(address);
+    graph.children.set(record.parent, children);
+    if (!records.has(record.parent)) graph.missingParents.add(record.parent);
+  }
+  return graph;
+}
+
+function rowContext(
+  spaceId: string,
+  tab: PickerSpace["tabs"][number],
+  agentsByTarget: ReadonlyMap<string, ContextAgentBucket>,
+  graph: TerminalGraph | null,
+  budget: { remaining: number },
+): PickerRowContext | null {
+  const tabStatus = isPickerAgentStatus(tab.status) ? tab.status : null;
+  const bucket = agentsByTarget.get(targetKey(spaceId, tab.id));
+  const entries = bucket?.entries ?? [];
+  const agentStatuses = new Set(entries.flatMap((entry) => (entry.status ? [entry.status] : [])));
+  const status = tabStatus ?? (agentStatuses.size === 1 ? [...agentStatuses][0] : null);
+  if (status === null && !bucket) return null;
+
+  const programs = new Map<string, string>();
+  let programsTruncated = false;
+  for (const entry of entries) {
+    const name = entry.program ?? entry.app;
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (programs.has(key)) continue;
+    if (programs.size >= MAX_CONTEXT_PROGRAMS) {
+      programsTruncated = true;
+      continue;
+    }
+    programs.set(key, name);
+  }
+
+  return {
+    status,
+    programs: [...programs.values()],
+    programsTruncated,
+    descendants: countLiveDescendants(
+      bucket?.rootAddresses ?? [],
+      graph,
+      bucket?.rootMembershipUnknown ?? false,
+      bucket?.incomplete ?? false,
+      budget,
+    ),
+  };
+}
+
+function countLiveDescendants(
+  rawRoots: readonly string[],
+  graph: TerminalGraph | null,
+  rootMembershipUnknown: boolean,
+  agentDataIncomplete: boolean,
+  budget: { remaining: number },
+): PickerDescendants {
+  if (rootMembershipUnknown || !graph || rawRoots.length === 0) return { kind: "unavailable" };
+
+  const allRoots = [...new Set(rawRoots)];
+  const roots = allRoots.slice(0, MAX_CONTEXT_ROOTS);
+  let complete = graph.complete && !agentDataIncomplete && allRoots.length <= MAX_CONTEXT_ROOTS;
+  const rootSet = new Set(allRoots);
+  if ([...graph.missingParents].some((parent) => !rootSet.has(parent))) complete = false;
+
+  const visited = new Set(allRoots);
+  const queue = roots.map((address) => ({ address, depth: 0, path: new Set([address]) }));
+  let count = 0;
+  let visits = 0;
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const current = queue[index];
+    const children = graph.children.get(current.address) ?? [];
+    if (current.depth >= MAX_DESCENDANT_DEPTH) {
+      if (children.length > 0) complete = false;
+      continue;
+    }
+
+    for (const address of children) {
+      if (current.path.has(address)) {
+        complete = false;
+        continue;
+      }
+      if (visited.has(address)) continue;
+      if (visits >= MAX_DESCENDANT_VISITS || budget.remaining <= 0) {
+        complete = false;
+        break;
+      }
+
+      visited.add(address);
+      visits += 1;
+      budget.remaining -= 1;
+      if (graph.states.get(address) === "live" && !rootSet.has(address)) count += 1;
+      const path = new Set(current.path);
+      path.add(address);
+      queue.push({ address, depth: current.depth + 1, path });
+    }
+  }
+
+  return complete ? { kind: "exact", count } : { kind: "lower-bound", count };
 }
 
 function searchText(row: PickerRow, agentNames: readonly string[]): string {

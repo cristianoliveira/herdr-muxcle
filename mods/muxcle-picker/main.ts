@@ -1,9 +1,21 @@
 import { View, div, type Context, type AsyncContext, type NativeElement } from "gpui-kit";
 import { h_flex, v_flex, Input, InputState, v_virtual_list, VirtualListScrollHandle } from "gpui-base";
-import { agents, appHome, closeOverlay, layout, props, readTextFile, run, shared, spaces, theme } from "herdr";
+import {
+  agents,
+  appHome,
+  closeOverlay,
+  layout,
+  props,
+  readTextFile,
+  run,
+  shared,
+  spaces,
+  terminals,
+  theme,
+} from "herdr";
 import {
   hasVisibleHistoryBlock,
-  parsePickerOrder,
+  parsePickerConfig,
   pickerRows,
   selectedRowKey,
   selectionAction,
@@ -24,6 +36,7 @@ export default class MuxclePicker extends View {
   private message = "";
   private closed = false;
   private order: PickerOrder = "native";
+  private agentContext = false;
 
   init(_props: Record<string, unknown> | undefined, cx: AsyncContext): void {
     this.focus = cx.focus_handle();
@@ -32,9 +45,10 @@ export default class MuxclePicker extends View {
     this.input.on("change", (_event, eventCx) => {
       this.query = this.input.value().slice(0, 256);
       this.selectionInvalidated = false;
-      this.selected = this.rows()[0]?.key ?? null;
+      const rows = this.rows();
+      this.selected = rows[0]?.key ?? null;
       this.message = "";
-      this.scrollToSelection();
+      this.scrollToSelection(rows);
       eventCx.notify();
     });
     this.input.on("submit", (_event, eventCx) => {
@@ -43,9 +57,12 @@ export default class MuxclePicker extends View {
     this.input.focus();
     cx.spawn(async (taskCx) => {
       try {
-        this.order = parsePickerOrder(await readTextFile(appHomePath("data", MOD_NAME, "config.json")));
+        const config = parsePickerConfig(await readTextFile(appHomePath("data", MOD_NAME, "config.json")));
+        this.order = config.order;
+        this.agentContext = config.agentContext;
       } catch {
         this.order = "native";
+        this.agentContext = false;
       }
       if (!this.closed) taskCx.notify();
     });
@@ -121,7 +138,10 @@ export default class MuxclePicker extends View {
                       div()
                         .text_size(11)
                         .text_color(palette.dim)
-                        .child(display(row.machine ?? "local")),
+                        .truncate()
+                        .child(
+                          display([row.machine ?? "local", contextSummary(row.context)].filter(Boolean).join(" · ")),
+                        ),
                     ),
                 ),
             )
@@ -149,11 +169,22 @@ export default class MuxclePicker extends View {
         recentState = null;
       }
     }
+    const agentSnapshot = agents();
+    let terminalSnapshot: unknown = null;
+    if (this.agentContext) {
+      try {
+        terminalSnapshot = terminals();
+      } catch {
+        terminalSnapshot = null;
+      }
+    }
     return pickerRows(spaces(), this.query, {
-      agents: agents(),
+      agents: agentSnapshot,
       order: this.order,
       recentState,
       historyBlockVisible,
+      agentContext: this.agentContext,
+      terminals: terminalSnapshot,
     });
   }
 
@@ -164,11 +195,11 @@ export default class MuxclePicker extends View {
     const next = current < 0 ? 0 : Math.max(0, Math.min(rows.length - 1, current + delta));
     this.selectionInvalidated = false;
     this.selected = rows[next].key;
-    this.scrollToSelection();
+    this.scrollToSelection(rows);
   }
 
-  private scrollToSelection(): void {
-    const index = this.rows().findIndex((row) => row.key === this.selected);
+  private scrollToSelection(rows: readonly PickerRow[]): void {
+    const index = rows.findIndex((row) => row.key === this.selected);
     if (index >= 0) this.scroll.scroll_to_item(index, "center");
   }
 
@@ -203,6 +234,27 @@ function appHomePath(...parts: string[]): string {
   const separator = base.includes("\\") ? "\\" : "/";
   const trimmedBase = base.replace(/[\\/]+$/u, "");
   return [trimmedBase, ...parts].join(separator);
+}
+
+function contextSummary(context: PickerRow["context"]): string {
+  if (!context) return "";
+
+  const parts: string[] = [];
+  if (context.descendants.kind === "exact") {
+    const { count } = context.descendants;
+    parts.push(`${count} live descendant${count === 1 ? "" : "s"}`);
+  } else if (context.descendants.kind === "lower-bound" && context.descendants.count > 0) {
+    parts.push(`at least ${context.descendants.count} live descendants`);
+  } else if (context.descendants.kind === "lower-bound") {
+    parts.push("live descendant count incomplete");
+  } else {
+    parts.push("live descendants unavailable");
+  }
+
+  if (context.status) parts.push(context.status);
+  parts.push(...context.programs);
+  if (context.programsTruncated) parts.push("more programs");
+  return parts.join(" · ");
 }
 
 function display(value: string): string {

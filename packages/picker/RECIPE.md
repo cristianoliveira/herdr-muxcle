@@ -68,6 +68,21 @@ cp "$BUNDLE/config.example.json" "$CONFIG_PATH"
 
 Recent order consumes only `muxcle-history.recent-tabs.v1` and only when the current layout snapshot contains a visible History block. Install and mount the separate History observer in the active personal layout to collect new visits. Picker remains usable in native order when that block or valid MRU data is absent. The layout check proves configured visibility only, not observer health; cached visits may be stale if the shown observer is not running. No History package is required for ordinary native-order use.
 
+### Opt in to agent context
+
+To add native status, program name, and live-descendant annotations to existing tab rows, merge `"agentContext": true` into the existing schema-1 `data/muxcle-picker/config.json`:
+
+```json
+{
+  "schema": 1,
+  "agentContext": true
+}
+```
+
+This option is independent of `order`; omitting `order` keeps native ordering. Missing, malformed, or invalid context configuration leaves the annotations off. Keep any existing `order` setting when editing the file. Neither the package example config nor whole-pack installation enables agent context automatically.
+
+Context matches native agent metadata to a row only by exact qualified space and tab IDs. It may show the tab's reported status and associated program name. The optional count is the number of unique live terminal descendants reachable from those agent terminal addresses, excluding the agent roots. It is bounded to 32 levels, 2,048 visited descendants per tab, and 8,192 across one result set; oversized or incomplete snapshots show a lower bound or unavailable label, never an exact team-size claim. Native `terminals()` data is metadata only; it does not prove process/socket ownership or terminal content. Context mode reads that snapshot only when explicitly enabled; it does not poll, scan projects, run processes, discover machines, or access the network. Existing agent-name search works as before when annotations are off.
+
 ### Update or remove
 
 Close the popup first. For an update, verify and extract the new package, inspect the differences, then run its preflight in update mode. Preserve local edits in a backup before replacing only the picker folder:

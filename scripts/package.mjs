@@ -400,6 +400,18 @@ export async function createPackages(options = {}) {
   return results;
 }
 
+export async function createModPackage(modName, options = {}) {
+  if (typeof modName !== "string" || !/^[a-z0-9][a-z0-9-]*$/.test(modName)) {
+    throw new Error(`invalid mod name: ${modName}`);
+  }
+  const target = `mods/${modName}/main.js`;
+  const definition = existingPackageDefinitions.find(({ sources }) =>
+    sources.some(([, destination]) => destination === target),
+  );
+  if (!definition) throw new Error(`no standalone package contains mod ${modName}`);
+  return buildPackage(definition, options);
+}
+
 export function combinePackKeymaps(snippets) {
   const merged = {};
   const chordOwners = new Map();

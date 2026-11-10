@@ -33,6 +33,7 @@ import {
   createProjectPopupPackage,
   createTabToolsPackage,
   createSpaceCloserPackage,
+  createModPackage,
   createSessionizerPackage,
   createTmuxKeysPackage,
   verifyPackage,
@@ -1216,6 +1217,41 @@ test("repackaging the same version updates only its generated bundle", async () 
     assert.equal(second.version, first.version);
     assert.deepEqual(verified.files, expectedFiles);
     assert.equal(await readFile(unrelatedFile, "utf8"), "unrelated output\n");
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("selected mod packaging resolves standalone owners and rejects aggregate-only names", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-selected-mod-package-"));
+  try {
+    const compat = await createModPackage("muxcle-compat", {
+      repositoryRoot,
+      outputDirectory: join(temporary, "compat"),
+    });
+    assert.equal(compat.name, "herdr-muxcle");
+    const compatFiles = verifyPackage({
+      outputDirectory: join(temporary, "compat"),
+      version: compat.version,
+      packageName: compat.name,
+    }).files;
+    assert.ok(compatFiles.includes("mods/muxcle-compat/main.js"));
+
+    const closer = await createModPackage("muxcle-space-closer", {
+      repositoryRoot,
+      outputDirectory: join(temporary, "closer"),
+    });
+    assert.equal(closer.name, "muxcle-space-closer");
+    const closerFiles = verifyPackage({
+      outputDirectory: join(temporary, "closer"),
+      version: closer.version,
+      packageName: closer.name,
+    }).files;
+    assert.ok(closerFiles.includes("mods/muxcle-space-closer/mod.json"));
+    await assert.rejects(
+      createModPackage("muxcle-pack", { repositoryRoot, outputDirectory: join(temporary, "pack") }),
+      /no standalone package contains mod muxcle-pack/,
+    );
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

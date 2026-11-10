@@ -22,6 +22,7 @@ make gate          # canonical typecheck/build/test gate
 make herdr-check   # package, install into a temporary app home, preserve settings, native-check
 make e2e-help      # prerequisites and coverage of opt-in native IPC scenarios
 make e2e           # real isolated macOS app/core, PTY geometry, focus, screenshots
+make dev-help      # optional selected-mod build/link/watch workflow
 make package       # build individual archives plus the whole pack, with SHA-256
 make release-plan  # preview versioned package downloads and installation notes; no publication
 make release-check # release CI checks plus isolated native check
@@ -43,6 +44,23 @@ make hooks-check
 ```
 
 Hooks invoke the gate before commit and push. The commit-msg hook enforces `type(scope): subject`; accepted types include `feat`, `fix`, `docs`, `test`, `refactor`, and `chore` (also `style`, `build`, `ci`, `perf`, `revert`). Examples: `feat(mod): add pane shortcut`, `docs: explain development setup`.
+
+## Optional selected-mod development loop
+
+This contributor-only tool compiles one TypeScript mod into a retained, complete app-home-shaped generation. It is not included in runtime packages and does not install or modify user settings. Install the locked compiler first with `npm ci --ignore-scripts`, then inspect `make dev-help` for exact options.
+
+```sh
+node scripts/dev-loop.mjs build --mod muxcle-picker
+node scripts/dev-loop.mjs link --mod muxcle-picker --app-home /path/to/an/isolated-herdr-home
+node scripts/dev-loop.mjs status --mod muxcle-picker --app-home /path/to/an/isolated-herdr-home
+node scripts/dev-loop.mjs watch --mod muxcle-picker --app-home /path/to/an/isolated-herdr-home
+node scripts/dev-loop.mjs revert --mod muxcle-picker --app-home /path/to/an/isolated-herdr-home --generation <retained-id>
+node scripts/dev-loop.mjs unlink --mod muxcle-picker --app-home /path/to/an/isolated-herdr-home
+```
+
+`build` writes only under ignored `.build/dev-generations/`. `link` changes only `mods/<mod>` in an existing app home to a symlink to a verified generation; it refuses real directories, foreign links, and symlinked app-home containers. `watch` requires that managed link, builds a fresh full generation before swapping it, and leaves the last successful link active after a failed build. Stop it with Ctrl-C. Old generations are retained for `revert`; `unlink` removes only a verified development link. Selecting a mod does not add a host, mount an observer, select a layout, alter keys, or start/restart Herdr/Core. Set up those native dependencies explicitly when the selected capability requires them.
+
+Native live-reload and asset-cache behavior are version/platform-dependent. An isolated process accepted the linked mod state, but the bounded visual probe did not render the popup content, so this workflow does **not** claim in-place JavaScript reload or asset refresh. No supported manual asset-refresh fallback was established. Until that native path is verified, build/link before launching the isolated app; the tool never restarts a process. Do not use `watch` against a running app when relying on newly changed assets.
 
 ## Explicit checks outside the gate
 

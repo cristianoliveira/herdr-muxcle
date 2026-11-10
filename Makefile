@@ -1,6 +1,6 @@
 SHELL := /bin/sh
 
-.PHONY: gate watch lint build test package release-plan release-tag release-ci release-check hooks-install hooks-check format coverage security herdr-check e2e e2e-help
+.PHONY: gate watch lint build test package release-plan release-tag release-ci release-check hooks-install hooks-check format coverage security herdr-check e2e e2e-help dev-help
 
 gate:
 	@./scripts/quality-gate.sh
@@ -36,7 +36,7 @@ format:
 	@echo 'No formatter is configured yet.'
 
 coverage: build
-	@node --test --experimental-test-coverage src/lib/example.test.mjs src/lib/keymap-merge.test.mjs mods/muxcle-sessionizer/*.test.mjs mods/muxcle-picker/*.test.mjs mods/muxcle-history/*.test.mjs mods/muxcle-rotation/*.test.mjs mods/muxcle-sizing/*.test.mjs mods/muxcle-tab-tools/*.test.mjs scripts/package.test.mjs scripts/release-plan.test.mjs
+	@node --test --experimental-test-coverage src/lib/example.test.mjs src/lib/keymap-merge.test.mjs mods/muxcle-sessionizer/*.test.mjs mods/muxcle-picker/*.test.mjs mods/muxcle-history/*.test.mjs mods/muxcle-rotation/*.test.mjs mods/muxcle-sizing/*.test.mjs mods/muxcle-tab-tools/*.test.mjs scripts/package.test.mjs scripts/dev-loop.test.mjs scripts/release-plan.test.mjs
 
 security:
 	@npm audit --package-lock-only
@@ -52,6 +52,9 @@ e2e: package
 
 e2e-help:
 	@python3 -B tests/e2e/run.py --help
+
+dev-help:
+	@node scripts/dev-loop.mjs help
 
 release-plan:
 	@node scripts/release-plan.mjs

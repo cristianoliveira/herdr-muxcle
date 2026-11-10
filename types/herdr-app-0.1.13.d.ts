@@ -55,6 +55,7 @@ declare module "gpui-kit" {
     bg(color: string): this;
     border_1(): this;
     border_color(color: string): this;
+    flex(): this;
     flex_1(): this;
     font_semibold(): this;
     gap(value: number): this;
@@ -66,6 +67,7 @@ declare module "gpui-kit" {
     min_h(value: number): this;
     on_click(handler: (event: unknown, cx: Context) => void): this;
     on_item_click(handler: (key: string, cx: Context) => void): this;
+    on_mouse_down(button: "left" | "right" | "middle", handler: (event: unknown, cx: Context) => void): this;
     on_key_down(handler: (event: KeyEvent, cx: Context) => void): this;
     p(value: number): this;
     px(value: number): this;
@@ -74,6 +76,14 @@ declare module "gpui-kit" {
     text_color(color: string): this;
     text_size(value: number): this;
     track_focus(handle: FocusHandle): this;
+    disabled(value: boolean): this;
+    flex_none(): this;
+    flex_row(): this;
+    h_full(): this;
+    min_w(value: number): this;
+    selected(value: boolean): this;
+    truncate(): this;
+    w_full(): this;
     track_scroll(handle: import("gpui-base").VirtualListScrollHandle): this;
     w(value: number): this;
     cursor_pointer(): this;
@@ -116,6 +126,15 @@ declare module "gpui-base" {
   export const Input: {
     new: (state: InputState) => NativeElement;
   };
+  export const Button: {
+    new: (id: string) => NativeElement;
+  };
+  export const Tabs: {
+    new: (id: string) => NativeElement;
+  };
+  export const Tab: {
+    new: (id: string) => NativeElement;
+  };
   export const VirtualListScrollHandle: {
     new: () => VirtualListScrollHandle;
   };
@@ -148,10 +167,17 @@ declare module "herdr" {
   }
 
   /** Narrow projection of Native's live AgentInfo; IDs and addresses are machine-qualified. */
+  export type AgentStatus = "working" | "blocked" | "done" | "idle";
+
   export interface AgentInfo {
     address: string;
     space: string;
+    space_name: string;
     tab: string;
+    tab_name: string;
+    status: AgentStatus;
+    title: string;
+    seq: number;
     app: string | null;
     program: { name: string; agent: boolean };
     focused: boolean;

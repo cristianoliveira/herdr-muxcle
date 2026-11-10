@@ -140,6 +140,35 @@ const historyPackage = {
     ["mods/muxcle-history/package-owner.json", "mods/muxcle-history/package-owner.json"],
   ],
 };
+const agentIntrayPackage = {
+  name: "muxcle-agent-intray",
+  release: {
+    title: "Agent attention inbox",
+    summary: "Keep a bounded, searchable inbox of observed agent completions and requests for input.",
+    installationPath: "packages/agent-intray/RECIPE.md",
+  },
+  files: [
+    "check-install-targets.sh",
+    "keys.json",
+    "observer.json",
+    "RECIPE.md",
+    "mods/muxcle-agent-intray/main.js",
+    "mods/muxcle-agent-intray/model.js",
+    "mods/muxcle-agent-intray/mod.json",
+    "mods/muxcle-agent-intray/package-owner.json",
+  ],
+  directories: ["", "mods", "mods/muxcle-agent-intray"],
+  sources: [
+    ["packages/agent-intray/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/agent-intray/keys.json", "keys.json"],
+    ["packages/agent-intray/observer.json", "observer.json"],
+    ["packages/agent-intray/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-agent-intray/main.js", "mods/muxcle-agent-intray/main.js"],
+    [".build/mods/muxcle-agent-intray/model.js", "mods/muxcle-agent-intray/model.js"],
+    ["mods/muxcle-agent-intray/mod.json", "mods/muxcle-agent-intray/mod.json"],
+    ["mods/muxcle-agent-intray/package-owner.json", "mods/muxcle-agent-intray/package-owner.json"],
+  ],
+};
 const rotationPackage = {
   name: "muxcle-rotation",
   release: {
@@ -427,6 +456,7 @@ const existingPackageDefinitions = [
   sessionizerPackage,
   pickerPackage,
   historyPackage,
+  agentIntrayPackage,
   rotationPackage,
   sizingPackage,
   repeatPackage,
@@ -467,6 +497,10 @@ export async function createPickerPackage(options = {}) {
 
 export async function createHistoryPackage(options = {}) {
   return buildPackage(historyPackage, options);
+}
+
+export async function createAgentIntrayPackage(options = {}) {
+  return buildPackage(agentIntrayPackage, options);
 }
 
 export async function createRotationPackage(options = {}) {

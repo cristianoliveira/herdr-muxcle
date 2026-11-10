@@ -48,6 +48,17 @@ cp -R "$temporary/$history_bundle/mods/muxcle-history" "$temporary/history-home/
 HERDR_APP_HOME="$temporary/history-home" herdr-app check "$temporary/history-home/mods/muxcle-history"
 python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["unrelated"] == "keep"' "$temporary/history-home/shared.json"
 
+agent_intray_bundle="muxcle-agent-intray-v$version"
+mkdir "$temporary/agent-intray-home"
+tar -xzf "dist/$agent_intray_bundle.tar.gz" -C "$temporary"
+printf '%s\n' '{"intray.state":"keep"}' > "$temporary/agent-intray-home/shared.json"
+cp "$temporary/agent-intray-home/shared.json" "$temporary/agent-intray-shared.json"
+sh "$temporary/$agent_intray_bundle/check-install-targets.sh" "$temporary/agent-intray-home"
+mkdir "$temporary/agent-intray-home/mods"
+cp -R "$temporary/$agent_intray_bundle/mods/muxcle-agent-intray" "$temporary/agent-intray-home/mods/"
+HERDR_APP_HOME="$temporary/agent-intray-home" herdr-app check "$temporary/agent-intray-home/mods/muxcle-agent-intray"
+python3 -c 'import json,sys; expected=json.load(open(sys.argv[1])); actual=json.load(open(sys.argv[2])); assert actual.get("intray.state") == expected["intray.state"]; assert actual["muxcle-agent-intray.state.v1"]["schema"] == 1' "$temporary/agent-intray-shared.json" "$temporary/agent-intray-home/shared.json"
+
 rotation_bundle="muxcle-rotation-v$version"
 mkdir "$temporary/rotation-home"
 tar -xzf "dist/$rotation_bundle.tar.gz" -C "$temporary"

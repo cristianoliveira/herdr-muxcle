@@ -27,6 +27,7 @@ import {
   createPackages,
   createPickerPackage,
   createHistoryPackage,
+  createAgentIntrayPackage,
   createRotationPackage,
   createSizingPackage,
   createRepeatPackage,
@@ -165,6 +166,9 @@ const expectedPackFiles = [
   "components/muxcle-history/check-install-targets.sh",
   "components/muxcle-history/keys.json",
   "components/muxcle-history/observer.json",
+  "components/muxcle-agent-intray/check-install-targets.sh",
+  "components/muxcle-agent-intray/keys.json",
+  "components/muxcle-agent-intray/observer.json",
   "components/muxcle-rotation/check-install-targets.sh",
   "components/muxcle-rotation/keys.json",
   "components/muxcle-rotation/host.json",
@@ -201,6 +205,10 @@ const expectedPackFiles = [
   "mods/muxcle-history/model.js",
   "mods/muxcle-history/mod.json",
   "mods/muxcle-history/package-owner.json",
+  "mods/muxcle-agent-intray/main.js",
+  "mods/muxcle-agent-intray/model.js",
+  "mods/muxcle-agent-intray/mod.json",
+  "mods/muxcle-agent-intray/package-owner.json",
   "mods/muxcle-rotation/main.js",
   "mods/muxcle-rotation/model.js",
   "mods/muxcle-rotation/controller.js",
@@ -629,6 +637,58 @@ test("history archive is independent, reproducible, and scopes installation to i
   }
 });
 
+test("agent intray archive is independent, reproducible, and preserves other shared state", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-agent-intray-package-"));
+  try {
+    const info = await createAgentIntrayPackage({ repositoryRoot, outputDirectory: temporary });
+    const verified = verifyPackage({
+      outputDirectory: temporary,
+      version: info.version,
+      packageName: "muxcle-agent-intray",
+    });
+    assert.deepEqual(
+      verified.files,
+      [
+        "RECIPE.md",
+        "check-install-targets.sh",
+        "keys.json",
+        "manifest.json",
+        "observer.json",
+        "mods/muxcle-agent-intray/main.js",
+        "mods/muxcle-agent-intray/model.js",
+        "mods/muxcle-agent-intray/mod.json",
+        "mods/muxcle-agent-intray/package-owner.json",
+      ].sort(),
+    );
+    const original = await readFile(info.archivePath);
+    await changeTimes(info.bundleDirectory, 1);
+    const repeated = join(temporary, "repeat.tar.gz");
+    await createDeterministicArchive({
+      packageDirectory: info.bundleDirectory,
+      archivePath: repeated,
+      packageName: info.name,
+    });
+    assert.deepEqual(await readFile(repeated), original);
+
+    const appHome = join(temporary, "home");
+    const target = join(appHome, "mods/muxcle-agent-intray");
+    const checker = join(info.bundleDirectory, "check-install-targets.sh");
+    const check = (mode = []) => spawnSync("sh", [checker, ...mode, appHome]).status;
+    await mkdir(appHome, { recursive: true });
+    await writeFile(join(appHome, "shared.json"), '{"intray.state":"keep"}\n');
+    assert.equal(check(), 0);
+    await mkdir(target, { recursive: true });
+    assert.notEqual(check(), 0);
+    assert.notEqual(check(["--remove"]), 0);
+    await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-agent-intray","schema":1}\n');
+    assert.equal(check(["--update"]), 0);
+    assert.equal(check(["--remove"]), 0);
+    assert.equal(await readFile(join(appHome, "shared.json"), "utf8"), '{"intray.state":"keep"}\n');
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
 test("sizing archive is independent, reproducible, and protects existing installation state", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "muxcle-sizing-package-"));
   try {
@@ -841,6 +901,7 @@ test("packaged ownership markers are accepted by each capability's update and re
     [createSessionizerPackage, "muxcle-sessionizer"],
     [createPickerPackage, "muxcle-picker"],
     [createHistoryPackage, "muxcle-history"],
+    [createAgentIntrayPackage, "muxcle-agent-intray"],
     [createRotationPackage, "muxcle-rotation"],
     [createSizingPackage, "muxcle-sizing"],
     [createRepeatPackage, "muxcle-repeat"],
@@ -1024,6 +1085,7 @@ test("whole-pack archive composes all components without activating scaffold sta
       "packages/sessionizer/keys.json",
       "packages/picker/keys.json",
       "packages/history/keys.json",
+      "packages/agent-intray/keys.json",
       "packages/rotation/keys.json",
       "packages/sizing/keys.json",
       "packages/repeat/keys.json",
@@ -1053,6 +1115,7 @@ test("whole-pack archive composes all components without activating scaffold sta
     assert.equal(keymap.global["ctrl-a shift-r"], "mod.open:muxcle-repeat");
     assert.equal(keymap.global["ctrl-a space"], "mod.open:muxcle-project-popup");
     assert.equal(keymap.global["ctrl-a ["], "mod.open:muxcle-copy-mode");
+    assert.equal(keymap.global["ctrl-a shift-i"], "mod.open:muxcle-agent-intray");
     assert.equal(keymap.global["ctrl-a B"], undefined);
     assert.ok(!verified.files.some((path) => path.includes("muxcle-broadcast-prototype")));
     assert.equal(keymap.global["ctrl-a shift-k"], undefined);
@@ -1067,6 +1130,7 @@ test("whole-pack archive composes all components without activating scaffold sta
     );
     assert.ok(verified.files.includes("mods/muxcle-sessionizer/main.js"));
     assert.equal(nodes.filter((node) => node.content?.mod === "muxcle-compat").length, 0);
+    assert.equal(nodes.filter((node) => node.content?.mod === "muxcle-agent-intray").length, 0);
 
     for (const [modName, sourcePath] of [
       ["muxcle-history", "packages/history/observer.json"],
@@ -1181,6 +1245,7 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
   try {
     const packages = await createPackages({ repositoryRoot, outputDirectory: temporary });
     const [scaffold, tmuxKeys, sessionizer] = packages;
+    const agentIntray = packages.find(({ name }) => name === "muxcle-agent-intray");
     const projectPopup = packages.find(({ name }) => name === "muxcle-project-popup");
     const copyMode = packages.find(({ name }) => name === "muxcle-copy-mode");
     const broadcastPrototype = packages.find(({ name }) => name === "muxcle-broadcast-prototype");
@@ -1209,6 +1274,7 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
         "muxcle-sessionizer",
         "muxcle-picker",
         "muxcle-history",
+        "muxcle-agent-intray",
         "muxcle-rotation",
         "muxcle-sizing",
         "muxcle-repeat",
@@ -1227,6 +1293,21 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
     assert.deepEqual(scaffoldCheck.files, expectedFiles);
     assert.deepEqual(keysCheck.files, expectedTmuxKeysFiles);
     assert.deepEqual(sessionizerCheck.files, expectedSessionizerFiles);
+    assert.ok(agentIntray);
+    assert.deepEqual(
+      verifyPackage({ outputDirectory: temporary, version: agentIntray.version, packageName: agentIntray.name }).files,
+      [
+        "RECIPE.md",
+        "check-install-targets.sh",
+        "keys.json",
+        "manifest.json",
+        "observer.json",
+        "mods/muxcle-agent-intray/main.js",
+        "mods/muxcle-agent-intray/model.js",
+        "mods/muxcle-agent-intray/mod.json",
+        "mods/muxcle-agent-intray/package-owner.json",
+      ].sort(),
+    );
     assert.ok(projectPopup);
     assert.deepEqual(
       verifyPackage({ outputDirectory: temporary, version: projectPopup.version, packageName: projectPopup.name })

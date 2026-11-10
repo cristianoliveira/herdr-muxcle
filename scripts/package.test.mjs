@@ -33,6 +33,7 @@ import {
   createProjectPopupPackage,
   createCopyModePackage,
   createBroadcastPrototypePackage,
+  createPortProcessPickerPackage,
   RELEASE_CATALOG,
   createTabToolsPackage,
   createSpaceCloserPackage,
@@ -134,6 +135,19 @@ const expectedBroadcastPrototypeFiles = [
   "mods/muxcle-broadcast-prototype/main.js",
   "mods/muxcle-broadcast-prototype/mod.json",
   "mods/muxcle-broadcast-prototype/package-owner.json",
+].sort();
+const expectedPortProcessPickerFiles = [
+  "RECIPE.md",
+  "check-install-targets.sh",
+  "keys.json",
+  "manifest.json",
+  "mods/muxcle-port-process-picker/adapter.js",
+  "mods/muxcle-port-process-picker/controller.js",
+  "mods/muxcle-port-process-picker/main.js",
+  "mods/muxcle-port-process-picker/model.js",
+  "mods/muxcle-port-process-picker/mod.json",
+  "mods/muxcle-port-process-picker/package-owner.json",
+  "mods/muxcle-port-process-picker/port_processes.py",
 ].sort();
 const expectedPackFiles = [
   "RECIPE.md",
@@ -375,6 +389,47 @@ test("broadcast prototype is separately installable, reproducible, and marked fo
     assert.notEqual(check(["--update"]), 0);
     assert.notEqual(check(["--remove"]), 0);
     await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-broadcast-prototype","schema":1}\n');
+    assert.equal(check(["--update"]), 0);
+    assert.equal(check(["--remove"]), 0);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("port-process picker is separately installable, reproducible, and keeps its helper package-owned", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-port-process-picker-package-"));
+  try {
+    const info = await createPortProcessPickerPackage({ repositoryRoot, outputDirectory: temporary });
+    const verified = verifyPackage({ outputDirectory: temporary, version: info.version, packageName: info.name });
+    assert.deepEqual(verified.files, expectedPortProcessPickerFiles);
+    assert.deepEqual(JSON.parse(await readFile(join(info.bundleDirectory, "keys.json"), "utf8")), {
+      global: { "ctrl-a shift-k": "mod.open:muxcle-port-process-picker" },
+    });
+    assert.ok(RELEASE_CATALOG.some(({ name }) => name === "muxcle-port-process-picker"));
+    assert.match(
+      await readFile(join(info.bundleDirectory, "mods/muxcle-port-process-picker/port_processes.py"), "utf8"),
+      /signal_review/,
+    );
+
+    const original = await readFile(info.archivePath);
+    await changeTimes(info.bundleDirectory, 1);
+    const repeatedArchive = join(temporary, "repeat.tar.gz");
+    await createDeterministicArchive({
+      packageDirectory: info.bundleDirectory,
+      archivePath: repeatedArchive,
+      packageName: info.name,
+    });
+    assert.deepEqual(await readFile(repeatedArchive), original);
+
+    const appHome = join(temporary, "home");
+    const target = join(appHome, "mods/muxcle-port-process-picker");
+    const checker = join(info.bundleDirectory, "check-install-targets.sh");
+    const check = (mode = []) => spawnSync("sh", [checker, ...mode, appHome]).status;
+    assert.equal(check(), 0);
+    await mkdir(target, { recursive: true });
+    assert.notEqual(check(["--update"]), 0);
+    assert.notEqual(check(["--remove"]), 0);
+    await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-port-process-picker","schema":1}\n');
     assert.equal(check(["--update"]), 0);
     assert.equal(check(["--remove"]), 0);
   } finally {
@@ -792,6 +847,7 @@ test("packaged ownership markers are accepted by each capability's update and re
     [createProjectPopupPackage, "muxcle-project-popup"],
     [createCopyModePackage, "muxcle-copy-mode"],
     [createBroadcastPrototypePackage, "muxcle-broadcast-prototype"],
+    [createPortProcessPickerPackage, "muxcle-port-process-picker"],
     [createTabToolsPackage, "muxcle-tab-tools"],
     [createSpaceCloserPackage, "muxcle-space-closer"],
   ];
@@ -999,6 +1055,8 @@ test("whole-pack archive composes all components without activating scaffold sta
     assert.equal(keymap.global["ctrl-a ["], "mod.open:muxcle-copy-mode");
     assert.equal(keymap.global["ctrl-a B"], undefined);
     assert.ok(!verified.files.some((path) => path.includes("muxcle-broadcast-prototype")));
+    assert.equal(keymap.global["ctrl-a shift-k"], undefined);
+    assert.ok(!verified.files.some((path) => path.includes("muxcle-port-process-picker")));
     assert.deepEqual(
       await readFile(join(info.bundleDirectory, "config.example.json")),
       await readFile(join(repositoryRoot, "packages/sessionizer/config.example.json")),
@@ -1126,6 +1184,7 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
     const projectPopup = packages.find(({ name }) => name === "muxcle-project-popup");
     const copyMode = packages.find(({ name }) => name === "muxcle-copy-mode");
     const broadcastPrototype = packages.find(({ name }) => name === "muxcle-broadcast-prototype");
+    const portProcessPicker = packages.find(({ name }) => name === "muxcle-port-process-picker");
     const scaffoldCheck = verifyPackage({ outputDirectory: temporary, version: scaffold.version });
     const keysCheck = verifyPackage({
       outputDirectory: temporary,
@@ -1158,6 +1217,7 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
         "muxcle-broadcast-prototype",
         "muxcle-tab-tools",
         "muxcle-space-closer",
+        "muxcle-port-process-picker",
         "muxcle-pack",
       ],
     );
@@ -1186,6 +1246,15 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
         packageName: broadcastPrototype.name,
       }).files,
       expectedBroadcastPrototypeFiles,
+    );
+    assert.ok(portProcessPicker);
+    assert.deepEqual(
+      verifyPackage({
+        outputDirectory: temporary,
+        version: portProcessPicker.version,
+        packageName: portProcessPicker.name,
+      }).files,
+      expectedPortProcessPickerFiles,
     );
     assert.equal(keysManifest.name, "muxcle-tmux-keys");
     assert.equal(keysSnippet.global["ctrl-a c"], "tab.new");
@@ -1396,6 +1465,17 @@ test("selected mod packaging resolves standalone owners and rejects aggregate-on
       packageName: broadcast.name,
     }).files;
     assert.ok(broadcastFiles.includes("mods/muxcle-broadcast-prototype/broadcast_stream.py"));
+    const portPicker = await createModPackage("muxcle-port-process-picker", {
+      repositoryRoot,
+      outputDirectory: join(temporary, "port-picker"),
+    });
+    assert.equal(portPicker.name, "muxcle-port-process-picker");
+    const portPickerFiles = verifyPackage({
+      outputDirectory: join(temporary, "port-picker"),
+      version: portPicker.version,
+      packageName: portPicker.name,
+    }).files;
+    assert.ok(portPickerFiles.includes("mods/muxcle-port-process-picker/port_processes.py"));
     await assert.rejects(
       createModPackage("muxcle-pack", { repositoryRoot, outputDirectory: join(temporary, "pack") }),
       /no standalone package contains mod muxcle-pack/,

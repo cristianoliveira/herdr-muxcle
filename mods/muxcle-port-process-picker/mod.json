@@ -1,0 +1,9 @@
+{
+  "place": "none",
+  "title": "Listening processes",
+  "overlay": {
+    "kind": "dialog",
+    "width": 780,
+    "height": 760
+  }
+}

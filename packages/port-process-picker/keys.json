@@ -1,0 +1,5 @@
+{
+  "global": {
+    "ctrl-a shift-k": "mod.open:muxcle-port-process-picker"
+  }
+}

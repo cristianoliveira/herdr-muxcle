@@ -387,6 +387,40 @@ const spaceCloserPackage = {
     ["mods/muxcle-space-closer/package-owner.json", "mods/muxcle-space-closer/package-owner.json"],
   ],
 };
+const portProcessPickerPackage = {
+  name: "muxcle-port-process-picker",
+  release: {
+    title: "Listening process picker",
+    summary:
+      "Review local TCP listeners and deliberately signal a frozen set of processes with graceful TERM or separately confirmed KILL.",
+    installationPath: "packages/port-process-picker/RECIPE.md",
+  },
+  files: [
+    "check-install-targets.sh",
+    "keys.json",
+    "RECIPE.md",
+    "mods/muxcle-port-process-picker/adapter.js",
+    "mods/muxcle-port-process-picker/controller.js",
+    "mods/muxcle-port-process-picker/main.js",
+    "mods/muxcle-port-process-picker/model.js",
+    "mods/muxcle-port-process-picker/mod.json",
+    "mods/muxcle-port-process-picker/package-owner.json",
+    "mods/muxcle-port-process-picker/port_processes.py",
+  ],
+  directories: ["", "mods", "mods/muxcle-port-process-picker"],
+  sources: [
+    ["packages/port-process-picker/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/port-process-picker/keys.json", "keys.json"],
+    ["packages/port-process-picker/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-port-process-picker/adapter.js", "mods/muxcle-port-process-picker/adapter.js"],
+    [".build/mods/muxcle-port-process-picker/controller.js", "mods/muxcle-port-process-picker/controller.js"],
+    [".build/mods/muxcle-port-process-picker/main.js", "mods/muxcle-port-process-picker/main.js"],
+    [".build/mods/muxcle-port-process-picker/model.js", "mods/muxcle-port-process-picker/model.js"],
+    ["mods/muxcle-port-process-picker/mod.json", "mods/muxcle-port-process-picker/mod.json"],
+    ["mods/muxcle-port-process-picker/package-owner.json", "mods/muxcle-port-process-picker/package-owner.json"],
+    ["mods/muxcle-port-process-picker/port_processes.py", "mods/muxcle-port-process-picker/port_processes.py"],
+  ],
+};
 const existingPackageDefinitions = [
   appPackage,
   tmuxKeysPackage,
@@ -401,10 +435,13 @@ const existingPackageDefinitions = [
   broadcastPrototypePackage,
   tabToolsPackage,
   spaceCloserPackage,
+  portProcessPickerPackage,
 ];
 const trustedComponentNames = new Set(existingPackageDefinitions.filter(hasOwnedModSources).map(({ name }) => name));
 const packPackage = createPackDefinition(
-  existingPackageDefinitions.filter(({ name }) => name !== "muxcle-broadcast-prototype"),
+  existingPackageDefinitions.filter(
+    ({ name }) => name !== "muxcle-broadcast-prototype" && name !== "muxcle-port-process-picker",
+  ),
 );
 const packageDefinitions = [...existingPackageDefinitions, packPackage];
 const packagesByName = new Map(packageDefinitions.map((definition) => [definition.name, definition]));
@@ -462,6 +499,10 @@ export async function createTabToolsPackage(options = {}) {
 
 export async function createSpaceCloserPackage(options = {}) {
   return buildPackage(spaceCloserPackage, options);
+}
+
+export async function createPortProcessPickerPackage(options = {}) {
+  return buildPackage(portProcessPickerPackage, options);
 }
 
 export async function createPackPackage(options = {}) {

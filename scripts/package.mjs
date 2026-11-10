@@ -140,6 +140,37 @@ const historyPackage = {
     ["mods/muxcle-history/package-owner.json", "mods/muxcle-history/package-owner.json"],
   ],
 };
+const funzzyStatusPackage = {
+  name: "muxcle-funzzy-status",
+  release: {
+    title: "Funzzy status",
+    summary: "Monitor existing local and opt-in remote Funzzy watchers without controlling job lifecycle.",
+    installationPath: "packages/funzzy-status/RECIPE.md",
+  },
+  files: [
+    "check-install-targets.sh",
+    "observer.json",
+    "RECIPE.md",
+    "mods/muxcle-funzzy-status/location.js",
+    "mods/muxcle-funzzy-status/main.js",
+    "mods/muxcle-funzzy-status/model.js",
+    "mods/muxcle-funzzy-status/mod.json",
+    "mods/muxcle-funzzy-status/package-owner.json",
+    "mods/muxcle-funzzy-status/projects.js",
+  ],
+  directories: ["", "mods", "mods/muxcle-funzzy-status"],
+  sources: [
+    ["packages/funzzy-status/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/funzzy-status/observer.json", "observer.json"],
+    ["packages/funzzy-status/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-funzzy-status/location.js", "mods/muxcle-funzzy-status/location.js"],
+    [".build/mods/muxcle-funzzy-status/main.js", "mods/muxcle-funzzy-status/main.js"],
+    [".build/mods/muxcle-funzzy-status/model.js", "mods/muxcle-funzzy-status/model.js"],
+    ["mods/muxcle-funzzy-status/mod.json", "mods/muxcle-funzzy-status/mod.json"],
+    ["mods/muxcle-funzzy-status/package-owner.json", "mods/muxcle-funzzy-status/package-owner.json"],
+    [".build/mods/muxcle-funzzy-status/projects.js", "mods/muxcle-funzzy-status/projects.js"],
+  ],
+};
 const agentIntrayPackage = {
   name: "muxcle-agent-intray",
   release: {
@@ -456,6 +487,7 @@ const existingPackageDefinitions = [
   sessionizerPackage,
   pickerPackage,
   historyPackage,
+  funzzyStatusPackage,
   agentIntrayPackage,
   rotationPackage,
   sizingPackage,
@@ -497,6 +529,10 @@ export async function createPickerPackage(options = {}) {
 
 export async function createHistoryPackage(options = {}) {
   return buildPackage(historyPackage, options);
+}
+
+export async function createFunzzyStatusPackage(options = {}) {
+  return buildPackage(funzzyStatusPackage, options);
 }
 
 export async function createAgentIntrayPackage(options = {}) {

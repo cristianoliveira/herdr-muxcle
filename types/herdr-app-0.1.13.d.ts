@@ -36,6 +36,7 @@ declare module "gpui-kit" {
 
   export interface Timer {
     after(milliseconds: number, callback: (cx: AsyncContext) => void): Task;
+    every(milliseconds: number, callback: (cx: AsyncContext) => void): Task;
   }
 
   export interface Context {

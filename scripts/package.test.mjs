@@ -27,6 +27,7 @@ import {
   createPackages,
   createPickerPackage,
   createHistoryPackage,
+  createFunzzyStatusPackage,
   createAgentIntrayPackage,
   createRotationPackage,
   createSizingPackage,
@@ -150,6 +151,18 @@ const expectedPortProcessPickerFiles = [
   "mods/muxcle-port-process-picker/package-owner.json",
   "mods/muxcle-port-process-picker/port_processes.py",
 ].sort();
+const expectedFunzzyStatusFiles = [
+  "RECIPE.md",
+  "check-install-targets.sh",
+  "manifest.json",
+  "observer.json",
+  "mods/muxcle-funzzy-status/location.js",
+  "mods/muxcle-funzzy-status/main.js",
+  "mods/muxcle-funzzy-status/model.js",
+  "mods/muxcle-funzzy-status/mod.json",
+  "mods/muxcle-funzzy-status/package-owner.json",
+  "mods/muxcle-funzzy-status/projects.js",
+].sort();
 const expectedPackFiles = [
   "RECIPE.md",
   "config.example.json",
@@ -169,6 +182,8 @@ const expectedPackFiles = [
   "components/muxcle-agent-intray/check-install-targets.sh",
   "components/muxcle-agent-intray/keys.json",
   "components/muxcle-agent-intray/observer.json",
+  "components/muxcle-funzzy-status/check-install-targets.sh",
+  "components/muxcle-funzzy-status/observer.json",
   "components/muxcle-rotation/check-install-targets.sh",
   "components/muxcle-rotation/keys.json",
   "components/muxcle-rotation/host.json",
@@ -209,6 +224,12 @@ const expectedPackFiles = [
   "mods/muxcle-agent-intray/model.js",
   "mods/muxcle-agent-intray/mod.json",
   "mods/muxcle-agent-intray/package-owner.json",
+  "mods/muxcle-funzzy-status/location.js",
+  "mods/muxcle-funzzy-status/main.js",
+  "mods/muxcle-funzzy-status/model.js",
+  "mods/muxcle-funzzy-status/mod.json",
+  "mods/muxcle-funzzy-status/package-owner.json",
+  "mods/muxcle-funzzy-status/projects.js",
   "mods/muxcle-rotation/main.js",
   "mods/muxcle-rotation/model.js",
   "mods/muxcle-rotation/controller.js",
@@ -632,6 +653,50 @@ test("history archive is independent, reproducible, and scopes installation to i
     await rm(target, { recursive: true });
     await symlink(join(temporary, "missing"), target);
     assert.notEqual(check(), 0);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("Funzzy status archive is optional, reproducible, and scopes installation to its own mod", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-funzzy-status-package-"));
+  try {
+    const info = await createFunzzyStatusPackage({ repositoryRoot, outputDirectory: temporary });
+    const verified = verifyPackage({ outputDirectory: temporary, version: info.version, packageName: info.name });
+    assert.deepEqual(verified.files, expectedFunzzyStatusFiles);
+    const observer = JSON.parse(await readFile(join(info.bundleDirectory, "observer.json"), "utf8"));
+    assert.equal(observer.size.px, 24);
+    assert.deepEqual(observer.content, { mod: "muxcle-funzzy-status", props: { remote: false } });
+
+    const original = await readFile(info.archivePath);
+    await changeTimes(info.bundleDirectory, 1);
+    const repeated = join(temporary, "repeat.tar.gz");
+    await createDeterministicArchive({
+      packageDirectory: info.bundleDirectory,
+      archivePath: repeated,
+      packageName: info.name,
+    });
+    assert.deepEqual(await readFile(repeated), original);
+
+    const appHome = join(temporary, "home");
+    await mkdir(appHome, { recursive: true });
+    await writeFile(join(appHome, "shared.json"), '{"unrelated":"keep"}\n');
+    const target = join(appHome, "mods/muxcle-funzzy-status");
+    const checker = join(info.bundleDirectory, "check-install-targets.sh");
+    const check = (mode = []) => spawnSync("sh", [checker, ...mode, appHome]).status;
+    assert.equal(check(), 0);
+    await mkdir(target, { recursive: true });
+    assert.notEqual(check(["--update"]), 0);
+    assert.notEqual(check(["--remove"]), 0);
+    await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-funzzy-status","schema":1}\n');
+    assert.equal(check(["--update"]), 0);
+    assert.equal(check(["--remove"]), 0);
+    assert.equal(await readFile(join(appHome, "shared.json"), "utf8"), '{"unrelated":"keep"}\n');
+    await rm(target, { recursive: true, force: true });
+    const linked = join(temporary, "linked-funzzy-status");
+    await mkdir(linked);
+    await symlink(linked, target);
+    for (const mode of [[], ["--update"], ["--remove"]]) assert.notEqual(check(mode), 0);
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }
@@ -1131,6 +1196,8 @@ test("whole-pack archive composes all components without activating scaffold sta
     assert.ok(verified.files.includes("mods/muxcle-sessionizer/main.js"));
     assert.equal(nodes.filter((node) => node.content?.mod === "muxcle-compat").length, 0);
     assert.equal(nodes.filter((node) => node.content?.mod === "muxcle-agent-intray").length, 0);
+    assert.equal(nodes.filter((node) => node.content?.mod === "muxcle-funzzy-status").length, 0);
+    assert.ok(verified.files.includes("components/muxcle-funzzy-status/observer.json"));
 
     for (const [modName, sourcePath] of [
       ["muxcle-history", "packages/history/observer.json"],
@@ -1148,6 +1215,7 @@ test("whole-pack archive composes all components without activating scaffold sta
       "muxcle-sessionizer",
       "muxcle-picker",
       "muxcle-history",
+      "muxcle-funzzy-status",
       "muxcle-rotation",
       "muxcle-sizing",
       "muxcle-repeat",
@@ -1274,6 +1342,7 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
         "muxcle-sessionizer",
         "muxcle-picker",
         "muxcle-history",
+        "muxcle-funzzy-status",
         "muxcle-agent-intray",
         "muxcle-rotation",
         "muxcle-sizing",

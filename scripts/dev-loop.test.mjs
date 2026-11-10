@@ -7,6 +7,7 @@ import {
   buildModGeneration,
   currentModGeneration,
   inputFingerprint,
+  listModGenerations,
   publishModGeneration,
   revertModGeneration,
   runCli,
@@ -128,6 +129,37 @@ test("compiler failure discards the partial staging tree and leaves the active g
   }
 });
 
+test("source renames during a build discard the coherent snapshot instead of publishing mixed files", async () => {
+  const state = await fixture();
+  try {
+    const metadata = join(state.repositoryRoot, "mods", state.modName, "mod.json");
+    await assert.rejects(
+      buildModGeneration(state.modName, {
+        repositoryRoot: state.repositoryRoot,
+        compile: async ({ repositoryRoot, modName }) => {
+          const output = join(repositoryRoot, ".build", "mods", modName);
+          await mkdir(output, { recursive: true });
+          await writeFile(join(output, "main.js"), "export const value = 1;\n");
+          await rm(metadata);
+          await writeFile(join(state.repositoryRoot, "mods", state.modName, "mod-renamed.json"), "{}\n");
+        },
+        packageBuilder: fakePackageBuilder(),
+        generationId: "renamed-midbuild",
+      }),
+      /source changed during build/,
+    );
+    assert.deepEqual(await listModGenerations(state.modName, { repositoryRoot: state.repositoryRoot }), []);
+    assert.deepEqual(
+      (await readdir(join(state.repositoryRoot, ".build", "dev-generations"))).filter((name) =>
+        name.startsWith(".stage-"),
+      ),
+      [],
+    );
+  } finally {
+    await rm(state.root, { recursive: true, force: true });
+  }
+});
+
 test("linking refuses existing directories and foreign symlinks without changing either", async () => {
   const state = await fixture();
   const generation = await buildModGeneration(state.modName, {
@@ -223,6 +255,57 @@ test("input fingerprint detects content edits and file additions/removals", asyn
     await writeFile(join(state.repositoryRoot, "mods", state.modName, "mod-renamed.json"), "{}\n");
     assert.notEqual(await inputFingerprint(state.repositoryRoot), edited);
   } finally {
+    await rm(state.root, { recursive: true, force: true });
+  }
+});
+
+test("watch does not publish a generation when stopped during a deferred build", async () => {
+  const state = await fixture();
+  const controller = new AbortController();
+  let startBuild;
+  let finishBuild;
+  const buildStarted = new Promise((resolve) => {
+    startBuild = resolve;
+  });
+  const buildResult = new Promise((resolve) => {
+    finishBuild = resolve;
+  });
+  let publishCount = 0;
+  try {
+    const first = await buildModGeneration(state.modName, {
+      repositoryRoot: state.repositoryRoot,
+      compile: fakeCompiler(),
+      packageBuilder: fakePackageBuilder(),
+      generationId: "first",
+    });
+    await publishModGeneration(state.modName, state.appHome, first.id, { repositoryRoot: state.repositoryRoot });
+
+    const fingerprints = ["initial", "changed", "settled"];
+    const watch = watchModGenerations({
+      modName: state.modName,
+      appHome: state.appHome,
+      repositoryRoot: state.repositoryRoot,
+      signal: controller.signal,
+      intervalMs: 0,
+      debounceMs: 0,
+      getFingerprint: async () => fingerprints.shift() ?? "settled",
+      waitForPoll: async () => {},
+      buildGeneration: async () => {
+        startBuild();
+        return buildResult;
+      },
+      publishGeneration: async () => {
+        publishCount += 1;
+      },
+    });
+    await buildStarted;
+    controller.abort();
+    finishBuild({ id: "stopped-build" });
+    await watch;
+
+    assert.equal(publishCount, 0);
+  } finally {
+    if (!controller.signal.aborted) controller.abort();
     await rm(state.root, { recursive: true, force: true });
   }
 });

@@ -17,8 +17,7 @@ import {
 } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
-import { fileURLToPath } from "node:url";
-import { createModPackage } from "./package.mjs";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const execFile = promisify(execFileCallback);
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
@@ -29,6 +28,8 @@ const generationFile = ".muxcle-dev-generation.json";
 const ignoredDirectories = new Set([".build", ".git", ".pi", ".tmp", "__pycache__", "dist", "node_modules"]);
 const watchedPaths = [
   "package.json",
+  "package-lock.json",
+  "RECIPE.md",
   "tsconfig.json",
   "fixtures",
   "layouts",
@@ -86,7 +87,7 @@ export async function buildModGeneration(
   {
     repositoryRoot: sourceRoot = repositoryRoot,
     compile = compileProject,
-    packageBuilder = createModPackage,
+    packageBuilder,
     generationId,
     now = () => new Date(),
   } = {},
@@ -100,12 +101,24 @@ export async function buildModGeneration(
   let published = false;
 
   try {
+    const sourceFingerprint = await inputFingerprint(projectRoot);
     await createSourceOverlay(projectRoot, overlay);
+    if (
+      (await inputFingerprint(overlay)) !== sourceFingerprint ||
+      (await inputFingerprint(projectRoot)) !== sourceFingerprint
+    ) {
+      throw new Error("source changed during build snapshot; retry after edits settle");
+    }
+
     await compile({ projectRoot, repositoryRoot: overlay, modName, outputDirectory: join(overlay, ".build") });
-    const packageInfo = await packageBuilder(modName, {
+    const selectedPackageBuilder = packageBuilder ?? (await importSnapshotPackageBuilder(overlay));
+    const packageInfo = await selectedPackageBuilder(modName, {
       repositoryRoot: overlay,
       outputDirectory: packageOutput,
     });
+    if ((await inputFingerprint(projectRoot)) !== sourceFingerprint) {
+      throw new Error("source changed during build; generation discarded, retry after edits settle");
+    }
     const bundle = resolve(packageInfo.bundleDirectory);
     if (!isWithin(packageOutput, bundle))
       throw new Error("package builder returned a path outside its staging directory");
@@ -292,9 +305,11 @@ export async function watchModGenerations({
     observed = next;
     try {
       const generation = await buildGeneration(modName, { repositoryRoot: sourceRoot });
+      if (signal.aborted) break;
       await publishGeneration(modName, appHome, generation.id, { repositoryRoot: sourceRoot });
       console.log(`Published ${modName} generation ${generation.id}`);
     } catch (error) {
+      if (signal.aborted) break;
       onError(error);
     }
   }
@@ -307,8 +322,8 @@ async function compileProject({ projectRoot, repositoryRoot: overlayRoot, output
   });
   await mkdir(outputDirectory, { recursive: true });
   try {
-    await execFile(compiler, ["--project", join(projectRoot, "tsconfig.json"), "--outDir", outputDirectory], {
-      cwd: projectRoot,
+    await execFile(compiler, ["--project", join(overlayRoot, "tsconfig.json"), "--outDir", outputDirectory], {
+      cwd: overlayRoot,
       timeout: 120_000,
       maxBuffer: 10 * 1024 * 1024,
     });
@@ -316,24 +331,44 @@ async function compileProject({ projectRoot, repositoryRoot: overlayRoot, output
     const diagnostic = [error.stdout, error.stderr].filter(Boolean).join("\n").trim();
     throw new Error(diagnostic || error.message, { cause: error });
   }
-  // `overlayRoot` is intentionally unused by tsc; it is the root the package builder reads.
-  void overlayRoot;
 }
 
 async function createSourceOverlay(projectRoot, overlayRoot) {
   await mkdir(overlayRoot, { recursive: false });
-  for (const name of ["layouts", "mods", "packages", "scripts"]) {
-    const source = join(projectRoot, name);
-    const info = await lstatOrNull(source);
-    if (!info) continue;
-    if (!info.isDirectory() || info.isSymbolicLink())
-      throw new Error(`development source directory must be real: ${source}`);
-    await symlink(source, join(overlayRoot, name), "dir");
+  for (const relativePath of watchedPaths) {
+    const source = join(projectRoot, relativePath);
+    if (!(await lstatOrNull(source))) continue;
+    await copySnapshotEntry(source, join(overlayRoot, relativePath));
   }
-  await cp(join(projectRoot, "package.json"), join(overlayRoot, "package.json"));
-  const recipe = join(projectRoot, "RECIPE.md");
-  if (await lstatOrNull(recipe)) await symlink(recipe, join(overlayRoot, "RECIPE.md"));
   await mkdir(join(overlayRoot, ".build"), { recursive: true });
+}
+
+async function copySnapshotEntry(source, destination) {
+  const info = await lstat(source);
+  if (info.isSymbolicLink()) throw new Error(`development snapshot refuses source symlinks: ${source}`);
+  if (info.isFile()) {
+    await mkdir(dirname(destination), { recursive: true });
+    await cp(source, destination);
+    return;
+  }
+  if (!info.isDirectory()) throw new Error(`development snapshot contains unsupported input: ${source}`);
+
+  await mkdir(destination, { recursive: true });
+  const entries = await readdir(source, { withFileTypes: true });
+  entries.sort((left, right) => left.name.localeCompare(right.name));
+  for (const entry of entries) {
+    if (entry.name.startsWith(".") || ignoredDirectories.has(entry.name)) continue;
+    await copySnapshotEntry(join(source, entry.name), join(destination, entry.name));
+  }
+}
+
+async function importSnapshotPackageBuilder(overlayRoot) {
+  const moduleUrl = `${pathToFileURL(join(overlayRoot, "scripts", "package.mjs")).href}?snapshot=${randomUUID()}`;
+  const packageModule = await import(moduleUrl);
+  if (typeof packageModule.createModPackage !== "function") {
+    throw new Error("source snapshot does not export createModPackage");
+  }
+  return packageModule.createModPackage;
 }
 
 async function ensureManagedRoot(projectRoot, { create = true } = {}) {

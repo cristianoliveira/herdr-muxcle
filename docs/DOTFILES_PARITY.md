@@ -17,7 +17,7 @@ Each row must end as **shipped**, **native**, **safety-adapted**, **personal-exc
 | Source behavior | Destination / task | Current outcome and verification boundary |
 | --- | --- | --- |
 | Native new tab, split, focus, zoom, numbered tab selection, manual rename, literal Ctrl-a | `muxcle-tmux-keys` | Shipped baseline; direct native commands, no runtime mod. Preserve n=previous/p=next. |
-| Native help/palette and optional numbered-space shortcuts | TASK-0020 | Planned; optional native snippets, platform/conflict review, no full personal key-map import. |
+| Native help/palette and optional numbered-space shortcuts | TASK-0020, `muxcle-tmux-keys` | Shipped: Ctrl-a ? / : use native help/palette; space-number option remains recipe-only with Linux/macOS caveats. Merge checks include mod-specific precedence; no personal full-map import. |
 | Last-two spaces and per-space tabs | `muxcle-history` | Shipped baseline; unchanged by MRU work. Requires explicit observer. |
 | Full recent-tab order across spaces | TASK-0003, `muxcle-history` / `muxcle-picker` | Shipped in `1e614de`; separate bounded/versioned 256-target state and explicit picker opt-in. Visible layout configuration is not an observer-health proof. |
 | Move tab left/right, move to zero-based position, rename from terminal cwd | TASK-0002, `muxcle-tab-tools` | Shipped in `d487932`; original target pinned, current bounds checked, native one-based dispatch, qualified IDs. Manual rename remains. |

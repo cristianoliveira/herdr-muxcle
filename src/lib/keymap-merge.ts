@@ -127,14 +127,13 @@ function findPrecedenceOverlaps(
   if (incomingPriority === 0 || incomingPriority === 2) {
     const conflicts: KeyConflict[] = [];
     for (const [existingSection, value] of Object.entries(keymap)) {
-      if (existingSection === incomingSection || !isScopedSection(existingSection)) continue;
+      if (existingSection === incomingSection || !isKeySection(existingSection)) continue;
       const existingPriority = sectionPriority(existingSection);
       const existingBindings = value as Record<string, KeyAction>;
       const existingAction = existingBindings[chord];
       if (existingAction === undefined || actionsEqual(existingAction, incomingAction)) continue;
 
       const shadowsIncoming = existingPriority > incomingPriority;
-      if (shadowsIncoming !== (incomingSection === "global")) continue;
       conflicts.push({
         chord,
         existingSection,
@@ -154,10 +153,6 @@ function isKeySection(section: string): boolean {
   if (section.startsWith("layout:")) return section.slice("layout:".length).trim() !== "";
   if (section.startsWith("mod:")) return section.slice("mod:".length).trim() !== "";
   return false;
-}
-
-function isScopedSection(section: string): boolean {
-  return section === "global" || section === "terminal" || section.startsWith("layout:");
 }
 
 function sectionPriority(section: string): number {

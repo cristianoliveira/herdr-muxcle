@@ -35,6 +35,8 @@ test("package snippet maps the requested tmux-inspired keys to native Herdr comm
       "ctrl-a ctrl-f": "pane.zoom",
       "ctrl-a z": "pane.zoom",
       "ctrl-a ,": "tab.rename",
+      "ctrl-a ?": "app.help",
+      "ctrl-a :": "app.palette",
     },
     terminal: { "ctrl-a ctrl-a": `send:${String.fromCharCode(1)}` },
   });
@@ -110,6 +112,84 @@ test("reports layout and terminal precedence conflicts", () => {
       ["ctrl-a ctrl-a", "global", "overrides-existing"],
     ],
   );
+});
+
+test("native help and palette additions preserve equal bindings but refuse higher-priority overrides", () => {
+  const existing = { global: { "ctrl-a ?": "app.help", "ctrl-a :": "app.palette" } };
+
+  const equalPlan = planKeymapMerge(existing, packageKeys);
+
+  assert.equal(equalPlan.unchanged, 2);
+  assert.equal(equalPlan.added, packageBindingCount - 2);
+  assert.deepEqual(equalPlan.conflicts, []);
+  assert.deepEqual(equalPlan.merged.global["ctrl-a ?"], "app.help");
+  assert.deepEqual(equalPlan.merged.global["ctrl-a :"], "app.palette");
+
+  const shadowing = {
+    terminal: { "ctrl-a ?": "terminal.search" },
+    "layout:personal": { "ctrl-a :": "app.settings" },
+  };
+
+  const conflictPlan = planKeymapMerge(shadowing, packageKeys);
+
+  assert.equal(conflictPlan.merged, null);
+  assert.deepEqual(
+    conflictPlan.conflicts.map(({ chord, existingSection, reason }) => [chord, existingSection, reason]),
+    [
+      ["ctrl-a ?", "terminal", "shadowed-by-existing"],
+      ["ctrl-a :", "layout:personal", "shadowed-by-existing"],
+    ],
+  );
+  assert.deepEqual(shadowing.terminal, { "ctrl-a ?": "terminal.search" });
+});
+
+test("refuses help and palette chords shadowed by focused-mod bindings", () => {
+  const existing = {
+    "mod:editor": { "ctrl-a ?": "editor.help", "ctrl-a :": "editor.palette" },
+  };
+
+  const plan = planKeymapMerge(existing, packageKeys);
+
+  assert.equal(plan.merged, null);
+  assert.deepEqual(
+    plan.conflicts.map(({ chord, existingSection, reason }) => [chord, existingSection, reason]),
+    [
+      ["ctrl-a ?", "mod:editor", "shadowed-by-existing"],
+      ["ctrl-a :", "mod:editor", "shadowed-by-existing"],
+    ],
+  );
+  assert.deepEqual(existing["mod:editor"], { "ctrl-a ?": "editor.help", "ctrl-a :": "editor.palette" });
+});
+
+test("reports focused-mod bindings that shadow terminal Ctrl-a passthrough", () => {
+  const existing = { "mod:editor": { "ctrl-a ctrl-a": "editor.action" } };
+
+  const plan = planKeymapMerge(existing, packageKeys);
+
+  assert.equal(plan.merged, null);
+  assert.deepEqual(plan.conflicts, [
+    {
+      chord: "ctrl-a ctrl-a",
+      existingSection: "mod:editor",
+      incomingSection: "terminal",
+      existingAction: "editor.action",
+      incomingAction: "send:\u0001",
+      reason: "shadowed-by-existing",
+    },
+  ]);
+  assert.deepEqual(existing["mod:editor"], { "ctrl-a ctrl-a": "editor.action" });
+});
+
+test("preserves equal mod-scoped native actions without reporting false conflicts", () => {
+  const existing = { "mod:editor": { "ctrl-a ?": "app.help", "ctrl-a :": "app.palette" } };
+
+  const plan = planKeymapMerge(existing, packageKeys);
+
+  assert.deepEqual(plan.conflicts, []);
+  assert.equal(plan.added, packageBindingCount);
+  assert.deepEqual(plan.merged["mod:editor"], existing["mod:editor"]);
+  assert.equal(plan.merged.global["ctrl-a ?"], "app.help");
+  assert.equal(plan.merged.global["ctrl-a :"], "app.palette");
 });
 
 test("rejects malformed parsed maps with actionable errors", () => {

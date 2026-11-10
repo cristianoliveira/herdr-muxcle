@@ -22,7 +22,9 @@
     "ctrl-a ctrl-l": "pane.go:right",
     "ctrl-a ctrl-f": "pane.zoom",
     "ctrl-a z": "pane.zoom",
-    "ctrl-a ,": "tab.rename"
+    "ctrl-a ,": "tab.rename",
+    "ctrl-a ?": "app.help",
+    "ctrl-a :": "app.palette"
   },
   "terminal": {
     "ctrl-a ctrl-a": "send:\u0001"

@@ -31,6 +31,7 @@ import {
   createSizingPackage,
   createRepeatPackage,
   createProjectPopupPackage,
+  createCopyModePackage,
   createTabToolsPackage,
   createSpaceCloserPackage,
   createModPackage,
@@ -108,6 +109,18 @@ const expectedProjectPopupFiles = [
   "mods/muxcle-project-popup/package-owner.json",
   "mods/muxcle-project-popup/popup.js",
 ].sort();
+const expectedCopyModeFiles = [
+  "RECIPE.md",
+  "check-install-targets.sh",
+  "keys.json",
+  "manifest.json",
+  "mods/muxcle-copy-mode/copy-mode.js",
+  "mods/muxcle-copy-mode/copy-mode.lua",
+  "mods/muxcle-copy-mode/copy_mode.py",
+  "mods/muxcle-copy-mode/main.js",
+  "mods/muxcle-copy-mode/mod.json",
+  "mods/muxcle-copy-mode/package-owner.json",
+].sort();
 const expectedPackFiles = [
   "RECIPE.md",
   "config.example.json",
@@ -134,6 +147,8 @@ const expectedPackFiles = [
   "components/muxcle-repeat/keys.json",
   "components/muxcle-project-popup/check-install-targets.sh",
   "components/muxcle-project-popup/keys.json",
+  "components/muxcle-copy-mode/check-install-targets.sh",
+  "components/muxcle-copy-mode/keys.json",
   "components/muxcle-tab-tools/check-install-targets.sh",
   "components/muxcle-tab-tools/host.json",
   "components/muxcle-tab-tools/keys.json",
@@ -180,6 +195,12 @@ const expectedPackFiles = [
   "mods/muxcle-project-popup/popup.js",
   "mods/muxcle-project-popup/mod.json",
   "mods/muxcle-project-popup/package-owner.json",
+  "mods/muxcle-copy-mode/main.js",
+  "mods/muxcle-copy-mode/copy-mode.js",
+  "mods/muxcle-copy-mode/copy-mode.lua",
+  "mods/muxcle-copy-mode/copy_mode.py",
+  "mods/muxcle-copy-mode/mod.json",
+  "mods/muxcle-copy-mode/package-owner.json",
   "mods/muxcle-tab-tools/main.js",
   "mods/muxcle-tab-tools/model.js",
   "mods/muxcle-tab-tools/controller.js",
@@ -264,6 +285,45 @@ test("project popup archive is standalone, reproducible, and checks install owne
     assert.notEqual(check(["--update"]), 0);
     assert.notEqual(check(["--remove"]), 0);
     await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-project-popup","schema":1}\n');
+    assert.equal(check(["--update"]), 0);
+    assert.equal(check(["--remove"]), 0);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("copy mode archive is independent, reproducible, and checks install ownership", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-copy-mode-package-"));
+  try {
+    const info = await createCopyModePackage({ repositoryRoot, outputDirectory: temporary });
+    const verified = verifyPackage({ outputDirectory: temporary, version: info.version, packageName: info.name });
+    assert.deepEqual(verified.files, expectedCopyModeFiles);
+    assert.deepEqual(JSON.parse(await readFile(join(info.bundleDirectory, "keys.json"), "utf8")), {
+      global: { "ctrl-a [": "mod.open:muxcle-copy-mode" },
+    });
+    assert.ok(verified.files.includes("mods/muxcle-copy-mode/copy-mode.lua"));
+    assert.ok(verified.files.includes("mods/muxcle-copy-mode/copy_mode.py"));
+    assert.ok(!verified.files.some((path) => path.startsWith("layouts/") || path.includes("muxcle-project-popup")));
+
+    const original = await readFile(info.archivePath);
+    await changeTimes(info.bundleDirectory, 1);
+    const repeatedArchive = join(temporary, "repeat.tar.gz");
+    await createDeterministicArchive({
+      packageDirectory: info.bundleDirectory,
+      archivePath: repeatedArchive,
+      packageName: info.name,
+    });
+    assert.deepEqual(await readFile(repeatedArchive), original);
+
+    const appHome = join(temporary, "home");
+    const target = join(appHome, "mods/muxcle-copy-mode");
+    const checker = join(info.bundleDirectory, "check-install-targets.sh");
+    const check = (mode = []) => spawnSync("sh", [checker, ...mode, appHome]).status;
+    assert.equal(check(), 0);
+    await mkdir(target, { recursive: true });
+    assert.notEqual(check(["--update"]), 0);
+    assert.notEqual(check(["--remove"]), 0);
+    await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-copy-mode","schema":1}\n');
     assert.equal(check(["--update"]), 0);
     assert.equal(check(["--remove"]), 0);
   } finally {
@@ -679,6 +739,7 @@ test("packaged ownership markers are accepted by each capability's update and re
     [createSizingPackage, "muxcle-sizing"],
     [createRepeatPackage, "muxcle-repeat"],
     [createProjectPopupPackage, "muxcle-project-popup"],
+    [createCopyModePackage, "muxcle-copy-mode"],
     [createTabToolsPackage, "muxcle-tab-tools"],
     [createSpaceCloserPackage, "muxcle-space-closer"],
   ];
@@ -859,6 +920,7 @@ test("whole-pack archive composes all components without activating scaffold sta
       "packages/sizing/keys.json",
       "packages/repeat/keys.json",
       "packages/project-popup/keys.json",
+      "packages/copy-mode/keys.json",
       "packages/tab-tools/keys.json",
     ];
     const expectedKeymap = {};
@@ -882,6 +944,7 @@ test("whole-pack archive composes all components without activating scaffold sta
     assert.equal(keymap.global["ctrl-a alt-r"], "muxcle-tab-tools.rename-from-cwd");
     assert.equal(keymap.global["ctrl-a shift-r"], "mod.open:muxcle-repeat");
     assert.equal(keymap.global["ctrl-a space"], "mod.open:muxcle-project-popup");
+    assert.equal(keymap.global["ctrl-a ["], "mod.open:muxcle-copy-mode");
     assert.deepEqual(
       await readFile(join(info.bundleDirectory, "config.example.json")),
       await readFile(join(repositoryRoot, "packages/sessionizer/config.example.json")),
@@ -913,6 +976,7 @@ test("whole-pack archive composes all components without activating scaffold sta
       "muxcle-sizing",
       "muxcle-repeat",
       "muxcle-project-popup",
+      "muxcle-copy-mode",
       "muxcle-tab-tools",
     ]) {
       const owner = JSON.parse(
@@ -946,6 +1010,7 @@ test("whole pack rejects an ownership marker that claims the aggregate package",
       "muxcle-sizing",
       "muxcle-repeat",
       "muxcle-project-popup",
+      "muxcle-copy-mode",
       "muxcle-tab-tools",
     ]) {
       const target = join(modsDirectory, modName);
@@ -1005,6 +1070,7 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
     const packages = await createPackages({ repositoryRoot, outputDirectory: temporary });
     const [scaffold, tmuxKeys, sessionizer] = packages;
     const projectPopup = packages.find(({ name }) => name === "muxcle-project-popup");
+    const copyMode = packages.find(({ name }) => name === "muxcle-copy-mode");
     const scaffoldCheck = verifyPackage({ outputDirectory: temporary, version: scaffold.version });
     const keysCheck = verifyPackage({
       outputDirectory: temporary,
@@ -1033,6 +1099,7 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
         "muxcle-sizing",
         "muxcle-repeat",
         "muxcle-project-popup",
+        "muxcle-copy-mode",
         "muxcle-tab-tools",
         "muxcle-space-closer",
         "muxcle-pack",
@@ -1049,6 +1116,11 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
       verifyPackage({ outputDirectory: temporary, version: projectPopup.version, packageName: projectPopup.name })
         .files,
       expectedProjectPopupFiles,
+    );
+    assert.ok(copyMode);
+    assert.deepEqual(
+      verifyPackage({ outputDirectory: temporary, version: copyMode.version, packageName: copyMode.name }).files,
+      expectedCopyModeFiles,
     );
     assert.equal(keysManifest.name, "muxcle-tmux-keys");
     assert.equal(keysSnippet.global["ctrl-a c"], "tab.new");

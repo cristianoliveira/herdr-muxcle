@@ -264,6 +264,37 @@ const projectPopupPackage = {
     ["mods/muxcle-project-popup/package-owner.json", "mods/muxcle-project-popup/package-owner.json"],
   ],
 };
+const copyModePackage = {
+  name: "muxcle-copy-mode",
+  release: {
+    title: "Keyboard copy mode",
+    summary: "Capture the actually displayed local or remote terminal into an isolated local keyboard snapshot viewer.",
+    installationPath: "packages/copy-mode/RECIPE.md",
+  },
+  files: [
+    "check-install-targets.sh",
+    "keys.json",
+    "RECIPE.md",
+    "mods/muxcle-copy-mode/copy-mode.js",
+    "mods/muxcle-copy-mode/copy-mode.lua",
+    "mods/muxcle-copy-mode/copy_mode.py",
+    "mods/muxcle-copy-mode/main.js",
+    "mods/muxcle-copy-mode/mod.json",
+    "mods/muxcle-copy-mode/package-owner.json",
+  ],
+  directories: ["", "mods", "mods/muxcle-copy-mode"],
+  sources: [
+    ["packages/copy-mode/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/copy-mode/keys.json", "keys.json"],
+    ["packages/copy-mode/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-copy-mode/copy-mode.js", "mods/muxcle-copy-mode/copy-mode.js"],
+    ["mods/muxcle-copy-mode/copy-mode.lua", "mods/muxcle-copy-mode/copy-mode.lua"],
+    ["mods/muxcle-copy-mode/copy_mode.py", "mods/muxcle-copy-mode/copy_mode.py"],
+    [".build/mods/muxcle-copy-mode/main.js", "mods/muxcle-copy-mode/main.js"],
+    ["mods/muxcle-copy-mode/mod.json", "mods/muxcle-copy-mode/mod.json"],
+    ["mods/muxcle-copy-mode/package-owner.json", "mods/muxcle-copy-mode/package-owner.json"],
+  ],
+};
 const tabToolsPackage = {
   name: "muxcle-tab-tools",
   release: {
@@ -335,6 +366,7 @@ const existingPackageDefinitions = [
   sizingPackage,
   repeatPackage,
   projectPopupPackage,
+  copyModePackage,
   tabToolsPackage,
   spaceCloserPackage,
 ];
@@ -380,6 +412,10 @@ export async function createRepeatPackage(options = {}) {
 
 export async function createProjectPopupPackage(options = {}) {
   return buildPackage(projectPopupPackage, options);
+}
+
+export async function createCopyModePackage(options = {}) {
+  return buildPackage(copyModePackage, options);
 }
 
 export async function createTabToolsPackage(options = {}) {

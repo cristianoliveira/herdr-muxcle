@@ -89,6 +89,17 @@ cp -R "$temporary/$project_popup_bundle/mods/muxcle-project-popup" "$temporary/p
 HERDR_APP_HOME="$temporary/project-popup-home" herdr-app check "$temporary/project-popup-home/mods/muxcle-project-popup"
 cmp "$temporary/project-popup-settings.json" "$temporary/project-popup-home/settings.json"
 
+copy_mode_bundle="muxcle-copy-mode-v$version"
+mkdir "$temporary/copy-mode-home"
+tar -xzf "dist/$copy_mode_bundle.tar.gz" -C "$temporary"
+printf '%s\n' '{"preserve":"this file"}' > "$temporary/copy-mode-home/settings.json"
+cp "$temporary/copy-mode-home/settings.json" "$temporary/copy-mode-settings.json"
+sh "$temporary/$copy_mode_bundle/check-install-targets.sh" "$temporary/copy-mode-home"
+mkdir "$temporary/copy-mode-home/mods"
+cp -R "$temporary/$copy_mode_bundle/mods/muxcle-copy-mode" "$temporary/copy-mode-home/mods/"
+HERDR_APP_HOME="$temporary/copy-mode-home" herdr-app check "$temporary/copy-mode-home/mods/muxcle-copy-mode"
+cmp "$temporary/copy-mode-settings.json" "$temporary/copy-mode-home/settings.json"
+
 tab_tools_bundle="muxcle-tab-tools-v$version"
 mkdir "$temporary/tab-tools-home"
 tar -xzf "dist/$tab_tools_bundle.tar.gz" -C "$temporary"

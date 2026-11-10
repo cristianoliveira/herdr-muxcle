@@ -147,12 +147,14 @@ declare module "herdr" {
     active: boolean;
   }
 
-  /** Narrow projection of the supported SDK's live AgentInfo; IDs are machine-qualified natively. */
+  /** Narrow projection of Native's live AgentInfo; IDs and addresses are machine-qualified. */
   export interface AgentInfo {
+    address: string;
     space: string;
     tab: string;
     app: string | null;
     program: { name: string; agent: boolean };
+    focused: boolean;
   }
 
   export interface ModProps {
@@ -188,7 +190,10 @@ declare module "herdr" {
     tab: string;
     pane: string | null;
     terminal: string | null;
+    /** A terminal swapped into this pane; prefer it to terminal when non-null. */
     shown: string | null;
+    /** The agent displayed by a visible `{ agent: "focused" }` layout block, else null. */
+    agent: string | null;
     cwd: string | null;
   } | null;
   export function run(name: string, args?: Record<string, unknown>): null;

@@ -33,7 +33,7 @@ Each row must end as **shipped**, **native**, **safety-adapted**, **personal-exc
 | Fixed 4% vertical terminal strip | TASK-0005, `muxcle-sizing.strip-height` | Shipped in `b227bf3`; distinct additive operation, not a redefinition of generic shrink-height. Actual zoomed-pane identity is rechecked before requesting unzoom. |
 | Explicit 1.5-second navigation repeat popup | TASK-0006, `muxcle-repeat` | Shipped in `1259170`; native `mod.open:muxcle-repeat`, no host/layout dependency, fixed allowlist and generation-guarded timers. Unsupported keys exit and are consumed; interactive focus remains unverified. |
 | Reviewed multi-space close | TASK-0012 | Planned independent destructive workflow; fixed reviewed IDs and revalidation, honest partial-completion semantics. |
-| Trusted project-local terminal popup | TASK-0007 | Planned; literal argv, explicit execution, local scope and owned cleanup. |
+| Trusted project-local terminal popup | TASK-0007 | Safety-adapted: explicit local execution uses literal argv; dismissal leaves the terminal running because Herdr 0.1.13 has no atomic ownership-guarded stop API. Manual inspection/stop is required; no live interactive validation. |
 | Listening TCP process picker / kill-port | TASK-0019 | Planned safety adaptation: portable trusted helper, reviewed identity, graceful default, explicit force. No personal script path or immediate SIGKILL default. |
 | Frozen keyboard copy-mode snapshot | TASK-0013 | Planned; bounded capture/fallback/clipboard, isolated local Neovim, private temporary files and cleanup limits. Not native in-pane selection. |
 | Broadcast input relay | TASK-0014 | Planned explicit prototype: 2–8 captured local panes, bounded session-bound stream, no retry/rollback or transparent-sync claim. |

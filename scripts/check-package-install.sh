@@ -78,6 +78,17 @@ cp -R "$temporary/$repeat_bundle/mods/muxcle-repeat" "$temporary/repeat-home/mod
 HERDR_APP_HOME="$temporary/repeat-home" herdr-app check "$temporary/repeat-home/mods/muxcle-repeat"
 cmp "$temporary/repeat-settings.json" "$temporary/repeat-home/settings.json"
 
+project_popup_bundle="muxcle-project-popup-v$version"
+mkdir "$temporary/project-popup-home"
+tar -xzf "dist/$project_popup_bundle.tar.gz" -C "$temporary"
+printf '%s\n' '{"unrelated":"keep"}' > "$temporary/project-popup-home/settings.json"
+cp "$temporary/project-popup-home/settings.json" "$temporary/project-popup-settings.json"
+sh "$temporary/$project_popup_bundle/check-install-targets.sh" "$temporary/project-popup-home"
+mkdir "$temporary/project-popup-home/mods"
+cp -R "$temporary/$project_popup_bundle/mods/muxcle-project-popup" "$temporary/project-popup-home/mods/"
+HERDR_APP_HOME="$temporary/project-popup-home" herdr-app check "$temporary/project-popup-home/mods/muxcle-project-popup"
+cmp "$temporary/project-popup-settings.json" "$temporary/project-popup-home/settings.json"
+
 tab_tools_bundle="muxcle-tab-tools-v$version"
 mkdir "$temporary/tab-tools-home"
 tar -xzf "dist/$tab_tools_bundle.tar.gz" -C "$temporary"

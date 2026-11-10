@@ -18,18 +18,19 @@ For one capability, substitute its recipe URL below. No custom installer or nati
 
 | Recipe | What it adds | Setup beyond Herdr |
 | --- | --- | --- |
-| **[Whole pack](packages/pack/RECIPE.md)** (`muxcle-pack`) | **All capabilities**, combined keys, and a ready personal layout | Python 3, `hc`, project roots; select the layout deliberately |
+| **[Whole pack](packages/pack/RECIPE.md)** (`muxcle-pack`) | **All capabilities**, combined keys, and a ready personal layout | Python 3, `hc`, project roots; optional `.tmp/popup`; select the layout deliberately |
 | [Tmux keys](packages/tmux-keys/RECIPE.md) (`muxcle-tmux-keys`) | Tab, split, focus, and zoom shortcuts | Review and merge selected bindings; no runtime mod |
 | [Rotation](packages/rotation/RECIPE.md) (`muxcle-rotation`) | Rotate terminal panes without changing slot sizes | One mounted host; 3+ panes also need Python 3 and `hc` |
 | [Sizing](packages/sizing/RECIPE.md) (`muxcle-sizing`) | Equalize nested splits, adjust width/height weights, or create a 4% height strip | One mounted host, Python 3 and `hc` |
 | [Navigation repeat](packages/repeat/RECIPE.md) (`muxcle-repeat`) | Open a visible 1.5-second mode for repeated tab and pane navigation | Popup mod; optional shortcut |
+| [Project popup](packages/project-popup/RECIPE.md) (`muxcle-project-popup`) | Run a focused local project's executable `.tmp/popup` after explicit confirmation; dismissing leaves its terminal running | POSIX `test`/`/bin/sh`; optional shortcut; no custom layout |
 | [History](packages/history/RECIPE.md) (`muxcle-history`) | Last-tab/space toggles and optional bounded tab MRU | One mounted observer |
 | [Picker](packages/picker/RECIPE.md) (`muxcle-picker`) | Search existing spaces and tabs by label, machine, and associated agent; optional recency order | Popup mod; History observer only for recency |
 | [Tab tools](packages/tab-tools/RECIPE.md) (`muxcle-tab-tools`) | Move tabs and name one from the focused terminal folder | One mounted host; optional shortcuts |
 | [Sessionizer](packages/sessionizer/RECIPE.md) (`muxcle-sessionizer`) | Open or reuse local spaces from project folders | Python 3, configured project roots; no custom layout |
 | [Scaffold](RECIPE.md) (`herdr-muxcle`) | Optional starter layout and static status row | Not an all-in-one bundle; select deliberately |
 
-Start with **Tmux keys** if you only want shortcuts. Individual capabilities do not require the scaffold or other packages. For History, copying a mod alone is not enough: its observer must remain shown in the active personal layout. Rotation, Sizing, and Tab tools each need one shown host. Navigation repeat and Picker open as native popups. Picker checks the active layout snapshot for a visible History block before using recency; this proves configuration, not observer health. The whole-pack layout composes the required blocks.
+Start with **Tmux keys** if you only want shortcuts. Individual capabilities do not require the scaffold or other packages. For History, copying a mod alone is not enough: its observer must remain shown in the active personal layout. Rotation, Sizing, and Tab tools each need one shown host. Navigation repeat and Picker open as native popups. Picker checks the active layout snapshot for a visible History block before using recency; this proves configuration, not observer health. The whole-pack layout composes the required blocks. Project popup is layout-free and runs only after an explicit **Run** action.
 
 ## Ready-to-use files
 

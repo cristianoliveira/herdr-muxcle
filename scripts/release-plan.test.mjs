@@ -18,6 +18,7 @@ const packageNames = [
   "muxcle-rotation",
   "muxcle-sizing",
   "muxcle-repeat",
+  "muxcle-project-popup",
   "muxcle-tab-tools",
   "muxcle-pack",
 ];
@@ -30,6 +31,7 @@ const recipePaths = [
   "packages/rotation/RECIPE.md",
   "packages/sizing/RECIPE.md",
   "packages/repeat/RECIPE.md",
+  "packages/project-popup/RECIPE.md",
   "packages/tab-tools/RECIPE.md",
   "packages/pack/RECIPE.md",
 ];

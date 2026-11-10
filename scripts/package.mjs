@@ -234,6 +234,33 @@ const repeatPackage = {
     ["mods/muxcle-repeat/package-owner.json", "mods/muxcle-repeat/package-owner.json"],
   ],
 };
+const projectPopupPackage = {
+  name: "muxcle-project-popup",
+  release: {
+    title: "Project popup",
+    summary: "Run the focused local project's executable .tmp/popup only after explicit confirmation.",
+    installationPath: "packages/project-popup/RECIPE.md",
+  },
+  files: [
+    "check-install-targets.sh",
+    "keys.json",
+    "RECIPE.md",
+    "mods/muxcle-project-popup/main.js",
+    "mods/muxcle-project-popup/popup.js",
+    "mods/muxcle-project-popup/mod.json",
+    "mods/muxcle-project-popup/package-owner.json",
+  ],
+  directories: ["", "mods", "mods/muxcle-project-popup"],
+  sources: [
+    ["packages/project-popup/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/project-popup/keys.json", "keys.json"],
+    ["packages/project-popup/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-project-popup/main.js", "mods/muxcle-project-popup/main.js"],
+    [".build/mods/muxcle-project-popup/popup.js", "mods/muxcle-project-popup/popup.js"],
+    ["mods/muxcle-project-popup/mod.json", "mods/muxcle-project-popup/mod.json"],
+    ["mods/muxcle-project-popup/package-owner.json", "mods/muxcle-project-popup/package-owner.json"],
+  ],
+};
 const tabToolsPackage = {
   name: "muxcle-tab-tools",
   release: {
@@ -274,6 +301,7 @@ const existingPackageDefinitions = [
   rotationPackage,
   sizingPackage,
   repeatPackage,
+  projectPopupPackage,
   tabToolsPackage,
 ];
 const trustedComponentNames = new Set(existingPackageDefinitions.filter(hasOwnedModSources).map(({ name }) => name));
@@ -314,6 +342,10 @@ export async function createSizingPackage(options = {}) {
 
 export async function createRepeatPackage(options = {}) {
   return buildPackage(repeatPackage, options);
+}
+
+export async function createProjectPopupPackage(options = {}) {
+  return buildPackage(projectPopupPackage, options);
 }
 
 export async function createTabToolsPackage(options = {}) {

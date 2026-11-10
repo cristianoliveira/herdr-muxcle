@@ -30,6 +30,7 @@ import {
   createRotationPackage,
   createSizingPackage,
   createRepeatPackage,
+  createProjectPopupPackage,
   createTabToolsPackage,
   createSessionizerPackage,
   createTmuxKeysPackage,
@@ -83,6 +84,16 @@ const expectedRepeatFiles = [
   "mods/muxcle-repeat/package-owner.json",
   "mods/muxcle-repeat/repeat.js",
 ].sort();
+const expectedProjectPopupFiles = [
+  "RECIPE.md",
+  "check-install-targets.sh",
+  "keys.json",
+  "manifest.json",
+  "mods/muxcle-project-popup/main.js",
+  "mods/muxcle-project-popup/mod.json",
+  "mods/muxcle-project-popup/package-owner.json",
+  "mods/muxcle-project-popup/popup.js",
+].sort();
 const expectedPackFiles = [
   "RECIPE.md",
   "config.example.json",
@@ -107,6 +118,8 @@ const expectedPackFiles = [
   "components/muxcle-sizing/host.json",
   "components/muxcle-repeat/check-install-targets.sh",
   "components/muxcle-repeat/keys.json",
+  "components/muxcle-project-popup/check-install-targets.sh",
+  "components/muxcle-project-popup/keys.json",
   "components/muxcle-tab-tools/check-install-targets.sh",
   "components/muxcle-tab-tools/host.json",
   "components/muxcle-tab-tools/keys.json",
@@ -147,6 +160,10 @@ const expectedPackFiles = [
   "mods/muxcle-repeat/repeat.js",
   "mods/muxcle-repeat/mod.json",
   "mods/muxcle-repeat/package-owner.json",
+  "mods/muxcle-project-popup/main.js",
+  "mods/muxcle-project-popup/popup.js",
+  "mods/muxcle-project-popup/mod.json",
+  "mods/muxcle-project-popup/package-owner.json",
   "mods/muxcle-tab-tools/main.js",
   "mods/muxcle-tab-tools/model.js",
   "mods/muxcle-tab-tools/controller.js",
@@ -184,6 +201,47 @@ test("repeat archive is independent, reproducible, and checks install ownership"
     assert.notEqual(check(["--update"]), 0);
     assert.notEqual(check(["--remove"]), 0);
     await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-repeat","schema":1}\n');
+    assert.equal(check(["--update"]), 0);
+    assert.equal(check(["--remove"]), 0);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("project popup archive is standalone, reproducible, and checks install ownership", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-project-popup-package-"));
+  try {
+    const info = await createProjectPopupPackage({ repositoryRoot, outputDirectory: temporary });
+    const verified = verifyPackage({
+      outputDirectory: temporary,
+      version: info.version,
+      packageName: "muxcle-project-popup",
+    });
+    assert.deepEqual(verified.files, expectedProjectPopupFiles);
+    assert.deepEqual(JSON.parse(await readFile(join(info.bundleDirectory, "keys.json"), "utf8")), {
+      global: { "ctrl-a space": "mod.open:muxcle-project-popup" },
+    });
+    assert.ok(!verified.files.some((path) => path.startsWith("layouts/") || path.includes("host.json")));
+
+    const original = await readFile(info.archivePath);
+    await changeTimes(info.bundleDirectory, 1);
+    const repeatedArchive = join(temporary, "repeat.tar.gz");
+    await createDeterministicArchive({
+      packageDirectory: info.bundleDirectory,
+      archivePath: repeatedArchive,
+      packageName: "muxcle-project-popup",
+    });
+    assert.deepEqual(await readFile(repeatedArchive), original);
+
+    const appHome = join(temporary, "home");
+    const target = join(appHome, "mods/muxcle-project-popup");
+    const checker = join(info.bundleDirectory, "check-install-targets.sh");
+    const check = (mode = []) => spawnSync("sh", [checker, ...mode, appHome]).status;
+    assert.equal(check(), 0);
+    await mkdir(target, { recursive: true });
+    assert.notEqual(check(["--update"]), 0);
+    assert.notEqual(check(["--remove"]), 0);
+    await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-project-popup","schema":1}\n');
     assert.equal(check(["--update"]), 0);
     assert.equal(check(["--remove"]), 0);
   } finally {
@@ -569,6 +627,7 @@ test("packaged ownership markers are accepted by each capability's update and re
     [createRotationPackage, "muxcle-rotation"],
     [createSizingPackage, "muxcle-sizing"],
     [createRepeatPackage, "muxcle-repeat"],
+    [createProjectPopupPackage, "muxcle-project-popup"],
     [createTabToolsPackage, "muxcle-tab-tools"],
   ];
   try {
@@ -747,6 +806,7 @@ test("whole-pack archive composes all components without activating scaffold sta
       "packages/rotation/keys.json",
       "packages/sizing/keys.json",
       "packages/repeat/keys.json",
+      "packages/project-popup/keys.json",
       "packages/tab-tools/keys.json",
     ];
     const expectedKeymap = {};
@@ -769,6 +829,7 @@ test("whole-pack archive composes all components without activating scaffold sta
     assert.equal(keymap.global["ctrl-a ,"], "tab.rename");
     assert.equal(keymap.global["ctrl-a alt-r"], "muxcle-tab-tools.rename-from-cwd");
     assert.equal(keymap.global["ctrl-a shift-r"], "mod.open:muxcle-repeat");
+    assert.equal(keymap.global["ctrl-a space"], "mod.open:muxcle-project-popup");
     assert.deepEqual(
       await readFile(join(info.bundleDirectory, "config.example.json")),
       await readFile(join(repositoryRoot, "packages/sessionizer/config.example.json")),
@@ -799,6 +860,7 @@ test("whole-pack archive composes all components without activating scaffold sta
       "muxcle-rotation",
       "muxcle-sizing",
       "muxcle-repeat",
+      "muxcle-project-popup",
       "muxcle-tab-tools",
     ]) {
       const owner = JSON.parse(
@@ -831,6 +893,7 @@ test("whole pack rejects an ownership marker that claims the aggregate package",
       "muxcle-rotation",
       "muxcle-sizing",
       "muxcle-repeat",
+      "muxcle-project-popup",
       "muxcle-tab-tools",
     ]) {
       const target = join(modsDirectory, modName);
@@ -889,6 +952,7 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
   try {
     const packages = await createPackages({ repositoryRoot, outputDirectory: temporary });
     const [scaffold, tmuxKeys, sessionizer] = packages;
+    const projectPopup = packages.find(({ name }) => name === "muxcle-project-popup");
     const scaffoldCheck = verifyPackage({ outputDirectory: temporary, version: scaffold.version });
     const keysCheck = verifyPackage({
       outputDirectory: temporary,
@@ -916,6 +980,7 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
         "muxcle-rotation",
         "muxcle-sizing",
         "muxcle-repeat",
+        "muxcle-project-popup",
         "muxcle-tab-tools",
         "muxcle-pack",
       ],
@@ -926,6 +991,12 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
     assert.deepEqual(scaffoldCheck.files, expectedFiles);
     assert.deepEqual(keysCheck.files, expectedTmuxKeysFiles);
     assert.deepEqual(sessionizerCheck.files, expectedSessionizerFiles);
+    assert.ok(projectPopup);
+    assert.deepEqual(
+      verifyPackage({ outputDirectory: temporary, version: projectPopup.version, packageName: projectPopup.name })
+        .files,
+      expectedProjectPopupFiles,
+    );
     assert.equal(keysManifest.name, "muxcle-tmux-keys");
     assert.equal(keysSnippet.global["ctrl-a c"], "tab.new");
     assert.equal(keysSnippet.terminal["ctrl-a ctrl-a"], `send:${String.fromCharCode(1)}`);

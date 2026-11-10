@@ -6,11 +6,11 @@ This guide is for maintainers. Installing a capability? Choose [a recipe](../REA
 
 ## What ships
 
-One shared stable `X.Y.Z` version from `package.json` produces **eight optional archives and eight SHA-256 files**. This process currently supports stable tags such as `v0.1.0`, not prerelease tags. `private: true` is intentional: these are native Herdr packages, not npm publications.
+One shared stable `X.Y.Z` version from `package.json` produces **nine individual capability archives, one whole-pack archive, and ten SHA-256 files**. This process currently supports stable tags such as `v0.1.0`, not prerelease tags. `private: true` is intentional: these are native Herdr packages, not npm publications.
 
 The package catalog in `scripts/package.mjs` drives both archive construction and the release plan. Do not maintain a separate hand-written release asset list. Each archive includes one root `RECIPE.md` covering behavior, use of the supplied implementation, setup, updates, and removal. There is no separate installation guide.
 
-`muxcle-pack` is the optional complete distribution for user-managed dotfiles. The seven individual packages remain available. `herdr-muxcle` is only the original scaffold, not the complete pack.
+`muxcle-pack` is the optional complete distribution for user-managed dotfiles. The nine individual packages remain available. `herdr-muxcle` is only the original scaffold, not the complete pack.
 
 ## 1. Prepare a version
 
@@ -88,7 +88,7 @@ gh release view "$TAG" --repo cristianoliveira/herdr-muxcle
 Check:
 
 - The tag points to the intended commit and matches the version.
-- All eight archive/checksum pairs are attached; no developer files are included.
+- All nine individual capability archive/checksum pairs and the whole-pack archive/checksum pair are attached; no developer files are included.
 - Each archive has a complete standalone recipe suitable for Herdr's agent-assisted flow. Source links explain how to obtain compiled files; they must not imply TypeScript source folders are ready runtime payloads.
 - Download, checksum, and tagged guide links use this release version.
 - Notes describe changed behavior, prerequisites, compatibility limits, and any validation gaps. Add a short human summary of changes; generated installation notes are not a changelog.

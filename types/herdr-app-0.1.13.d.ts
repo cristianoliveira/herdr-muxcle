@@ -42,7 +42,7 @@ declare module "gpui-kit" {
     notify(target?: Entity): void;
     stop_propagation(): void;
     focus_handle(): FocusHandle;
-    spawn(body: (cx: AsyncContext) => unknown): Task;
+    spawn(body: (cx: AsyncContext) => unknown, options?: { owner?: View | null }): Task;
     timer: Timer;
   }
 
@@ -83,6 +83,7 @@ declare module "gpui-kit" {
     constructor(props?: Props);
     init?(props: Props | undefined, cx: AsyncContext): void;
     abstract render(cx: Context): Element | Entity | string;
+    close?(): void | Promise<void>;
   }
 
   export function div(): NativeElement;
@@ -167,6 +168,7 @@ declare module "herdr" {
     args?: string[],
     options?: { cwd?: string; on?: string | null },
   ): Promise<ExecResult>;
+  export function hc(args: string[]): Promise<ExecResult>;
   export function spaces(): SpaceReference[];
   /** Live status-reporting terminals with machine-scoped space and tab IDs. */
   export function agents(): AgentInfo[];
@@ -189,7 +191,8 @@ declare module "herdr" {
   } | null;
   export function run(name: string, args?: Record<string, unknown>): null;
   export interface OverlaySpec {
-    mod: string;
+    mod?: string;
+    layout?: unknown;
     kind?: "dialog" | "popup" | "window";
     frame?: "none";
     width?: number;

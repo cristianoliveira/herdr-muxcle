@@ -4,13 +4,13 @@ Use the supplied compiled implementation as your base. Read this recipe and the 
 
 ## Behavior and design
 
-Sessionizer is an optional native Herdr popup for choosing a project folder and opening it in one local Herdr space. It discovers immediate, non-hidden child directories beneath the roots you configure. It does not start an agent or create a terminal fleet.
+Sessionizer is an optional native Herdr popup for choosing a project folder and opening it in a machine-scoped Herdr space. It discovers immediate, non-hidden child directories beneath roots you configure. Local discovery is the default; remote machines participate only when their exact Herdr machine names and roots are configured. It does not start an agent or create a terminal fleet.
 
-The configuration contract is an absolute root list in `data/muxcle-sessionizer/config.json`. Search matches folder names fuzzily and paths by exact or substring matches. Use the arrow keys or Ctrl-J/Ctrl-K to move, Enter or a click to open, and Esc to cancel.
+The configuration contract is an absolute local `roots` array and optional `remoteRoots` object in `data/muxcle-sessionizer/config.json`. Remote keys are exact Herdr machine names; each value is an array of absolute paths as seen on that machine. Search matches machine, folder name fuzzily and paths by exact or substring matches. Use the arrow keys or Ctrl-J/Ctrl-K to move, Enter or a click to open, and Esc to cancel.
 
-When a project is selected, Sessionizer rechecks the current local spaces and selects one already using the same canonical folder. Otherwise it asks Herdr to create one local space for that folder. Spaces on other machines are not reused. Herdr creates the space's initial native tab.
+When a project is selected, Sessionizer rechecks the live machine list and its permanent Core identity. It reuses a space only when machine identity and canonical folder both match; otherwise it requests one native space on that same machine. A remote failure never creates a local space. Herdr creates the space's initial native tab.
 
-The mod requires Herdr 0.1.13 and `python3` on `PATH`. It reads the config and scans only the configured roots when opened. It writes no config or project files and makes no network requests. The config example starts with an empty root list; no default project path is assumed.
+The mod requires Herdr 0.1.13 and Python 3 on this computer. Remote discovery additionally requires `hc` on `PATH` with `machine ls --json` and `exec --on/--timeout/--stdin` support; verify with `hc machine ls --help` and `hc exec --help` rather than assuming an `hc` version minimum. Remote machines also need Python 3. It reads and scans only configured roots when opened. Remote scans send the bundled trusted scanner over isolated Python stdin through Herdr's existing `hc exec` transport; no SSH connection, remote mod installation, shell expansion or project executable is used. Results are cached per permanent machine identity for 60 seconds, shown immediately when available, and refreshed progressively. Failed/offline cache entries are marked stale. Before opening, each cached result is revalidated against the connected Core identity and folder; disconnected or retargeted machines cannot be selected. Local-only configurations remain unchanged. The example starts with an empty local root list and no remote roots.
 
 ## Add this package to Herdr
 
@@ -51,7 +51,7 @@ The install checker refuses an existing Sessionizer path and linked app-home, `m
 
 ### Configure roots
 
-The bundled `config.example.json` contains an empty root list. Copy it only if a config does not already exist. Replace the empty list with absolute directories whose immediate child folders are projects:
+The bundled `config.example.json` contains an empty local root list. Copy it only if a config does not already exist. Replace the empty list with absolute directories whose immediate child folders are projects. Remote roots are optional and are never inferred:
 
 ```sh
 set -eu
@@ -73,11 +73,16 @@ Edit `config.json` in a text editor. Example:
   "roots": [
     "/absolute/path/to/projects",
     "/another/absolute/project-root"
-  ]
+  ],
+  "remoteRoots": {
+    "exact-machine-name": [
+      "/absolute/path/on/that/machine/projects"
+    ]
+  }
 }
 ```
 
-The config accepts up to 12 absolute roots. Sessionizer scans only immediate, non-hidden child directories, follows directory symlinks, resolves canonical paths, and deduplicates aliases. Missing or unreadable roots appear as warnings. It shows at most 500 folders and 20,000 directory entries per opening; reduce or split roots if the list is truncated. Reopen the popup after editing the config.
+The config accepts up to 12 absolute roots total and 12 remote machine names. Sessionizer scans only immediate, non-hidden child directories, follows directory symlinks, resolves canonical paths on the machine being scanned, and deduplicates aliases within that machine. Missing or unreadable roots appear as warnings. Each scan is bounded to 500 folders and 20,000 directory entries; remote scans have a six-second execution timeout and eight-second client timeout, with at most four in flight. A one-minute cache is persisted in Herdr shared state and bounded/validated when restored. Reopen the popup after editing the config. Check connected aliases with `hc machine ls`; Sessionizer does not connect machines automatically.
 
 ### Open the popup
 
@@ -87,7 +92,7 @@ Open it from a shell while Herdr is running:
 HERDR_APP_HOME="${HERDR_APP_HOME:-$HOME/.config/herdr-app}" herdr-app do mod.open:muxcle-sessionizer
 ```
 
-Move with ↑/↓ or Ctrl-J/Ctrl-K. Press Enter or click a folder to reuse a matching local space or create one local space. Press Esc to close without selecting anything.
+Move with ↑/↓ or Ctrl-J/Ctrl-K. Press Enter or click a folder to reuse a matching machine-scoped space or create one space on the configured machine. Cached results are revalidated against the current machine identity and folder; disconnected or identity-changed results cannot be opened. Press Esc to close without selecting anything.
 
 ### Optional shortcut
 

@@ -47,7 +47,8 @@ const sessionizerPackage = {
   name: "muxcle-sessionizer",
   release: {
     title: "Sessionizer",
-    summary: "Find configured project folders and open or reuse one local Herdr space.",
+    summary:
+      "Find configured local or connected-machine project folders and safely open their machine-scoped Herdr space.",
     installationPath: "packages/sessionizer/RECIPE.md",
   },
   files: [
@@ -60,6 +61,7 @@ const sessionizerPackage = {
     "mods/muxcle-sessionizer/package-owner.json",
     "mods/muxcle-sessionizer/sessionizer/adapter.js",
     "mods/muxcle-sessionizer/sessionizer/controller.js",
+    "mods/muxcle-sessionizer/sessionizer/discovery.js",
     "mods/muxcle-sessionizer/sessionizer/model.js",
     "RECIPE.md",
   ],
@@ -74,6 +76,7 @@ const sessionizerPackage = {
     ["mods/muxcle-sessionizer/package-owner.json", "mods/muxcle-sessionizer/package-owner.json"],
     [".build/mods/muxcle-sessionizer/sessionizer/adapter.js", "mods/muxcle-sessionizer/sessionizer/adapter.js"],
     [".build/mods/muxcle-sessionizer/sessionizer/controller.js", "mods/muxcle-sessionizer/sessionizer/controller.js"],
+    [".build/mods/muxcle-sessionizer/sessionizer/discovery.js", "mods/muxcle-sessionizer/sessionizer/discovery.js"],
     [".build/mods/muxcle-sessionizer/sessionizer/model.js", "mods/muxcle-sessionizer/sessionizer/model.js"],
     ["packages/sessionizer/RECIPE.md", "RECIPE.md"],
   ],

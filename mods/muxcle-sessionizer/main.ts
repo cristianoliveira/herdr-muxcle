@@ -1,4 +1,4 @@
-import { appHome, closeOverlay, exec, home, props, readTextFile, run, spaces, theme } from "herdr";
+import { appHome, closeOverlay, exec, home, props, readTextFile, run, shared, setShared, spaces, theme } from "herdr";
 import { createSessionizerAdapter, type NativeSessionizerApi } from "./sessionizer/adapter.js";
 import { View, div, type AsyncContext, type Context, type KeyEvent, type NativeElement } from "gpui-kit";
 import { h_flex, Input, InputState, v_flex, v_virtual_list, VirtualListScrollHandle, type ItemRange } from "gpui-base";
@@ -29,6 +29,7 @@ export default class MuxcleSessionizer extends View {
     this.controller = new SessionizerController(
       createSessionizerAdapter(nativeApi, configPath, appHomePath("mods", MOD_NAME), props()?.overlay),
       configPath,
+      () => cx.notify(),
     );
 
     this.input.on("change", (_event, eventCx) => {
@@ -107,7 +108,7 @@ export default class MuxcleSessionizer extends View {
     if (state.warnings.length > 0) {
       const warningText = state.warnings.slice(0, 3).map(safeDisplayText);
       if (state.warnings.length > warningText.length) {
-        warningText.push(`${state.warnings.length - warningText.length} more root warnings`);
+        warningText.push(`${state.warnings.length - warningText.length} more warnings`);
       }
       surface.child(
         v_flex()
@@ -117,8 +118,8 @@ export default class MuxcleSessionizer extends View {
     }
 
     const footer = state.truncated
-      ? "Showing the first 500 folders. Narrow the configured roots to see more."
-      : `${state.visibleProjects.length} projects · ↑/↓ or Ctrl-J/Ctrl-K · Enter to open`;
+      ? `Showing the first 500 folders${state.refreshing ? " · refreshing…" : ""}. Narrow the configured roots to see more.`
+      : `${state.visibleProjects.length} projects${state.refreshing ? " · refreshing…" : ""} · ↑/↓ or Ctrl-J/Ctrl-K · Enter to open`;
     surface.child(
       div()
         .text_size(11)
@@ -154,6 +155,7 @@ export default class MuxcleSessionizer extends View {
 
   private projectRow(project: Project, selected: boolean, palette: SessionizerPalette): NativeElement {
     const border = selected ? palette.accent : palette.background;
+    const machineLabel = project.machine === null ? "this computer" : `${project.machine} · remote`;
     return h_flex()
       .h(46)
       .px(9)
@@ -168,7 +170,12 @@ export default class MuxcleSessionizer extends View {
           .flex_1()
           .min_h(0)
           .child(div().text_size(13).text_color(palette.foreground).child(safeDisplayText(project.name)))
-          .child(div().text_size(10).text_color(palette.dim).child(shortPath(project.path))),
+          .child(
+            div()
+              .text_size(10)
+              .text_color(palette.dim)
+              .child(`${machineLabel}${project.stale ? " · cached/stale" : ""} · ${shortPath(project.path)}`),
+          ),
       );
   }
 
@@ -230,6 +237,8 @@ const nativeApi: NativeSessionizerApi = {
   home: () => home(),
   run: (name, args) => run(name, args),
   closeOverlay: (id) => closeOverlay(id),
+  shared: (key) => shared(key),
+  setShared: (key, value) => setShared(key, value),
 };
 
 function appHomePath(...parts: string[]): string {

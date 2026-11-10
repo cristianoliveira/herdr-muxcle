@@ -1,23 +1,27 @@
 import {
   filterProjects,
   MAX_QUERY_CHARS,
-  parseProjectDiscovery,
   parseSessionizerConfig,
   parseSpaceMatch,
-  sameLocalSpaceSnapshot,
+  sameMachineSpaceSnapshot,
   SessionizerError,
   type Project,
-  type ProjectDiscovery,
   type SpaceReference,
 } from "./model.js";
+import type { ConnectedMachine, PublishedProjects } from "./discovery.js";
 
 export interface SessionizerAdapter {
   readConfig(): Promise<string | null>;
-  discover(roots: readonly string[]): Promise<string>;
+  discover(
+    roots: readonly string[],
+    remoteRoots: Readonly<Record<string, readonly string[]>>,
+    publish: (state: PublishedProjects) => void,
+  ): Promise<void>;
   spaces(): readonly SpaceReference[];
-  findLocalSpace(folder: string, spaces: readonly SpaceReference[]): Promise<string>;
+  connectedMachines(): Promise<readonly ConnectedMachine[]>;
+  findSpace(folder: string, machine: string | null, spaces: readonly SpaceReference[]): Promise<string>;
   selectSpace(id: string): void;
-  createLocalSpace(folder: string): void;
+  createSpace(folder: string, machine: string | null): void;
   close(): void;
 }
 
@@ -33,6 +37,7 @@ export interface SessionizerViewState {
   warnings: string[];
   truncated: boolean;
   busy: boolean;
+  refreshing: boolean;
 }
 
 interface MutableState {
@@ -44,6 +49,7 @@ interface MutableState {
   warnings: string[];
   truncated: boolean;
   busy: boolean;
+  refreshing: boolean;
 }
 
 export class SessionizerController {
@@ -56,15 +62,18 @@ export class SessionizerController {
     warnings: [],
     truncated: false,
     busy: false,
+    refreshing: false,
   };
 
   private loadStarted = false;
   private chooseStarted = false;
   private cancelled = false;
+  private selectionInvalidated = false;
 
   constructor(
     private readonly adapter: SessionizerAdapter,
     private readonly configPath: string,
+    private readonly onChange: () => void = () => {},
   ) {}
 
   snapshot(): SessionizerViewState {
@@ -111,18 +120,29 @@ export class SessionizerController {
         return;
       }
 
-      const output = await this.adapter.discover(config.roots);
-      if (this.cancelled) return;
-      const result: ProjectDiscovery = parseProjectDiscovery(output);
-      this.state = {
-        ...this.state,
-        status: "ready",
-        message: result.projects.length === 0 ? "No project folders found. Check the configured roots." : null,
-        projects: result.projects,
-        selectedKey: result.projects[0]?.key ?? null,
-        warnings: result.warnings,
-        truncated: result.truncated,
-      };
+      await this.adapter.discover(config.roots, config.remoteRoots, (result) => {
+        if (this.cancelled) return;
+        const selectedKey = this.state.selectedKey;
+        const selectedProjectStillExists =
+          selectedKey !== null && result.projects.some((project) => project.key === selectedKey);
+        if (selectedKey !== null && !selectedProjectStillExists) this.selectionInvalidated = true;
+        const nextSelectedKey = this.selectionInvalidated ? null : (selectedKey ?? result.projects[0]?.key ?? null);
+        this.state = {
+          ...this.state,
+          status: "ready",
+          message: this.selectionInvalidated
+            ? "Selected project changed while refreshing. Choose a project again."
+            : result.projects.length === 0 && !result.loading
+              ? "No project folders found on configured machines."
+              : null,
+          projects: result.projects,
+          selectedKey: nextSelectedKey,
+          warnings: result.warnings,
+          truncated: result.truncated,
+          refreshing: result.loading,
+        };
+        this.onChange();
+      });
     } catch (error) {
       if (this.cancelled) return;
       this.state = {
@@ -140,6 +160,7 @@ export class SessionizerController {
     if (this.state.status !== "ready" || this.cancelled) return;
     const boundedQuery = query.slice(0, MAX_QUERY_CHARS);
     const projects = filterProjects(this.state.projects, boundedQuery);
+    this.selectionInvalidated = false;
     this.state = {
       ...this.state,
       query: boundedQuery,
@@ -155,7 +176,8 @@ export class SessionizerController {
 
     const currentIndex = projects.findIndex((project) => project.key === this.state.selectedKey);
     const nextIndex = currentIndex < 0 ? 0 : Math.max(0, Math.min(projects.length - 1, currentIndex + delta));
-    this.state = { ...this.state, selectedKey: projects[nextIndex].key };
+    this.selectionInvalidated = false;
+    this.state = { ...this.state, selectedKey: projects[nextIndex].key, message: null };
   }
 
   chooseSelected(): Promise<boolean> {
@@ -174,28 +196,52 @@ export class SessionizerController {
     this.state = { ...this.state, busy: true, message: null };
     try {
       let snapshot = [...this.adapter.spaces()];
+      const machine = project.machine;
       for (let attempt = 0; attempt < 2; attempt++) {
-        const localSpaces = snapshot.filter((space) => space.machine === null);
-        const match = parseSpaceMatch(await this.adapter.findLocalSpace(project.path, localSpaces));
         if (this.cancelled) return false;
+        if (machine !== null) {
+          const current = await this.isCurrentMachine(project);
+          if (this.cancelled) return false;
+          if (!current) {
+            throw new SessionizerError(
+              `Machine ${machine} is no longer connected. Reopen the picker; no local space was opened.`,
+            );
+          }
+        }
+        const targetSpaces = snapshot.filter((space) => space.machine === machine);
+        const match = parseSpaceMatch(await this.adapter.findSpace(project.path, machine, targetSpaces));
+        if (this.cancelled) return false;
+        if (!this.visibleProjects().some((entry) => entry.key === projectKey)) {
+          throw new SessionizerError("That selection is no longer visible. Choose a project again.");
+        }
         if (match.kind === "folder-missing") {
           throw new SessionizerError("That folder is no longer available. Reopen the picker and try again.");
         }
 
+        const machineDisconnected = machine !== null && !(await this.isCurrentMachine(project));
+        if (this.cancelled) return false;
+        if (!this.visibleProjects().some((entry) => entry.key === projectKey)) {
+          throw new SessionizerError("That selection is no longer visible. Choose a project again.");
+        }
         const latest = [...this.adapter.spaces()];
-        if (!sameLocalSpaceSnapshot(snapshot, latest)) {
-          if (attempt === 0) {
+        const targetChanged = !sameMachineSpaceSnapshot(snapshot, latest, machine);
+        if (targetChanged || machineDisconnected) {
+          if (attempt === 0 && !machineDisconnected) {
             snapshot = latest;
             continue;
           }
-          throw new SessionizerError("Your local spaces changed while selecting. Choose the project again.");
+          throw new SessionizerError(
+            machineDisconnected
+              ? `Machine ${machine} disconnected while selecting. No local space was opened.`
+              : "Spaces on the selected machine changed while selecting. Choose the project again.",
+          );
         }
 
-        if (match.spaceId !== null && !localSpaces.some((space) => space.id === match.spaceId)) {
-          throw new SessionizerError("Space lookup returned an unknown local space.");
+        if (match.spaceId !== null && !targetSpaces.some((space) => space.id === match.spaceId)) {
+          throw new SessionizerError("Space lookup returned an unknown machine-scoped space.");
         }
         if (match.spaceId !== null) this.adapter.selectSpace(match.spaceId);
-        else this.adapter.createLocalSpace(project.path);
+        else this.adapter.createSpace(project.path, machine);
         this.cancelled = true;
         this.state = { ...this.state, status: "closed", busy: false };
         try {
@@ -242,5 +288,11 @@ export class SessionizerController {
 
   private visibleProjects(): Project[] {
     return filterProjects(this.state.projects, this.state.query);
+  }
+
+  private async isCurrentMachine(project: Project): Promise<boolean> {
+    if (project.machine === null || project.machineId === null) return project.machine === null;
+    const machines = await this.adapter.connectedMachines();
+    return machines.some((machine) => machine.name === project.machine && machine.id === project.machineId);
   }
 }

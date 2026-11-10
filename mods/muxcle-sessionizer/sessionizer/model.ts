@@ -1,5 +1,6 @@
 export const MAX_CONFIG_CHARS = 16_384;
 export const MAX_ROOTS = 12;
+export const MAX_MACHINES = 12;
 export const MAX_ROOT_PATH_CHARS = 2_048;
 export const MAX_QUERY_CHARS = 256;
 export const MAX_PROJECTS = 500;
@@ -11,12 +12,15 @@ export type SessionizerConfigResult =
   | { kind: "missing" }
   | { kind: "empty" }
   | { kind: "invalid"; message: string }
-  | { kind: "ready"; roots: string[] };
+  | { kind: "ready"; roots: string[]; remoteRoots: Record<string, string[]> };
 
 export interface Project {
   key: string;
   name: string;
   path: string;
+  machine: string | null;
+  machineId: string | null;
+  stale: boolean;
 }
 
 export interface ProjectDiscovery {
@@ -47,11 +51,11 @@ export function parseSessionizerConfig(raw: string | null): SessionizerConfigRes
     return { kind: "invalid", message: "The config is not valid JSON." };
   }
 
-  if (!isRecord(value) || Object.keys(value).some((key) => key !== "roots")) {
-    return { kind: "invalid", message: "The config must be an object with only a roots array." };
+  if (!isRecord(value) || Object.keys(value).some((key) => key !== "roots" && key !== "remoteRoots")) {
+    return { kind: "invalid", message: "The config must contain roots and optional remoteRoots." };
   }
-  if (!Array.isArray(value.roots) || value.roots.length > MAX_ROOTS) {
-    return { kind: "invalid", message: `Set roots to an array of at most ${MAX_ROOTS} paths.` };
+  if (!Array.isArray(value.roots)) {
+    return { kind: "invalid", message: "Set roots to an array of absolute local paths." };
   }
 
   const roots: string[] = [];
@@ -66,10 +70,45 @@ export function parseSessionizerConfig(raw: string | null): SessionizerConfigRes
     roots.push(root);
   }
 
-  return roots.length === 0 ? { kind: "empty" } : { kind: "ready", roots };
+  const remoteRoots: Record<string, string[]> = {};
+  const configured = value.remoteRoots === undefined ? {} : value.remoteRoots;
+  if (!isRecord(configured) || Object.keys(configured).length > MAX_MACHINES) {
+    return { kind: "invalid", message: `remoteRoots must map at most ${MAX_MACHINES} machine names to root arrays.` };
+  }
+  let totalRoots = roots.length;
+  for (const [machine, entries] of Object.entries(configured)) {
+    if (!machine || machine.length > 256 || /[\u0000-\u001f\u007f]/.test(machine) || !Array.isArray(entries)) {
+      return { kind: "invalid", message: "Each remoteRoots key must be a native machine name with an array of paths." };
+    }
+    const parsed: string[] = [];
+    for (const entry of entries) {
+      if (typeof entry !== "string")
+        return { kind: "invalid", message: "Every remote root must be an absolute path string." };
+      const root = entry.trim();
+      if (root.length === 0 || root.length > MAX_ROOT_PATH_CHARS || root.includes("\0") || !isAbsolutePath(root)) {
+        return { kind: "invalid", message: "Every remote root must be a non-empty absolute path under 2 KiB." };
+      }
+      parsed.push(root);
+      totalRoots++;
+    }
+    if (parsed.length > 0)
+      Object.defineProperty(remoteRoots, machine, { value: parsed, enumerable: true, configurable: true });
+  }
+  if (totalRoots > MAX_ROOTS) {
+    return { kind: "invalid", message: `Configure at most ${MAX_ROOTS} total local and remote roots.` };
+  }
+
+  return roots.length === 0 && Object.keys(remoteRoots).length === 0
+    ? { kind: "empty" }
+    : { kind: "ready", roots, remoteRoots };
 }
 
-export function parseProjectDiscovery(raw: string): ProjectDiscovery {
+export function parseProjectDiscovery(
+  raw: string,
+  machine: string | null = null,
+  stale = false,
+  machineId: string | null = null,
+): ProjectDiscovery {
   if (raw.length > MAX_HELPER_OUTPUT_CHARS) {
     throw new SessionizerError("Project discovery returned too much data. Narrow the configured roots.");
   }
@@ -109,10 +148,10 @@ export function parseProjectDiscovery(raw: string): ProjectDiscovery {
       throw new SessionizerError("Project discovery returned invalid data.");
     }
 
-    const identity = pathIdentity(entry.path);
+    const identity = projectKey(machineId, machine, entry.path);
     if (seen.has(identity)) continue;
     seen.add(identity);
-    projects.push({ key: `project-${projects.length}`, name: entry.name, path: entry.path });
+    projects.push({ key: identity, name: entry.name, path: entry.path, machine, machineId, stale });
   }
 
   const warnings: string[] = [];
@@ -166,15 +205,25 @@ export function filterProjects(projects: readonly Project[], rawQuery: string): 
     .map(({ project }) => project);
 }
 
-export function sameLocalSpaceSnapshot(before: readonly SpaceReference[], after: readonly SpaceReference[]): boolean {
-  const localKey = (spaces: readonly SpaceReference[]) =>
+export function sameMachineSpaceSnapshot(
+  before: readonly SpaceReference[],
+  after: readonly SpaceReference[],
+  machine: string | null,
+): boolean {
+  const key = (spaces: readonly SpaceReference[]) =>
     spaces
-      .filter((space) => space.machine === null)
+      .filter((space) => space.machine === machine)
       .map((space) => `${space.id}\0${space.folder}`)
       .sort(compareText);
-  const beforeLocal = localKey(before);
-  const afterLocal = localKey(after);
-  return beforeLocal.length === afterLocal.length && beforeLocal.every((entry, index) => entry === afterLocal[index]);
+  const beforeTarget = key(before);
+  const afterTarget = key(after);
+  return (
+    beforeTarget.length === afterTarget.length && beforeTarget.every((entry, index) => entry === afterTarget[index])
+  );
+}
+
+export function sameLocalSpaceSnapshot(before: readonly SpaceReference[], after: readonly SpaceReference[]): boolean {
+  return sameMachineSpaceSnapshot(before, after, null);
 }
 
 export function safeDisplayText(value: string): string {
@@ -187,13 +236,16 @@ export function safeDisplayText(value: string): string {
 function scoreProject(project: Project, terms: readonly string[]): number | null {
   const name = project.name.toLowerCase();
   const path = project.path.toLowerCase();
+  const machine = project.machine?.toLowerCase() ?? "local";
   let score = 0;
 
   for (const term of terms) {
+    const machineScore = scoreText(machine, term);
     const nameScore = scoreText(name, term);
     const pathScore = scorePath(path, term);
-    if (nameScore === null && pathScore === null) return null;
+    if (machineScore === null && nameScore === null && pathScore === null) return null;
     score += Math.min(
+      machineScore === null ? Number.POSITIVE_INFINITY : machineScore + 10,
       nameScore ?? Number.POSITIVE_INFINITY,
       pathScore === null ? Number.POSITIVE_INFINITY : pathScore + 20,
     );
@@ -231,6 +283,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isAbsolutePath(path: string): boolean {
   return path.startsWith("/") || path.startsWith("\\\\") || /^[A-Za-z]:[\\/]/.test(path);
+}
+
+export function projectKey(machineId: string | null, machine: string | null, path: string): string {
+  return JSON.stringify([machineId ?? machine, pathIdentity(path)]);
 }
 
 function pathIdentity(path: string): string {

@@ -7,6 +7,7 @@ import {
   parseSpaceMatch,
   safeDisplayText,
   sameLocalSpaceSnapshot,
+  sameMachineSpaceSnapshot,
 } from "../../.build/mods/muxcle-sessionizer/sessionizer/model.js";
 
 const projects = [
@@ -21,7 +22,16 @@ test("config parsing distinguishes missing, empty, valid, and malformed roots", 
   assert.deepEqual(parseSessionizerConfig('{"roots":["/workspaces"]}'), {
     kind: "ready",
     roots: ["/workspaces"],
+    remoteRoots: {},
   });
+  assert.deepEqual(parseSessionizerConfig('{"roots":[],"remoteRoots":{"build":["/work"]}}'), {
+    kind: "ready",
+    roots: [],
+    remoteRoots: { build: ["/work"] },
+  });
+  assert.equal(parseSessionizerConfig('{"roots":[],"remoteRoots":{"local":["/work"]}}').kind, "ready");
+  assert.equal(parseSessionizerConfig('{"roots":[],"remoteRoots":{"build":["relative"]}}').kind, "invalid");
+  assert.equal(parseSessionizerConfig('{"roots":[],"remoteRoots":null}').kind, "invalid");
   assert.equal(parseSessionizerConfig("not-json").kind, "invalid");
   assert.equal(parseSessionizerConfig('{"roots":["relative/path"]}').kind, "invalid");
   assert.equal(parseSessionizerConfig('{"roots":[],"home":"/tmp"}').kind, "invalid");
@@ -42,8 +52,8 @@ test("discovery output is validated and duplicate canonical paths get one stable
   );
 
   assert.deepEqual(result.projects, [
-    { key: "project-0", name: "one", path: "/work/one" },
-    { key: "project-1", name: "two", path: "/work/two" },
+    { key: '[null,"/work/one"]', name: "one", path: "/work/one", machine: null, machineId: null, stale: false },
+    { key: '[null,"/work/two"]', name: "two", path: "/work/two", machine: null, machineId: null, stale: false },
   ]);
   assert.throws(
     () => parseProjectDiscovery('{"projects":[{"name":"bad","path":"relative"}],"warnings":[],"truncated":false}'),
@@ -81,6 +91,8 @@ test("space snapshots ignore remote collisions but detect changed local folders"
 
   assert.equal(sameLocalSpaceSnapshot(before, remoteChanged), true);
   assert.equal(sameLocalSpaceSnapshot(before, localChanged), false);
+  assert.equal(sameMachineSpaceSnapshot(before, remoteChanged, "build"), false);
+  assert.equal(sameMachineSpaceSnapshot(before, remoteChanged, null), true);
 });
 
 test("space-match output and displayed text stay bounded and safe", () => {

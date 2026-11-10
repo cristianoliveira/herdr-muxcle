@@ -166,7 +166,7 @@ declare module "herdr" {
   export function exec(
     command: string,
     args?: string[],
-    options?: { cwd?: string; on?: string | null },
+    options?: { cwd?: string; on?: string | null; timeout?: number },
   ): Promise<ExecResult>;
   export function hc(args: string[]): Promise<ExecResult>;
   export function spaces(): SpaceReference[];

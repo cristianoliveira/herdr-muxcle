@@ -132,3 +132,14 @@ cp -R "$temporary/$funzzy_status_bundle/mods/muxcle-funzzy-status" "$temporary/f
 HC_SESSION="muxcle-funzzy-status-check-$$" HERDR_APP_HOME="$temporary/funzzy-status-home" \
   herdr-app check "$temporary/funzzy-status-home/mods/muxcle-funzzy-status"
 cmp "$temporary/funzzy-status-shared.json" "$temporary/funzzy-status-home/shared.json"
+
+numbered_sidebars_bundle="muxcle-numbered-sidebars-v$version"
+mkdir "$temporary/numbered-sidebars-home"
+tar -xzf "dist/$numbered_sidebars_bundle.tar.gz" -C "$temporary"
+sh "$temporary/$numbered_sidebars_bundle/check-install-targets.sh" "$temporary/numbered-sidebars-home"
+mkdir "$temporary/numbered-sidebars-home/mods"
+cp -R "$temporary/$numbered_sidebars_bundle/mods/muxcle-numbered-sidebars" "$temporary/numbered-sidebars-home/mods/"
+HC_SESSION="muxcle-numbered-sidebars-install-$$" HERDR_APP_HOME="$temporary/numbered-sidebars-home" \
+  herdr-app check "$temporary/numbered-sidebars-home/mods/muxcle-numbered-sidebars"
+sh ./scripts/check-numbered-sidebars-load.sh \
+  "$temporary/$numbered_sidebars_bundle/mods/muxcle-numbered-sidebars"

@@ -200,6 +200,33 @@ const agentIntrayPackage = {
     ["mods/muxcle-agent-intray/package-owner.json", "mods/muxcle-agent-intray/package-owner.json"],
   ],
 };
+const numberedSidebarsPackage = {
+  name: "muxcle-numbered-sidebars",
+  release: {
+    title: "Numbered sidebars",
+    summary: "Add optional status-colored compact Space and Agent rails without replacing native expanded controls.",
+    installationPath: "packages/numbered-sidebars/RECIPE.md",
+  },
+  files: [
+    "check-install-targets.sh",
+    "layout-snippets.json",
+    "RECIPE.md",
+    "mods/muxcle-numbered-sidebars/main.js",
+    "mods/muxcle-numbered-sidebars/model.js",
+    "mods/muxcle-numbered-sidebars/mod.json",
+    "mods/muxcle-numbered-sidebars/package-owner.json",
+  ],
+  directories: ["", "mods", "mods/muxcle-numbered-sidebars"],
+  sources: [
+    ["packages/numbered-sidebars/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/numbered-sidebars/layout-snippets.json", "layout-snippets.json"],
+    ["packages/numbered-sidebars/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-numbered-sidebars/main.js", "mods/muxcle-numbered-sidebars/main.js"],
+    [".build/mods/muxcle-numbered-sidebars/model.js", "mods/muxcle-numbered-sidebars/model.js"],
+    ["mods/muxcle-numbered-sidebars/mod.json", "mods/muxcle-numbered-sidebars/mod.json"],
+    ["mods/muxcle-numbered-sidebars/package-owner.json", "mods/muxcle-numbered-sidebars/package-owner.json"],
+  ],
+};
 const rotationPackage = {
   name: "muxcle-rotation",
   release: {
@@ -489,6 +516,7 @@ const existingPackageDefinitions = [
   historyPackage,
   funzzyStatusPackage,
   agentIntrayPackage,
+  numberedSidebarsPackage,
   rotationPackage,
   sizingPackage,
   repeatPackage,
@@ -538,7 +566,9 @@ export async function createFunzzyStatusPackage(options = {}) {
 export async function createAgentIntrayPackage(options = {}) {
   return buildPackage(agentIntrayPackage, options);
 }
-
+export async function createNumberedSidebarsPackage(options = {}) {
+  return buildPackage(numberedSidebarsPackage, options);
+}
 export async function createRotationPackage(options = {}) {
   return buildPackage(rotationPackage, options);
 }

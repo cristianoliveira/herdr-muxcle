@@ -63,13 +63,16 @@ declare module "gpui-kit" {
     h(value: number): this;
     hover(declare: (element: NativeElement) => NativeElement | void): this;
     items_center(): this;
+    mode(value: import("gpui-base").ScrollbarMode): this;
     justify_between(): this;
+    justify_center(): this;
     max_h(value: number): this;
     min_h(value: number): this;
     on_click(handler: (event: unknown, cx: Context) => void): this;
     on_item_click(handler: (key: string, cx: Context) => void): this;
     on_mouse_down(button: "left" | "right" | "middle", handler: (event: unknown, cx: Context) => void): this;
     on_key_down(handler: (event: KeyEvent, cx: Context) => void): this;
+    overflow_y_scrollbar(): this;
     p(value: number): this;
     px(value: number): this;
     py(value: number): this;
@@ -88,6 +91,7 @@ declare module "gpui-kit" {
     track_scroll(handle: import("gpui-base").VirtualListScrollHandle): this;
     w(value: number): this;
     cursor_pointer(): this;
+    loop(property: "opacity", options: { from: number; to: number; period: number }): this;
   }
 
   export abstract class View {
@@ -107,6 +111,8 @@ declare module "gpui-base" {
     start: number;
     end: number;
   }
+
+  export type ScrollbarMode = "scrolling" | "hover" | "always";
 
   export interface InputState {
     value(): string;
@@ -160,11 +166,13 @@ declare module "herdr" {
 
   export interface SpaceReference {
     id: string;
+    index: number;
     name: string;
     tabs: { id: string; name: string; active: boolean; zoomed: boolean; panes: number }[];
     folder: string;
     machine: string | null;
     active: boolean;
+    status: AgentStatus | null;
   }
 
   /** Narrow projection of Native's live AgentInfo; IDs and addresses are machine-qualified. */
@@ -172,6 +180,7 @@ declare module "herdr" {
 
   export interface AgentInfo {
     address: string;
+    pane: string;
     space: string;
     space_name: string;
     tab: string;

@@ -29,6 +29,7 @@ import {
   createHistoryPackage,
   createFunzzyStatusPackage,
   createAgentIntrayPackage,
+  createNumberedSidebarsPackage,
   createRotationPackage,
   createSizingPackage,
   createRepeatPackage,
@@ -163,6 +164,16 @@ const expectedFunzzyStatusFiles = [
   "mods/muxcle-funzzy-status/package-owner.json",
   "mods/muxcle-funzzy-status/projects.js",
 ].sort();
+const expectedNumberedSidebarsFiles = [
+  "RECIPE.md",
+  "check-install-targets.sh",
+  "layout-snippets.json",
+  "manifest.json",
+  "mods/muxcle-numbered-sidebars/main.js",
+  "mods/muxcle-numbered-sidebars/model.js",
+  "mods/muxcle-numbered-sidebars/mod.json",
+  "mods/muxcle-numbered-sidebars/package-owner.json",
+].sort();
 const expectedPackFiles = [
   "RECIPE.md",
   "config.example.json",
@@ -182,6 +193,8 @@ const expectedPackFiles = [
   "components/muxcle-agent-intray/check-install-targets.sh",
   "components/muxcle-agent-intray/keys.json",
   "components/muxcle-agent-intray/observer.json",
+  "components/muxcle-numbered-sidebars/check-install-targets.sh",
+  "components/muxcle-numbered-sidebars/layout-snippets.json",
   "components/muxcle-funzzy-status/check-install-targets.sh",
   "components/muxcle-funzzy-status/observer.json",
   "components/muxcle-rotation/check-install-targets.sh",
@@ -224,6 +237,10 @@ const expectedPackFiles = [
   "mods/muxcle-agent-intray/model.js",
   "mods/muxcle-agent-intray/mod.json",
   "mods/muxcle-agent-intray/package-owner.json",
+  "mods/muxcle-numbered-sidebars/main.js",
+  "mods/muxcle-numbered-sidebars/model.js",
+  "mods/muxcle-numbered-sidebars/mod.json",
+  "mods/muxcle-numbered-sidebars/package-owner.json",
   "mods/muxcle-funzzy-status/location.js",
   "mods/muxcle-funzzy-status/main.js",
   "mods/muxcle-funzzy-status/model.js",
@@ -702,6 +719,57 @@ test("Funzzy status archive is optional, reproducible, and scopes installation t
   }
 });
 
+test("numbered sidebars are independently packaged with optional role snippets and isolated ownership", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-numbered-sidebars-package-"));
+  try {
+    const info = await createNumberedSidebarsPackage({ repositoryRoot, outputDirectory: temporary });
+    const verified = verifyPackage({ outputDirectory: temporary, version: info.version, packageName: info.name });
+    assert.deepEqual(verified.files, expectedNumberedSidebarsFiles);
+
+    const blocks = JSON.parse(await readFile(join(info.bundleDirectory, "layout-snippets.json"), "utf8"));
+    assert.deepEqual(
+      blocks.map(({ content }) => content.props.role),
+      ["spaces", "agents"],
+    );
+    assert.ok(blocks.every(({ size, resizable }) => size.px === 40 && resizable === false));
+    assert.ok(!verified.files.includes("keys.json"));
+    assert.ok(!verified.files.includes("observer.json"));
+
+    const original = await readFile(info.archivePath);
+    await changeTimes(info.bundleDirectory, 1);
+    const repeated = join(temporary, "repeat.tar.gz");
+    await createDeterministicArchive({
+      packageDirectory: info.bundleDirectory,
+      archivePath: repeated,
+      packageName: info.name,
+    });
+    assert.deepEqual(await readFile(repeated), original);
+
+    const appHome = join(temporary, "home");
+    await mkdir(appHome, { recursive: true });
+    await writeFile(join(appHome, "settings.json"), '{"keep":"settings"}\n');
+    const target = join(appHome, "mods/muxcle-numbered-sidebars");
+    const checker = join(info.bundleDirectory, "check-install-targets.sh");
+    const check = (mode = []) => spawnSync("sh", [checker, ...mode, appHome]).status;
+    assert.equal(check(), 0);
+    await mkdir(target, { recursive: true });
+    assert.notEqual(check(["--update"]), 0);
+    assert.notEqual(check(["--remove"]), 0);
+    await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-numbered-sidebars","schema":1}\n');
+    assert.equal(check(["--update"]), 0);
+    assert.equal(check(["--remove"]), 0);
+    assert.equal(await readFile(join(appHome, "settings.json"), "utf8"), '{"keep":"settings"}\n');
+
+    await rm(target, { recursive: true, force: true });
+    const outside = join(temporary, "linked-numbered-sidebars");
+    await mkdir(outside);
+    await symlink(outside, target);
+    for (const mode of [[], ["--update"], ["--remove"]]) assert.notEqual(check(mode), 0);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
 test("agent intray archive is independent, reproducible, and preserves other shared state", async () => {
   const temporary = await mkdtemp(join(tmpdir(), "muxcle-agent-intray-package-"));
   try {
@@ -967,6 +1035,7 @@ test("packaged ownership markers are accepted by each capability's update and re
     [createPickerPackage, "muxcle-picker"],
     [createHistoryPackage, "muxcle-history"],
     [createAgentIntrayPackage, "muxcle-agent-intray"],
+    [createNumberedSidebarsPackage, "muxcle-numbered-sidebars"],
     [createRotationPackage, "muxcle-rotation"],
     [createSizingPackage, "muxcle-sizing"],
     [createRepeatPackage, "muxcle-repeat"],
@@ -1197,6 +1266,7 @@ test("whole-pack archive composes all components without activating scaffold sta
     assert.equal(nodes.filter((node) => node.content?.mod === "muxcle-compat").length, 0);
     assert.equal(nodes.filter((node) => node.content?.mod === "muxcle-agent-intray").length, 0);
     assert.equal(nodes.filter((node) => node.content?.mod === "muxcle-funzzy-status").length, 0);
+    assert.equal(nodes.filter((node) => node.content?.mod === "muxcle-numbered-sidebars").length, 0);
     assert.ok(verified.files.includes("components/muxcle-funzzy-status/observer.json"));
 
     for (const [modName, sourcePath] of [
@@ -1216,6 +1286,7 @@ test("whole-pack archive composes all components without activating scaffold sta
       "muxcle-picker",
       "muxcle-history",
       "muxcle-funzzy-status",
+      "muxcle-numbered-sidebars",
       "muxcle-rotation",
       "muxcle-sizing",
       "muxcle-repeat",
@@ -1255,6 +1326,7 @@ test("whole pack rejects an ownership marker that claims the aggregate package",
       "muxcle-repeat",
       "muxcle-project-popup",
       "muxcle-copy-mode",
+      "muxcle-numbered-sidebars",
       "muxcle-tab-tools",
     ]) {
       const target = join(modsDirectory, modName);
@@ -1314,6 +1386,7 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
     const packages = await createPackages({ repositoryRoot, outputDirectory: temporary });
     const [scaffold, tmuxKeys, sessionizer] = packages;
     const agentIntray = packages.find(({ name }) => name === "muxcle-agent-intray");
+    const numberedSidebars = packages.find(({ name }) => name === "muxcle-numbered-sidebars");
     const projectPopup = packages.find(({ name }) => name === "muxcle-project-popup");
     const copyMode = packages.find(({ name }) => name === "muxcle-copy-mode");
     const broadcastPrototype = packages.find(({ name }) => name === "muxcle-broadcast-prototype");
@@ -1344,6 +1417,7 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
         "muxcle-history",
         "muxcle-funzzy-status",
         "muxcle-agent-intray",
+        "muxcle-numbered-sidebars",
         "muxcle-rotation",
         "muxcle-sizing",
         "muxcle-repeat",
@@ -1376,6 +1450,15 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
         "mods/muxcle-agent-intray/mod.json",
         "mods/muxcle-agent-intray/package-owner.json",
       ].sort(),
+    );
+    assert.ok(numberedSidebars);
+    assert.deepEqual(
+      verifyPackage({
+        outputDirectory: temporary,
+        version: numberedSidebars.version,
+        packageName: numberedSidebars.name,
+      }).files,
+      expectedNumberedSidebarsFiles,
     );
     assert.ok(projectPopup);
     assert.deepEqual(

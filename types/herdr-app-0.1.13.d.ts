@@ -55,6 +55,7 @@ declare module "gpui-kit" {
     id(name: string): this;
     bg(color: string): this;
     border_1(): this;
+    border(value: number): this;
     border_color(color: string): this;
     flex(): this;
     flex_1(): this;
@@ -71,10 +72,13 @@ declare module "gpui-kit" {
     min_h(value: number): this;
     on_click(handler: (event: unknown, cx: Context) => void): this;
     on_hover(handler: (hovered: boolean, cx: Context) => void): this;
+    on_mouse_up(button: "left" | "right" | "middle", handler: (event: unknown, cx: Context) => void): this;
+    on_mouse_down_out(handler: (event: unknown, cx: Context) => void): this;
     on_item_click(handler: (key: string, cx: Context) => void): this;
     on_mouse_down(button: "left" | "right" | "middle", handler: (event: unknown, cx: Context) => void): this;
     on_key_down(handler: (event: KeyEvent, cx: Context) => void): this;
     overflow_y_scrollbar(): this;
+    overflow_x_scrollbar(): this;
     p(value: number): this;
     px(value: number): this;
     size(value: number): this;
@@ -179,7 +183,16 @@ declare module "herdr" {
     index: number;
     name: string;
     branch: string | null;
-    tabs: { id: string; name: string; active: boolean; zoomed: boolean; panes: number }[];
+    tabs: {
+      id: string;
+      index: number;
+      name: string;
+      named: boolean;
+      active: boolean;
+      status: AgentStatus | null;
+      zoomed: boolean;
+      panes: number;
+    }[];
     folder: string;
     machine: string | null;
     active: boolean;
@@ -209,6 +222,15 @@ declare module "herdr" {
     role?: string;
     pane?: string;
     terminal?: string;
+    space?: string;
+    tab?: string;
+    mode?: "tabs" | "panels" | "combined";
+    panel?: string;
+    stack?: string;
+    filesPanel?: string;
+    changesPanel?: string;
+    panels?: string[];
+    windowControls?: "omit";
   }
 
   export function appHome(): string;
@@ -227,6 +249,15 @@ declare module "herdr" {
   export function agents(): AgentInfo[];
   /** The currently shown layout tree from layouts/<name>.json. */
   export function layout(): unknown;
+  export interface WindowReference {
+    platform: "linux" | "macos" | "windows";
+    titlebar: "system" | "none";
+    buttons: boolean;
+    maximized: boolean;
+    fullscreen: boolean;
+    active: boolean;
+  }
+  export function window(): WindowReference;
   export interface PaneReference {
     pane: string;
     terminal: string | null;

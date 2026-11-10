@@ -809,6 +809,22 @@ test("workspace chrome packages optional header/clock fragments and scoped owner
         props: { role: "status-clock" },
       },
     });
+    assert.deepEqual(fragments["tabs-only-row"].content, {
+      mod: "muxcle-workspace-chrome",
+      props: { role: "workspace-bar", mode: "tabs" },
+    });
+    assert.deepEqual(fragments["panels-only-row"].content, {
+      mod: "muxcle-workspace-chrome",
+      props: { role: "workspace-bar", mode: "panels" },
+    });
+    assert.deepEqual(fragments["combined-native-tabs-row"].content, { mod: "tabs" });
+    assert.deepEqual(fragments["combined-without-window-controls-row"].content.props, {
+      role: "workspace-bar",
+      mode: "combined",
+      windowControls: "omit",
+    });
+    assert.deepEqual(fragments["workspace-status-clock-row"].size, { weight: 1 });
+    assert.ok(!("min" in fragments["workspace-status-clock-row"]));
     assert.ok(!verified.files.includes("keys.json"));
     assert.ok(!verified.files.includes("observer.json"));
 

@@ -7,10 +7,52 @@
       "props": { "role": "pane-footer" }
     }
   },
+  "tabs-only-row": {
+    "id": "muxcle-workspace-chrome-tabs-only",
+    "type": "block",
+    "size": { "weight": 1 },
+    "content": {
+      "mod": "muxcle-workspace-chrome",
+      "props": { "role": "workspace-bar", "mode": "tabs" }
+    }
+  },
+  "panels-only-row": {
+    "id": "muxcle-workspace-chrome-panels-only",
+    "type": "block",
+    "size": { "weight": 1 },
+    "content": {
+      "mod": "muxcle-workspace-chrome",
+      "props": { "role": "workspace-bar", "mode": "panels" }
+    }
+  },
+  "combined-native-tabs-row": {
+    "id": "muxcle-workspace-chrome-combined-native-tabs",
+    "type": "block",
+    "size": { "weight": 1 },
+    "content": { "mod": "tabs" }
+  },
+  "combined-without-window-controls-row": {
+    "id": "muxcle-workspace-chrome-combined-custom",
+    "type": "block",
+    "size": { "weight": 1 },
+    "content": {
+      "mod": "muxcle-workspace-chrome",
+      "props": { "role": "workspace-bar", "mode": "combined", "windowControls": "omit" }
+    }
+  },
   "workspace-status-clock-column": {
     "id": "muxcle-workspace-chrome-clock-column",
     "type": "block",
     "size": { "px": 24 },
+    "content": {
+      "mod": "muxcle-workspace-chrome",
+      "props": { "role": "status-clock" }
+    }
+  },
+  "workspace-status-clock-row": {
+    "id": "muxcle-workspace-chrome-clock-row",
+    "type": "block",
+    "size": { "weight": 1 },
     "content": {
       "mod": "muxcle-workspace-chrome",
       "props": { "role": "status-clock" }

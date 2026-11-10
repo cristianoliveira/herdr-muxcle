@@ -185,6 +185,8 @@ declare module "herdr" {
     tab: string;
     zoomed: boolean;
   }[];
+  /** Every Core terminal's current address, state and metadata, including live host-local terminals. */
+  export function terminals(): unknown[];
   export function focused(): {
     space: string;
     tab: string;

@@ -295,6 +295,37 @@ const copyModePackage = {
     ["mods/muxcle-copy-mode/package-owner.json", "mods/muxcle-copy-mode/package-owner.json"],
   ],
 };
+const broadcastPrototypePackage = {
+  name: "muxcle-broadcast-prototype",
+  release: {
+    title: "Broadcast input prototype",
+    summary: "Explicitly relay supported keys to a reviewed frozen set of 2–8 live local terminal panes.",
+    installationPath: "packages/broadcast-prototype/RECIPE.md",
+  },
+  files: [
+    "check-install-targets.sh",
+    "keys.json",
+    "RECIPE.md",
+    "mods/muxcle-broadcast-prototype/broadcast.js",
+    "mods/muxcle-broadcast-prototype/broadcast.py",
+    "mods/muxcle-broadcast-prototype/broadcast_stream.py",
+    "mods/muxcle-broadcast-prototype/main.js",
+    "mods/muxcle-broadcast-prototype/mod.json",
+    "mods/muxcle-broadcast-prototype/package-owner.json",
+  ],
+  directories: ["", "mods", "mods/muxcle-broadcast-prototype"],
+  sources: [
+    ["packages/broadcast-prototype/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/broadcast-prototype/keys.json", "keys.json"],
+    ["packages/broadcast-prototype/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-broadcast-prototype/broadcast.js", "mods/muxcle-broadcast-prototype/broadcast.js"],
+    ["mods/muxcle-broadcast-prototype/broadcast.py", "mods/muxcle-broadcast-prototype/broadcast.py"],
+    ["mods/muxcle-broadcast-prototype/broadcast_stream.py", "mods/muxcle-broadcast-prototype/broadcast_stream.py"],
+    [".build/mods/muxcle-broadcast-prototype/main.js", "mods/muxcle-broadcast-prototype/main.js"],
+    ["mods/muxcle-broadcast-prototype/mod.json", "mods/muxcle-broadcast-prototype/mod.json"],
+    ["mods/muxcle-broadcast-prototype/package-owner.json", "mods/muxcle-broadcast-prototype/package-owner.json"],
+  ],
+};
 const tabToolsPackage = {
   name: "muxcle-tab-tools",
   release: {
@@ -367,11 +398,14 @@ const existingPackageDefinitions = [
   repeatPackage,
   projectPopupPackage,
   copyModePackage,
+  broadcastPrototypePackage,
   tabToolsPackage,
   spaceCloserPackage,
 ];
 const trustedComponentNames = new Set(existingPackageDefinitions.filter(hasOwnedModSources).map(({ name }) => name));
-const packPackage = createPackDefinition(existingPackageDefinitions);
+const packPackage = createPackDefinition(
+  existingPackageDefinitions.filter(({ name }) => name !== "muxcle-broadcast-prototype"),
+);
 const packageDefinitions = [...existingPackageDefinitions, packPackage];
 const packagesByName = new Map(packageDefinitions.map((definition) => [definition.name, definition]));
 export const RELEASE_CATALOG = Object.freeze(
@@ -416,6 +450,10 @@ export async function createProjectPopupPackage(options = {}) {
 
 export async function createCopyModePackage(options = {}) {
   return buildPackage(copyModePackage, options);
+}
+
+export async function createBroadcastPrototypePackage(options = {}) {
+  return buildPackage(broadcastPrototypePackage, options);
 }
 
 export async function createTabToolsPackage(options = {}) {

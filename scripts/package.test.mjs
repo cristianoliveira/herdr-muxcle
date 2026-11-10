@@ -32,6 +32,8 @@ import {
   createRepeatPackage,
   createProjectPopupPackage,
   createCopyModePackage,
+  createBroadcastPrototypePackage,
+  RELEASE_CATALOG,
   createTabToolsPackage,
   createSpaceCloserPackage,
   createModPackage,
@@ -120,6 +122,18 @@ const expectedCopyModeFiles = [
   "mods/muxcle-copy-mode/main.js",
   "mods/muxcle-copy-mode/mod.json",
   "mods/muxcle-copy-mode/package-owner.json",
+].sort();
+const expectedBroadcastPrototypeFiles = [
+  "RECIPE.md",
+  "check-install-targets.sh",
+  "keys.json",
+  "manifest.json",
+  "mods/muxcle-broadcast-prototype/broadcast.js",
+  "mods/muxcle-broadcast-prototype/broadcast.py",
+  "mods/muxcle-broadcast-prototype/broadcast_stream.py",
+  "mods/muxcle-broadcast-prototype/main.js",
+  "mods/muxcle-broadcast-prototype/mod.json",
+  "mods/muxcle-broadcast-prototype/package-owner.json",
 ].sort();
 const expectedPackFiles = [
   "RECIPE.md",
@@ -324,6 +338,43 @@ test("copy mode archive is independent, reproducible, and checks install ownersh
     assert.notEqual(check(["--update"]), 0);
     assert.notEqual(check(["--remove"]), 0);
     await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-copy-mode","schema":1}\n');
+    assert.equal(check(["--update"]), 0);
+    assert.equal(check(["--remove"]), 0);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("broadcast prototype is separately installable, reproducible, and marked for ownership", async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "muxcle-broadcast-prototype-package-"));
+  try {
+    const info = await createBroadcastPrototypePackage({ repositoryRoot, outputDirectory: temporary });
+    const verified = verifyPackage({ outputDirectory: temporary, version: info.version, packageName: info.name });
+    assert.deepEqual(verified.files, expectedBroadcastPrototypeFiles);
+    assert.deepEqual(JSON.parse(await readFile(join(info.bundleDirectory, "keys.json"), "utf8")), {
+      global: { "ctrl-a B": "mod.open:muxcle-broadcast-prototype" },
+    });
+    assert.ok(RELEASE_CATALOG.some(({ name }) => name === "muxcle-broadcast-prototype"));
+
+    const original = await readFile(info.archivePath);
+    await changeTimes(info.bundleDirectory, 1);
+    const repeatedArchive = join(temporary, "repeat.tar.gz");
+    await createDeterministicArchive({
+      packageDirectory: info.bundleDirectory,
+      archivePath: repeatedArchive,
+      packageName: info.name,
+    });
+    assert.deepEqual(await readFile(repeatedArchive), original);
+
+    const appHome = join(temporary, "home");
+    const target = join(appHome, "mods/muxcle-broadcast-prototype");
+    const checker = join(info.bundleDirectory, "check-install-targets.sh");
+    const check = (mode = []) => spawnSync("sh", [checker, ...mode, appHome]).status;
+    assert.equal(check(), 0);
+    await mkdir(target, { recursive: true });
+    assert.notEqual(check(["--update"]), 0);
+    assert.notEqual(check(["--remove"]), 0);
+    await writeFile(join(target, "package-owner.json"), '{"package":"muxcle-broadcast-prototype","schema":1}\n');
     assert.equal(check(["--update"]), 0);
     assert.equal(check(["--remove"]), 0);
   } finally {
@@ -740,6 +791,7 @@ test("packaged ownership markers are accepted by each capability's update and re
     [createRepeatPackage, "muxcle-repeat"],
     [createProjectPopupPackage, "muxcle-project-popup"],
     [createCopyModePackage, "muxcle-copy-mode"],
+    [createBroadcastPrototypePackage, "muxcle-broadcast-prototype"],
     [createTabToolsPackage, "muxcle-tab-tools"],
     [createSpaceCloserPackage, "muxcle-space-closer"],
   ];
@@ -945,6 +997,8 @@ test("whole-pack archive composes all components without activating scaffold sta
     assert.equal(keymap.global["ctrl-a shift-r"], "mod.open:muxcle-repeat");
     assert.equal(keymap.global["ctrl-a space"], "mod.open:muxcle-project-popup");
     assert.equal(keymap.global["ctrl-a ["], "mod.open:muxcle-copy-mode");
+    assert.equal(keymap.global["ctrl-a B"], undefined);
+    assert.ok(!verified.files.some((path) => path.includes("muxcle-broadcast-prototype")));
     assert.deepEqual(
       await readFile(join(info.bundleDirectory, "config.example.json")),
       await readFile(join(repositoryRoot, "packages/sessionizer/config.example.json")),
@@ -1071,6 +1125,7 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
     const [scaffold, tmuxKeys, sessionizer] = packages;
     const projectPopup = packages.find(({ name }) => name === "muxcle-project-popup");
     const copyMode = packages.find(({ name }) => name === "muxcle-copy-mode");
+    const broadcastPrototype = packages.find(({ name }) => name === "muxcle-broadcast-prototype");
     const scaffoldCheck = verifyPackage({ outputDirectory: temporary, version: scaffold.version });
     const keysCheck = verifyPackage({
       outputDirectory: temporary,
@@ -1100,6 +1155,7 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
         "muxcle-repeat",
         "muxcle-project-popup",
         "muxcle-copy-mode",
+        "muxcle-broadcast-prototype",
         "muxcle-tab-tools",
         "muxcle-space-closer",
         "muxcle-pack",
@@ -1121,6 +1177,15 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
     assert.deepEqual(
       verifyPackage({ outputDirectory: temporary, version: copyMode.version, packageName: copyMode.name }).files,
       expectedCopyModeFiles,
+    );
+    assert.ok(broadcastPrototype);
+    assert.deepEqual(
+      verifyPackage({
+        outputDirectory: temporary,
+        version: broadcastPrototype.version,
+        packageName: broadcastPrototype.name,
+      }).files,
+      expectedBroadcastPrototypeFiles,
     );
     assert.equal(keysManifest.name, "muxcle-tmux-keys");
     assert.equal(keysSnippet.global["ctrl-a c"], "tab.new");
@@ -1320,6 +1385,17 @@ test("selected mod packaging resolves standalone owners and rejects aggregate-on
       packageName: closer.name,
     }).files;
     assert.ok(closerFiles.includes("mods/muxcle-space-closer/mod.json"));
+    const broadcast = await createModPackage("muxcle-broadcast-prototype", {
+      repositoryRoot,
+      outputDirectory: join(temporary, "broadcast"),
+    });
+    assert.equal(broadcast.name, "muxcle-broadcast-prototype");
+    const broadcastFiles = verifyPackage({
+      outputDirectory: join(temporary, "broadcast"),
+      version: broadcast.version,
+      packageName: broadcast.name,
+    }).files;
+    assert.ok(broadcastFiles.includes("mods/muxcle-broadcast-prototype/broadcast_stream.py"));
     await assert.rejects(
       createModPackage("muxcle-pack", { repositoryRoot, outputDirectory: join(temporary, "pack") }),
       /no standalone package contains mod muxcle-pack/,

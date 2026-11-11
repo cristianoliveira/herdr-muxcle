@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { observeRecentTabs } from "../../.build/mods/muxcle-history/model.js";
 import {
+  closeTargetIsCurrent,
   hasVisibleHistoryBlock,
+  parseConnectedPeers,
   parsePickerConfig,
   parsePickerOrder,
+  pickerManagementActions,
   pickerRows,
   selectedRowKey,
   selectionAction,
@@ -423,31 +426,272 @@ test("malformed agent metadata and oversized names cannot break search", () => {
   );
 });
 
-test("picker config keeps order and agent context as independent explicit options", () => {
-  assert.deepEqual(parsePickerConfig(null), { order: "native", agentContext: false });
-  assert.deepEqual(parsePickerConfig("not json"), { order: "native", agentContext: false });
-  assert.deepEqual(parsePickerConfig(" ".repeat(4097)), { order: "native", agentContext: false });
-  assert.deepEqual(parsePickerConfig('{"schema":2,"order":"recent","agentContext":true}'), {
-    order: "native",
-    agentContext: false,
-  });
+test("picker config keeps every opt-in independent and fails closed", () => {
+  const disabled = { order: "native", agentContext: false, management: false, remoteSpaces: false };
+  assert.deepEqual(parsePickerConfig(null), disabled);
+  assert.deepEqual(parsePickerConfig("not json"), disabled);
+  assert.deepEqual(parsePickerConfig(" ".repeat(4097)), disabled);
+  assert.deepEqual(parsePickerConfig('{"schema":2,"order":"recent","agentContext":true}'), disabled);
   assert.deepEqual(parsePickerConfig('{"schema":1,"order":"recent"}'), {
     order: "recent",
     agentContext: false,
+    management: false,
+    remoteSpaces: false,
   });
   assert.deepEqual(parsePickerConfig('{"schema":1,"agentContext":true}'), {
     order: "native",
     agentContext: true,
+    management: false,
+    remoteSpaces: false,
   });
   assert.deepEqual(parsePickerConfig('{"schema":1,"order":"recent","agentContext":"yes"}'), {
     order: "recent",
     agentContext: false,
+    management: false,
+    remoteSpaces: false,
   });
-  assert.deepEqual(parsePickerConfig('{"schema":1,"order":"other","agentContext":true}'), {
+  assert.deepEqual(parsePickerConfig('{"schema":1,"order":"other","agentContext":true}'), disabled);
+  assert.deepEqual(parsePickerConfig('{"schema":1,"management":true,"remoteSpaces":true}'), {
     order: "native",
     agentContext: false,
+    management: true,
+    remoteSpaces: true,
+  });
+  assert.deepEqual(parsePickerConfig('{"schema":1,"management":false,"remoteSpaces":true}'), disabled);
+  assert.deepEqual(parsePickerConfig('{"schema":1,"management":true,"remoteSpaces":"yes"}'), {
+    order: "native",
+    agentContext: false,
+    management: true,
+    remoteSpaces: false,
   });
   assert.equal(parsePickerOrder('{"schema":1,"order":"recent"}'), "recent");
+});
+
+test("connected peer parsing requires unique native identities and preserves temporary metadata for rejection", () => {
+  assert.deepEqual(
+    parseConnectedPeers(
+      JSON.stringify({
+        machines: [
+          { id: "peer-server", name: "server", state: "connected", temporary: true },
+          { id: "peer-sleeping", name: "sleeping", state: "disconnected" },
+        ],
+      }),
+    ),
+    [{ id: "peer-server", name: "server", state: "connected", temporary: true }],
+  );
+  assert.deepEqual(parseConnectedPeers('{"machines":[]}'), []);
+  for (const invalid of [
+    null,
+    "not json",
+    "{}",
+    '{"machines":[null]}',
+    '{"machines":[{"name":"server","state":"connected"}]}',
+    '{"machines":[{"id":"","name":"server","state":"connected"}]}',
+    '{"machines":[{"id":"peer-a","name":"server","state":"connected"},{"id":"peer-b","name":"server","state":"connected"}]}',
+    '{"machines":[{"id":"peer-a","name":"server","state":"connected"},{"id":"peer-a","name":"other","state":"connected"}]}',
+    '{"machines":[{"id":"peer-a","name":"server","state":"connected","temporary":"yes"}]}',
+  ]) {
+    assert.equal(parseConnectedPeers(invalid), null);
+  }
+});
+
+test("temporary connected peers stay parsed but never become remote mutation targets", () => {
+  const remoteSpaces = [
+    {
+      ...spaces[1],
+      active: true,
+      tabs: [{ id: "server:terminal", name: "logs", active: true, panes: 1 }],
+    },
+  ];
+  const peers = [
+    { id: "peer-server", name: "server", state: "connected", temporary: true },
+    { id: "peer-build", name: "build", state: "connected" },
+  ];
+  const rows = pickerRows(remoteSpaces, "");
+  const panes = [{ pane: "remote-pane", tab: "server:terminal", terminal: "remote-terminal", mod: null }];
+  const actions = pickerManagementActions(remoteSpaces, {
+    enabled: true,
+    remoteSpaces: true,
+    connectedPeers: peers,
+    focused: { space: "server:project", tab: "server:terminal", pane: null, terminal: null, shown: null },
+    selectedKey: rows[0].key,
+    panes,
+  });
+
+  assert.deepEqual(
+    actions.map(({ kind }) => kind),
+    ["new-local-space", "new-peer-space"],
+  );
+  assert.equal(actions[1].machine, "build");
+  assert.equal(
+    closeTargetIsCurrent(
+      {
+        spaceId: "server:project",
+        spaceName: "project",
+        machine: "server",
+        peerId: "peer-server",
+        tabId: "server:terminal",
+        tabName: "logs",
+        panes: [{ pane: "remote-pane", terminal: "remote-terminal", mod: null }],
+        focusedPane: null,
+      },
+      remoteSpaces,
+      panes,
+      null,
+      peers,
+    ),
+    false,
+  );
+});
+
+test("management actions are separate, opt-in, and tied to exact focused and selected identities", () => {
+  const managedSpaces = [
+    { ...spaces[0], active: true, tabs: [{ id: "terminal", name: "crew", active: true, panes: 2 }] },
+    { ...spaces[1], active: true, tabs: [{ id: "server:terminal", name: "logs", active: true, panes: 1 }] },
+  ];
+  const panes = [
+    { pane: "p2", tab: "terminal", terminal: "t2", mod: null },
+    { pane: "p1", tab: "terminal", terminal: "t1", mod: null },
+    { pane: "remote-pane", tab: "server:terminal", terminal: "remote-terminal", mod: null },
+  ];
+  const rows = pickerRows(managedSpaces, "");
+  const options = {
+    enabled: true,
+    remoteSpaces: true,
+    connectedPeers: [{ id: "peer-server", name: "server", state: "connected" }],
+    focused: { space: "local", tab: "terminal", pane: "p1", terminal: "t1", shown: null },
+    selectedKey: rows[0].key,
+    panes,
+  };
+  const actions = pickerManagementActions(managedSpaces, options);
+
+  assert.deepEqual(
+    actions.map(({ kind }) => kind),
+    ["new-tab", "new-local-space", "new-peer-space", "close-tab"],
+  );
+  assert.equal(actions[0].spaceId, "local");
+  assert.deepEqual(actions[0].machine, null);
+  assert.equal(actions[0].peerId, null);
+  assert.equal(actions[2].machine, "server");
+  assert.equal(actions[2].peerId, "peer-server");
+  assert.equal(actions[3].target.peerId, null);
+  assert.deepEqual(actions[3].target.panes, [
+    { pane: "p1", terminal: "t1", mod: null },
+    { pane: "p2", terminal: "t2", mod: null },
+  ]);
+  assert.equal(
+    new Set([...rows.map((row) => row.key), ...actions.map((action) => action.key)]).size,
+    rows.length + actions.length,
+  );
+  assert.deepEqual(pickerManagementActions(managedSpaces, { ...options, enabled: false }), []);
+  assert.deepEqual(
+    pickerManagementActions(managedSpaces, {
+      ...options,
+      remoteSpaces: false,
+      connectedPeers: null,
+    }).map(({ kind }) => kind),
+    ["new-tab", "new-local-space", "close-tab"],
+  );
+  assert.deepEqual(
+    pickerManagementActions(managedSpaces, {
+      ...options,
+      focused: {
+        space: "server:project",
+        tab: "server:terminal",
+        pane: "remote-pane",
+        terminal: "remote-terminal",
+        shown: null,
+      },
+      connectedPeers: [],
+    }).map(({ kind }) => kind),
+    ["new-local-space", "close-tab"],
+  );
+});
+
+test("remote close review captures and rechecks the exact native peer identity", () => {
+  const remoteSpaces = [
+    {
+      id: "server/space",
+      name: "Remote",
+      machine: "server",
+      active: true,
+      tabs: [{ id: "server/tab", name: "Shell", active: true, panes: 1 }],
+    },
+  ];
+  const connectedPeers = [{ id: "peer-original", name: "server", state: "connected" }];
+  const panes = [{ pane: "server/pane", tab: "server/tab", terminal: "server/terminal", mod: null }];
+  const selected = pickerRows(remoteSpaces, "")[0].key;
+  const [close] = pickerManagementActions(remoteSpaces, {
+    enabled: true,
+    remoteSpaces: true,
+    connectedPeers,
+    focused: null,
+    selectedKey: selected,
+    panes,
+  }).filter((action) => action.kind === "close-tab");
+
+  assert.ok(close);
+  assert.equal(close.target.peerId, "peer-original");
+  assert.equal(closeTargetIsCurrent(close.target, remoteSpaces, panes, null, connectedPeers), true);
+  assert.equal(
+    closeTargetIsCurrent(close.target, remoteSpaces, panes, null, [
+      { id: "peer-rebound", name: "server", state: "connected" },
+    ]),
+    false,
+  );
+  assert.equal(closeTargetIsCurrent(close.target, remoteSpaces, panes, null, []), false);
+});
+
+test("tab close review requires a complete stable pane and resource snapshot", () => {
+  const managedSpaces = [{ ...spaces[0], tabs: [{ id: "terminal", name: "crew", active: true, panes: 2 }] }];
+  const panes = [
+    { pane: "p1", tab: "terminal", terminal: "t1", mod: null },
+    { pane: "p2", tab: "terminal", terminal: null, mod: "files" },
+  ];
+  const selected = pickerRows(managedSpaces, "")[0].key;
+  const [close] = pickerManagementActions(managedSpaces, {
+    enabled: true,
+    remoteSpaces: false,
+    connectedPeers: null,
+    focused: null,
+    selectedKey: selected,
+    panes,
+  }).filter((action) => action.kind === "close-tab");
+  assert.ok(close);
+  assert.equal(closeTargetIsCurrent(close.target, managedSpaces, panes, null), true);
+  assert.equal(closeTargetIsCurrent(close.target, [{ ...managedSpaces[0], machine: "other" }], panes, null), false);
+  assert.equal(
+    closeTargetIsCurrent(close.target, managedSpaces, [{ ...panes[0], terminal: "replacement" }, panes[1]], null),
+    false,
+  );
+  const focused = { space: "local", tab: "terminal", pane: "p1", terminal: "t1", shown: "shown-terminal" };
+  const [focusedClose] = pickerManagementActions(managedSpaces, {
+    enabled: true,
+    remoteSpaces: false,
+    connectedPeers: null,
+    focused,
+    selectedKey: selected,
+    panes,
+  }).filter((action) => action.kind === "close-tab");
+  assert.equal(closeTargetIsCurrent(focusedClose.target, managedSpaces, panes, focused), true);
+  assert.equal(
+    closeTargetIsCurrent(focusedClose.target, managedSpaces, panes, {
+      ...focused,
+      shown: "replacement",
+    }),
+    false,
+  );
+  assert.equal(
+    pickerManagementActions(managedSpaces, {
+      enabled: true,
+      remoteSpaces: false,
+      connectedPeers: null,
+      focused: null,
+      selectedKey: selected,
+      panes: [panes[0]],
+    }).some((action) => action.kind === "close-tab"),
+    false,
+  );
 });
 
 test("optional row context uses exact IDs and counts unique live descendants, excluding agent roots", () => {

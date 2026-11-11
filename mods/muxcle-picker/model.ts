@@ -5,7 +5,7 @@ export interface PickerSpace {
   name: string;
   machine: string | null;
   active: boolean;
-  tabs: readonly { id: string; name: string; active: boolean; status?: unknown }[];
+  tabs: readonly { id: string; name: string; active: boolean; status?: unknown; panes?: unknown }[];
 }
 
 export type PickerDescendants =
@@ -27,6 +27,7 @@ export interface PickerRow {
   label: string;
   machine: string | null;
   active: boolean;
+  spaceId?: string;
   context?: PickerRowContext;
 }
 
@@ -40,6 +41,55 @@ export type PickerOrder = "native" | "recent";
 export interface PickerConfig {
   order: PickerOrder;
   agentContext: boolean;
+  management: boolean;
+  remoteSpaces: boolean;
+}
+
+export interface PickerPaneScope {
+  pane: string;
+  terminal: string | null;
+  mod: string | null;
+}
+
+export interface PickerFocusedContext {
+  space: string;
+  tab: string;
+  pane: string | null;
+  terminal: string | null;
+  shown: string | null;
+}
+
+export interface PickerPeer {
+  id: string;
+  name: string;
+  state: "connected";
+  temporary?: boolean;
+}
+
+export interface PickerCloseTarget {
+  spaceId: string;
+  spaceName: string;
+  machine: string | null;
+  peerId: string | null;
+  tabId: string;
+  tabName: string;
+  panes: PickerPaneScope[];
+  focusedPane: { pane: string | null; terminal: string | null; shown: string | null } | null;
+}
+
+export type PickerManagementAction =
+  | { key: string; kind: "new-tab"; label: string; spaceId: string; machine: string | null; peerId: string | null }
+  | { key: string; kind: "new-local-space"; label: string }
+  | { key: string; kind: "new-peer-space"; label: string; machine: string; peerId: string }
+  | { key: string; kind: "close-tab"; label: string; target: PickerCloseTarget };
+
+export interface PickerManagementOptions {
+  enabled: boolean;
+  remoteSpaces: boolean;
+  connectedPeers: readonly PickerPeer[] | null;
+  focused: PickerFocusedContext | null;
+  selectedKey: string | null;
+  panes: unknown;
 }
 
 export interface PickerOptions {
@@ -76,10 +126,16 @@ const MAX_DESCENDANT_DEPTH = 32;
 const MAX_DESCENDANT_VISITS = 2048;
 const MAX_CONTEXT_VISITS = 8192;
 const MAX_CONTEXT_ROOTS = 128;
+const MAX_MACHINE_LIST_LENGTH = 262144;
+const MAX_MACHINE_RECORDS = 512;
+const MAX_MACHINE_ID_LENGTH = 512;
+const MAX_MACHINE_NAME_LENGTH = 256;
+const MAX_MACHINE_STATE_LENGTH = 64;
+const MAX_PANE_SCOPE = 256;
 const LOCAL_MACHINE_ALIAS = "local";
 
 export function parsePickerConfig(raw: string | null): PickerConfig {
-  const fallback = { order: "native", agentContext: false } as const;
+  const fallback = { order: "native", agentContext: false, management: false, remoteSpaces: false } as const;
   if (raw === null || raw.length > MAX_CONFIG_LENGTH) return fallback;
 
   try {
@@ -90,6 +146,8 @@ export function parsePickerConfig(raw: string | null): PickerConfig {
     return {
       order,
       agentContext: orderIsValid && value.agentContext === true,
+      management: orderIsValid && value.management === true,
+      remoteSpaces: orderIsValid && value.management === true && value.remoteSpaces === true,
     };
   } catch {
     return fallback;
@@ -98,6 +156,162 @@ export function parsePickerConfig(raw: string | null): PickerConfig {
 
 export function parsePickerOrder(raw: string | null): PickerOrder {
   return parsePickerConfig(raw).order;
+}
+
+export function parseConnectedPeers(raw: unknown): PickerPeer[] | null {
+  if (typeof raw !== "string" || raw.length > MAX_MACHINE_LIST_LENGTH) return null;
+
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (!isRecord(value) || !Array.isArray(value.machines) || value.machines.length > MAX_MACHINE_RECORDS) return null;
+
+    const peers: PickerPeer[] = [];
+    const seenNames = new Set<string>();
+    const seenIds = new Set<string>();
+    for (const candidate of value.machines) {
+      if (
+        !isRecord(candidate) ||
+        !isNativeMachineText(candidate.id, MAX_MACHINE_ID_LENGTH) ||
+        !isNativeMachineText(candidate.name, MAX_MACHINE_NAME_LENGTH) ||
+        !isNativeMachineText(candidate.state, MAX_MACHINE_STATE_LENGTH) ||
+        (candidate.temporary !== undefined && typeof candidate.temporary !== "boolean") ||
+        seenNames.has(candidate.name) ||
+        seenIds.has(candidate.id)
+      ) {
+        return null;
+      }
+      seenNames.add(candidate.name);
+      seenIds.add(candidate.id);
+      if (candidate.state !== "connected") continue;
+      peers.push({
+        id: candidate.id,
+        name: candidate.name,
+        state: "connected",
+        ...(typeof candidate.temporary === "boolean" ? { temporary: candidate.temporary } : {}),
+      });
+    }
+    return peers;
+  } catch {
+    return null;
+  }
+}
+
+export function connectedPeerIsCurrent(machine: string, peerId: string, peers: readonly PickerPeer[] | null): boolean {
+  if (
+    !Array.isArray(peers) ||
+    !isNativeMachineText(machine, MAX_MACHINE_NAME_LENGTH) ||
+    !isNativeMachineText(peerId, MAX_MACHINE_ID_LENGTH)
+  ) {
+    return false;
+  }
+  const nameMatches = peers.filter((peer) => peer.name === machine);
+  const idMatches = peers.filter((peer) => peer.id === peerId);
+  // Herdr 0.1.13's document-backed mutations reject temporary machines.
+  return (
+    nameMatches.length === 1 &&
+    idMatches.length === 1 &&
+    nameMatches[0] === idMatches[0] &&
+    nameMatches[0].state === "connected" &&
+    nameMatches[0].temporary !== true
+  );
+}
+
+export function pickerManagementActions(
+  spaces: readonly PickerSpace[],
+  options: PickerManagementOptions,
+): PickerManagementAction[] {
+  if (!options.enabled) return [];
+
+  const peerListAvailable = Array.isArray(options.connectedPeers);
+  const remoteEnabled = options.remoteSpaces && peerListAvailable;
+  const connectedPeer = (machine: string): PickerPeer | null => {
+    if (!remoteEnabled || !Array.isArray(options.connectedPeers)) return null;
+    const matches = options.connectedPeers.filter((peer) => peer.name === machine);
+    if (matches.length !== 1 || !connectedPeerIsCurrent(machine, matches[0].id, options.connectedPeers)) return null;
+    return matches[0];
+  };
+  const actions: PickerManagementAction[] = [];
+  const focused = options.focused === null ? [] : spaces.filter((space) => space.id === options.focused?.space);
+  if (focused.length === 1) {
+    const space = focused[0];
+    const peer = space.machine === null ? null : connectedPeer(space.machine);
+    const canTargetSpace = space.machine === null || peer !== null;
+    if (canTargetSpace) {
+      actions.push({
+        key: managementKey("new-tab", space.machine, space.id, peer?.id ?? null),
+        kind: "new-tab",
+        label: `New tab in ${space.name}`,
+        spaceId: space.id,
+        machine: space.machine,
+        peerId: peer?.id ?? null,
+      });
+    }
+  }
+
+  actions.push({
+    key: managementKey("new-local-space"),
+    kind: "new-local-space",
+    label: "New local space",
+  });
+
+  if (remoteEnabled && options.connectedPeers) {
+    for (const peer of options.connectedPeers) {
+      if (peer.state !== "connected" || !isBoundedString(peer.name, MAX_MACHINE_NAME_LENGTH)) continue;
+      if (!connectedPeerIsCurrent(peer.name, peer.id, options.connectedPeers)) continue;
+      actions.push({
+        key: managementKey("new-peer-space", peer.name, peer.id),
+        kind: "new-peer-space",
+        label: `New space on ${peer.name}`,
+        machine: peer.name,
+        peerId: peer.id,
+      });
+    }
+  }
+
+  const selected =
+    options.selectedKey === null
+      ? undefined
+      : pickerRows(spaces, "").find((row) => row.key === options.selectedKey && row.kind === "tab");
+  if (!selected || (selected.machine !== null && !connectedPeer(selected.machine))) return actions;
+
+  const peer = selected.machine === null ? null : connectedPeer(selected.machine);
+  const target = closeTargetForRow(spaces, selected, options.panes, options.focused, peer?.id ?? null);
+  if (target) {
+    actions.push({
+      key: managementKey("close-tab", target.machine, target.peerId, target.spaceId, target.tabId),
+      kind: "close-tab",
+      label: `Close selected tab: ${target.tabName}`,
+      target,
+    });
+  }
+  return actions;
+}
+
+export function closeTargetIsCurrent(
+  target: PickerCloseTarget,
+  spaces: readonly PickerSpace[],
+  panes: unknown,
+  focused: PickerFocusedContext | null,
+  connectedPeers: readonly PickerPeer[] | null = null,
+): boolean {
+  if (
+    target.machine === null
+      ? target.peerId !== null
+      : !connectedPeerIsCurrent(target.machine, target.peerId ?? "", connectedPeers)
+  )
+    return false;
+  const matchingSpaces = spaces.filter((space) => space.id === target.spaceId && space.machine === target.machine);
+  if (matchingSpaces.length !== 1) return false;
+
+  const matchingTabs = matchingSpaces[0].tabs.filter((tab) => tab.id === target.tabId);
+  if (matchingTabs.length !== 1) return false;
+  const scope = paneScope(target.tabId, matchingTabs[0].panes, panes);
+  if (scope === null || JSON.stringify(scope) !== JSON.stringify(target.panes)) return false;
+  const focus =
+    focused?.space === target.spaceId && focused.tab === target.tabId
+      ? { pane: focused.pane, terminal: focused.terminal, shown: focused.shown }
+      : null;
+  return JSON.stringify(focus) === JSON.stringify(target.focusedPane);
 }
 
 export function pickerRows(spaces: readonly PickerSpace[], query: string, options: PickerOptions = {}): PickerRow[] {
@@ -129,6 +343,7 @@ export function pickerRows(spaces: readonly PickerSpace[], query: string, option
         label: `${space.name} → ${tab.name}`,
         machine: space.machine,
         active: space.active && tab.active,
+        spaceId: space.id,
       };
       const agentNames = agentsByTarget.get(targetKey(space.id, tab.id)) ?? [];
       return { row, searchText: searchText(row, agentNames), spaceId: space.id, tab };
@@ -531,6 +746,82 @@ function targetKey(space: string, tab: string): string {
 
 function isTargetId(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= MAX_TARGET_ID_LENGTH;
+}
+
+function isBoundedString(value: unknown, maximum: number): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= maximum;
+}
+
+function isNativeMachineText(value: unknown, maximum: number): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= maximum && !value.includes("\0");
+}
+
+function managementKey(kind: string, ...identity: (string | null)[]): string {
+  return JSON.stringify(["management", kind, ...identity]);
+}
+
+function closeTargetForRow(
+  spaces: readonly PickerSpace[],
+  row: PickerRow,
+  panes: unknown,
+  focused: PickerFocusedContext | null,
+  peerId: string | null,
+): PickerCloseTarget | null {
+  if (!row.spaceId) return null;
+  const spaceMatches = spaces.filter((space) => space.id === row.spaceId && space.machine === row.machine);
+  if (spaceMatches.length !== 1) return null;
+  const space = spaceMatches[0];
+  const tabs = space.tabs.filter((tab) => tab.id === row.id);
+  if (tabs.length !== 1) return null;
+  const tab = tabs[0];
+  const scope = paneScope(tab.id, tab.panes, panes);
+  if (!scope) return null;
+
+  return {
+    spaceId: space.id,
+    spaceName: space.name,
+    machine: space.machine,
+    peerId,
+    tabId: tab.id,
+    tabName: tab.name,
+    panes: scope,
+    focusedPane:
+      focused?.space === space.id && focused.tab === tab.id
+        ? { pane: focused.pane, terminal: focused.terminal, shown: focused.shown }
+        : null,
+  };
+}
+
+function paneScope(tabId: string, count: unknown, raw: unknown): PickerPaneScope[] | null {
+  if (
+    !Number.isSafeInteger(count) ||
+    (count as number) < 1 ||
+    (count as number) > MAX_PANE_SCOPE ||
+    !Array.isArray(raw) ||
+    raw.length > MAX_PANE_SCOPE
+  )
+    return null;
+
+  const matching: PickerPaneScope[] = [];
+  const paneIds = new Set<string>();
+  for (const candidate of raw) {
+    if (!isRecord(candidate) || !isTargetId(candidate.tab) || !isTargetId(candidate.pane)) return null;
+    if (candidate.tab !== tabId) continue;
+    if (
+      (candidate.terminal !== null && !isTargetId(candidate.terminal)) ||
+      (candidate.mod !== undefined && candidate.mod !== null && !isBoundedString(candidate.mod, 256)) ||
+      paneIds.has(candidate.pane)
+    )
+      return null;
+    paneIds.add(candidate.pane);
+    matching.push({
+      pane: candidate.pane,
+      terminal: candidate.terminal as string | null,
+      mod: typeof candidate.mod === "string" ? candidate.mod : null,
+    });
+  }
+  if (matching.length !== count) return null;
+  return matching.sort((left, right) => left.pane.localeCompare(right.pane));
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

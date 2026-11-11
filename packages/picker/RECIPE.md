@@ -8,7 +8,11 @@ An optional Herdr popup that searches existing spaces and tabs by their current 
 
 Use arrows or Ctrl-J/K to move, Enter or a click to select, and Escape to cancel. Native ordering is the default; an explicit per-user config can opt into most-recent-first ordering. The current tab is selected initially when visible. Both local and connected remote spaces use their existing native IDs.
 
-The picker does not create or close tabs, spaces, or terminals. On open it reads only its optional config file under the Herdr app home. In recency mode it checks the current layout snapshot for a visible History block before reading the History MRU shared-state key; a missing/hidden block or missing/invalid data leaves results in native order. This is configuration evidence, not proof that the observer is healthy: a visible but non-running observer can leave valid persisted visits stale. The picker does not scan files, run programs, or access the network. It requires Herdr 0.1.13; default native-order use needs no Python, Node.js, custom layout, or other Muxcle package. New recency data requires the optional History observer. The optional shortcut is Ctrl-a Ctrl-b.
+Creation and close actions are separately opt-in with `management: true`. They appear in a distinct Manage section and require an explicit row click or keyboard navigation into that section; an empty search never preselects an action. This enables a new tab in the exact focused space, a local space, and a reviewed close for the selected tab. Close review shows the parent space, machine, pane IDs, terminal/mod resources, and rechecks that exact membership and scope before sending `tab.close`. Herdr's native close removes the parent space when this is its last tab and may request native confirmation; the picker does not bypass that confirmation or claim that a queued command completed. Merge this setting into the existing schema-1 config; do not replace other settings.
+
+Remote-space actions use a second opt-in, `remoteSpaces: true`, which requires `management: true`. Only then does the picker call `hc machine ls --json`. Each machine record must have a unique `id`, `name`, and `state`; temporary metadata is retained, but temporary peers are never mutation targets. Herdr 0.1.13's native document-backed commands omit temporary machines from document slots and require a document, so a Core ID alone does not make a temporary peer usable. The picker offers remote actions only for connected, non-temporary peers and rechecks that eligibility plus the captured ID and name against a fresh listing before dispatch. Missing, conflicting, disconnected, changed identity, or a peer newly marked temporary fails closed. The close review also shows the captured Core ID and rechecks peer identity with the exact tab/pane scope. The picker never discovers/connects machines or creates a document to work around this native limit. With both options off by default, there is no machine-list query and no creation or close action.
+
+On open, the picker reads only its optional config file under the Herdr app home. In recency mode it checks the current layout snapshot for a visible History block before reading the History MRU shared-state key; a missing/hidden block or missing/invalid data leaves results in native order. This is configuration evidence, not proof that the observer is healthy: a visible but non-running observer can leave valid persisted visits stale. The picker does not scan files or launch programs. It requires Herdr 0.1.13; default native-order use needs no Python, Node.js, custom layout, or other Muxcle package. New recency data requires the optional History observer. The optional shortcut is Ctrl-a Ctrl-b.
 
 ## Add this package to Herdr
 
@@ -81,7 +85,21 @@ To add native status, program name, and live-descendant annotations to existing 
 
 This option is independent of `order`; omitting `order` keeps native ordering. Missing, malformed, or invalid context configuration leaves the annotations off. Keep any existing `order` setting when editing the file. Neither the package example config nor whole-pack installation enables agent context automatically.
 
-Context matches native agent metadata to a row only by exact qualified space and tab IDs. It may show the tab's reported status and associated program name. The optional count is the number of unique live terminal descendants reachable from those agent terminal addresses, excluding the agent roots. It is bounded to 32 levels, 2,048 visited descendants per tab, and 8,192 across one result set; oversized or incomplete snapshots show a lower bound or unavailable label, never an exact team-size claim. Native `terminals()` data is metadata only; it does not prove process/socket ownership or terminal content. Context mode reads that snapshot only when explicitly enabled; it does not poll, scan projects, run processes, discover machines, or access the network. Existing agent-name search works as before when annotations are off.
+Context matches native agent metadata to a row only by exact qualified space and tab IDs. It may show the tab's reported status and associated program name. The optional count is the number of unique live terminal descendants reachable from those agent terminal addresses, excluding the agent roots. It is bounded to 32 levels, 2,048 visited descendants per tab, and 8,192 across one result set; oversized or incomplete snapshots show a lower bound or unavailable label, never an exact team-size claim. Native `terminals()` data is metadata only; it does not prove process/socket ownership or terminal content. Context mode reads that snapshot only when explicitly enabled; it does not poll, scan projects, run processes, or discover machines. Existing agent-name search works as before when annotations are off.
+
+### Opt in to management actions
+
+Merge the following keys into the existing `data/muxcle-picker/config.json` to enable local tab/space creation and reviewed tab close. Add `remoteSpaces` only if connected-machine space creation and remote-tab close are also wanted:
+
+```json
+{
+  "schema": 1,
+  "management": true,
+  "remoteSpaces": true
+}
+```
+
+`remoteSpaces` has no effect unless `management` is true. Keep existing `order` and `agentContext` values. The picker does not silently change the package example or whole-pack config. The native `run()` API is fire-and-forget; after a command is sent, the popup closes without claiming creation or close completion. If a close command reports an error, the picker blocks a second attempt in that review and asks you to inspect the tab first.
 
 ### Update or remove
 

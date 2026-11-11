@@ -21,13 +21,13 @@ make test          # build, then run co-located Node tests
 make gate          # canonical typecheck/build/test gate
 make herdr-check   # package, install into a temporary app home, preserve settings, native-check
 make e2e-help      # prerequisites and coverage of opt-in native IPC scenarios
-make e2e           # real isolated macOS app/core, PTY geometry, focus, screenshots
+make e2e           # PAUSED: requires a separately approved suitable headless path
 make dev-help      # optional selected-mod build/link/watch workflow
 make package       # build individual archives plus the whole pack, with SHA-256
 make release-plan  # preview versioned package downloads and installation notes; no publication
 make release-check # release CI checks plus isolated native check
 make release-ci    # checks available on the hosted release runner
-make release-tag TAG=v0.1.0  # verify tag matches package.json; does not publish
+make release-tag TAG=vNEXT_VERSION  # substitute the next unreleased version; validation only, no tag creation
 ```
 
 ## One normal quality gate
@@ -63,6 +63,8 @@ node scripts/dev-loop.mjs unlink --mod muxcle-picker --app-home /path/to/an/isol
 Native live-reload and asset-cache behavior are version/platform-dependent. In a private copied app/core, a test mod emitted a status-visible notification from module initialization; swapping the managed link increased the `toast` overlay count from one to two, confirming JavaScript module reinitialization on the tested Native build. The full-window popup screenshot still showed only the loading frame. A helper-only change was inconclusive, and nested asset refresh was not verified. Do not rely on helper or asset changes refreshing through a directory symlink; no supported manual asset-refresh fallback has been established. The tool never restarts a process. Keep `watch` away from a running app when relying on newly changed assets until that path has separate evidence.
 
 ## Explicit checks outside the gate
+
+**Interactive E2E is paused pending a suitable headless path.** The existing macOS harness remains documented for future authorized work, not as a required current check. Do not open a live or copied app to manufacture evidence for package readiness; isolated initial-load checks and mocked tests have narrower claims.
 
 - `make format`: formatting is manual until a formatter is selected.
 - `make coverage`: build and report Node test coverage; not a threshold or gate.

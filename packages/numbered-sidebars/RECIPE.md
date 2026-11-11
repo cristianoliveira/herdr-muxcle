@@ -37,7 +37,7 @@ Then merge only the desired block snippets into the chosen personal layout and r
 
 ## Update or remove
 
-Run the bundled preflight in `--update` mode and replace only the marked `mods/muxcle-numbered-sidebars` folder. Keep the layout blocks; they remain valid for a compatible replacement. For removal, first remove only the blocks whose `content.mod` is `muxcle-numbered-sidebars`, then run preflight in `--remove` mode and move only the marked mod folder to a backup. The package writes no persistent state.
+Run the bundled preflight in `--update` mode and replace only the marked `mods/muxcle-numbered-sidebars` folder. Keep the layout blocks; they remain valid for a compatible replacement. For removal, first remove only the package blocks that were added. If an existing node was deliberately reused, restore its original content/props instead of deleting the user's node or native expanded controls. Preserve unrelated IDs, parent geometry and fields. Then run preflight in `--remove` mode and move only the marked mod folder to a backup. The package writes no persistent state.
 
 ## Limits and verification
 

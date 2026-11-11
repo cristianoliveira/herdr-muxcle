@@ -40,11 +40,11 @@ HC_SESSION="muxcle-workspace-chrome-check-$$" HERDR_APP_HOME="$APP_HOME" \
   herdr-app check "$APP_HOME/mods/muxcle-workspace-chrome"
 ```
 
-Read `layout-snippets.json` and review conflicts before merging. Choose only the composition that fits the existing bar. Keep native `workspace-status`, pane content, parent axes, sizes, and other layout fields unchanged. The snippets do not select a layout, change keys, or activate the package.
+Read `layout-snippets.json` and review conflicts before merging. Before reusing a bar or pane header, back up its original content, props and header fields so removal can restore them. Choose only the composition that fits the existing bar. Keep native `workspace-status`, pane content, parent axes, sizes, and other layout fields unchanged. The snippets do not select a layout, change keys, or activate the package.
 
 ## Update or remove
 
-Run the bundled preflight in `--update` mode before replacing only the marked `mods/muxcle-workspace-chrome` folder. For removal, remove only the selected fragments, restore original pane header fields, run preflight with `--remove`, then move only the marked mod folder to a backup. The custom panel mode writes no persistent state; native command effects and the installed `tabs` module retain Herdr's normal behavior.
+Run the bundled preflight in `--update` mode before replacing only the marked `mods/muxcle-workspace-chrome` folder. For removal, delete only nodes added for this package. If a fragment reused an existing bar or header, restore its backed-up content, props and header fields instead of deleting that node; preserve its ID, parent, axis, size and unrelated fields. Keep the native `workspace-status` block and installed native modules. Run preflight with `--remove`, then move only the marked mod folder to a backup. The custom panel mode writes no persistent state; native command effects and the installed `tabs` module retain Herdr's normal behavior.
 
 ## Limits and verification
 

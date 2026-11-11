@@ -31,8 +31,10 @@ The `hc` CLI must reach the same core/session as Herdr. Keep `HC_SESSION` consis
 Download `muxcle-rotation-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). Choose a published tag; if none exists, stop and ask whether a contributor should prepare a local build. For a local archive, verify and extract in the directory containing both files:
 
 ```sh
-shasum -a 256 -c muxcle-rotation-v0.1.0.tar.gz.sha256
-tar -xzf muxcle-rotation-v0.1.0.tar.gz
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0 for a local candidate only}"
+ARCHIVE="muxcle-rotation-${VERSION}.tar.gz"
+shasum -a 256 -c "$ARCHIVE.sha256"
+tar -xzf "$ARCHIVE"
 ```
 
 ### Install through Herdr
@@ -43,7 +45,7 @@ Manual file deployment:
 
 ```sh
 set -eu
-BUNDLE="/path/to/muxcle-rotation-v0.1.0"
+BUNDLE="/path/to/muxcle-rotation-${MUXCLE_VERSION:?Set MUXCLE_VERSION to the extracted archive tag including leading v}"
 APP_HOME="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 sh "$BUNDLE/check-install-targets.sh" "$APP_HOME"
 mkdir -p "$APP_HOME/mods"

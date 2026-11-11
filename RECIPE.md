@@ -38,13 +38,13 @@ This package is a starter layout and one static status mod. It does not implemen
 
 ### End-user download and install
 
-Choose a published tag from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). If none exists, ask a contributor to prepare a local archive; do not require end-user development tooling. The example below uses `v0.1.0`; replace it with the published tag you selected. This is a manual app-home install; it does not require Git, Node.js, npm, or a repository clone.
+Choose a published tag from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). If none exists, ask a contributor to prepare a local archive; do not require end-user development tooling. Set `MUXCLE_VERSION` to the exact tag, including its leading `v`, that is actually published and includes this package. The local candidate's `v0.2.0` filename does not imply that a release exists. This is a manual app-home install; it does not require Git, Node.js, npm, or a repository clone.
 
-After a release exists, set `VERSION` to its tag and run this from a shell. The install checker refuses existing package paths and symlinked app-home containers rather than overwriting or following them.
+After a release exists, set `MUXCLE_VERSION` to its exact tag including the leading `v` and run this from a shell. The install checker refuses existing package paths and symlinked app-home containers rather than overwriting or following them.
 
 ```sh
 set -eu
-VERSION=v0.1.0
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to a published tag including leading v and containing this package}"
 RELEASE_URL="https://github.com/cristianoliveira/herdr-muxcle/releases/download/$VERSION"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT

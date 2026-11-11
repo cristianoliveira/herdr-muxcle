@@ -21,8 +21,10 @@ For a published package, use its versioned archive and matching checksum; no sou
 Download `muxcle-repeat-v<version>.tar.gz` and its `.sha256` file from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). Choose a published tag; if none exists, stop and ask whether a contributor should prepare a local build. For local archives, verify and extract both files:
 
 ```sh
-shasum -a 256 -c muxcle-repeat-v0.1.0.tar.gz.sha256
-tar -xzf muxcle-repeat-v0.1.0.tar.gz
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0 for a local candidate only}"
+ARCHIVE="muxcle-repeat-${VERSION}.tar.gz"
+shasum -a 256 -c "$ARCHIVE.sha256"
+tar -xzf "$ARCHIVE"
 ```
 
 Read the recipe and mod files before installation. The runtime only calls the native `tab.prev`, `tab.next`, and `pane.go` commands for the fixed key allowlist.
@@ -35,7 +37,7 @@ Manual file deployment, with `BUNDLE` pointing at the extracted folder:
 
 ```sh
 set -eu
-BUNDLE="/path/to/muxcle-repeat-v0.1.0"
+BUNDLE="/path/to/muxcle-repeat-${MUXCLE_VERSION:?Set MUXCLE_VERSION to the matching archive tag including leading v}"
 APP_HOME="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 sh "$BUNDLE/check-install-targets.sh" "$APP_HOME"
 mkdir -p "$APP_HOME/mods"
@@ -56,7 +58,7 @@ Optionally merge the `ctrl-a shift-r` entry from `keys.json` into the existing g
 Close the popup first. Back up the installed mod before an update, then run the replacement package's preflight and native check. Set `BUNDLE` to the replacement package folder:
 
 ```sh
-BUNDLE="/path/to/muxcle-repeat-v0.1.0"
+BUNDLE="/path/to/muxcle-repeat-${MUXCLE_VERSION:?Set MUXCLE_VERSION to the replacement archive tag including leading v}"
 APP_HOME="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 sh "$BUNDLE/check-install-targets.sh" --update "$APP_HOME"
 BACKUP_DIR="$(mktemp -d)"
@@ -68,7 +70,7 @@ HERDR_APP_HOME="$APP_HOME" herdr-app check "$APP_HOME/mods/muxcle-repeat"
 Restore the backup if copying or checking fails. To uninstall, set `BUNDLE` to the installed package folder and `APP_HOME` to the Herdr app home. Remove the shortcut only if its key and action still match this package, then run the preflight and move only the marked mod folder to a backup:
 
 ```sh
-BUNDLE="/path/to/muxcle-repeat-v0.1.0"
+BUNDLE="/path/to/muxcle-repeat-${MUXCLE_VERSION:?Set MUXCLE_VERSION to the installed archive tag including leading v}"
 APP_HOME="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 sh "$BUNDLE/check-install-targets.sh" --remove "$APP_HOME"
 BACKUP_DIR="$(mktemp -d)"

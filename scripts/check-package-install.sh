@@ -6,6 +6,14 @@ bundle="herdr-muxcle-v$version"
 temporary=$(mktemp -d)
 trap 'rm -rf "$temporary"' EXIT HUP INT TERM
 
+check_mod() {
+  component=$1
+  app_home=$2
+  mod_path=$3
+  HC_SESSION="muxcle-${component}-check-$$" HERDR_APP_HOME="$app_home" \
+    herdr-app check "$mod_path"
+}
+
 mkdir "$temporary/home"
 tar -xzf "dist/$bundle.tar.gz" -C "$temporary"
 printf '%s\n' '{"preserve":"this file"}' > "$temporary/home/settings.json"
@@ -13,7 +21,7 @@ sh "$temporary/$bundle/check-install-targets.sh" "$temporary/home"
 cp -R "$temporary/$bundle/layouts" "$temporary/home/layouts"
 cp -R "$temporary/$bundle/mods" "$temporary/home/mods"
 printf '%s\n' '{"preserve":"this file"}' > "$temporary/expected-settings.json"
-HERDR_APP_HOME="$temporary/home" herdr-app check "$temporary/home/mods/muxcle-compat"
+check_mod muxcle-compat "$temporary/home" "$temporary/home/mods/muxcle-compat"
 cmp "$temporary/expected-settings.json" "$temporary/home/settings.json"
 
 sessionizer_bundle="muxcle-sessionizer-v$version"
@@ -23,7 +31,7 @@ printf '%s\n' '{"preserve":"this file"}' > "$temporary/sessionizer-home/settings
 sh "$temporary/$sessionizer_bundle/check-install-targets.sh" "$temporary/sessionizer-home"
 mkdir "$temporary/sessionizer-home/mods"
 cp -R "$temporary/$sessionizer_bundle/mods/muxcle-sessionizer" "$temporary/sessionizer-home/mods/"
-HERDR_APP_HOME="$temporary/sessionizer-home" herdr-app check "$temporary/sessionizer-home/mods/muxcle-sessionizer"
+check_mod muxcle-sessionizer "$temporary/sessionizer-home" "$temporary/sessionizer-home/mods/muxcle-sessionizer"
 cmp "$temporary/expected-settings.json" "$temporary/sessionizer-home/settings.json"
 test ! -e "$temporary/sessionizer-home/data/muxcle-sessionizer/config.json"
 
@@ -34,7 +42,7 @@ printf '%s\n' '{"preserve":"this file"}' > "$temporary/picker-home/settings.json
 sh "$temporary/$picker_bundle/check-install-targets.sh" "$temporary/picker-home"
 mkdir "$temporary/picker-home/mods"
 cp -R "$temporary/$picker_bundle/mods/muxcle-picker" "$temporary/picker-home/mods/"
-HERDR_APP_HOME="$temporary/picker-home" herdr-app check "$temporary/picker-home/mods/muxcle-picker"
+check_mod muxcle-picker "$temporary/picker-home" "$temporary/picker-home/mods/muxcle-picker"
 cmp "$temporary/expected-settings.json" "$temporary/picker-home/settings.json"
 test ! -e "$temporary/picker-home/data/muxcle-picker/config.json"
 
@@ -45,7 +53,7 @@ printf '%s\n' '{"unrelated":"keep"}' > "$temporary/history-home/shared.json"
 sh "$temporary/$history_bundle/check-install-targets.sh" "$temporary/history-home"
 mkdir "$temporary/history-home/mods"
 cp -R "$temporary/$history_bundle/mods/muxcle-history" "$temporary/history-home/mods/"
-HERDR_APP_HOME="$temporary/history-home" herdr-app check "$temporary/history-home/mods/muxcle-history"
+check_mod muxcle-history "$temporary/history-home" "$temporary/history-home/mods/muxcle-history"
 python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["unrelated"] == "keep"' "$temporary/history-home/shared.json"
 
 agent_intray_bundle="muxcle-agent-intray-v$version"
@@ -56,7 +64,7 @@ cp "$temporary/agent-intray-home/shared.json" "$temporary/agent-intray-shared.js
 sh "$temporary/$agent_intray_bundle/check-install-targets.sh" "$temporary/agent-intray-home"
 mkdir "$temporary/agent-intray-home/mods"
 cp -R "$temporary/$agent_intray_bundle/mods/muxcle-agent-intray" "$temporary/agent-intray-home/mods/"
-HERDR_APP_HOME="$temporary/agent-intray-home" herdr-app check "$temporary/agent-intray-home/mods/muxcle-agent-intray"
+check_mod muxcle-agent-intray "$temporary/agent-intray-home" "$temporary/agent-intray-home/mods/muxcle-agent-intray"
 python3 -c 'import json,sys; expected=json.load(open(sys.argv[1])); actual=json.load(open(sys.argv[2])); assert actual.get("intray.state") == expected["intray.state"]; assert actual["muxcle-agent-intray.state.v1"]["schema"] == 1' "$temporary/agent-intray-shared.json" "$temporary/agent-intray-home/shared.json"
 
 rotation_bundle="muxcle-rotation-v$version"
@@ -65,7 +73,7 @@ tar -xzf "dist/$rotation_bundle.tar.gz" -C "$temporary"
 sh "$temporary/$rotation_bundle/check-install-targets.sh" "$temporary/rotation-home"
 mkdir "$temporary/rotation-home/mods"
 cp -R "$temporary/$rotation_bundle/mods/muxcle-rotation" "$temporary/rotation-home/mods/"
-HERDR_APP_HOME="$temporary/rotation-home" herdr-app check "$temporary/rotation-home/mods/muxcle-rotation"
+check_mod muxcle-rotation "$temporary/rotation-home" "$temporary/rotation-home/mods/muxcle-rotation"
 
 sizing_bundle="muxcle-sizing-v$version"
 mkdir "$temporary/sizing-home"
@@ -74,7 +82,7 @@ printf '%s\n' '{"unrelated":"keep"}' > "$temporary/sizing-home/settings.json"
 sh "$temporary/$sizing_bundle/check-install-targets.sh" "$temporary/sizing-home"
 mkdir "$temporary/sizing-home/mods"
 cp -R "$temporary/$sizing_bundle/mods/muxcle-sizing" "$temporary/sizing-home/mods/"
-HERDR_APP_HOME="$temporary/sizing-home" herdr-app check "$temporary/sizing-home/mods/muxcle-sizing"
+check_mod muxcle-sizing "$temporary/sizing-home" "$temporary/sizing-home/mods/muxcle-sizing"
 printf '%s\n' '{"unrelated":"keep"}' > "$temporary/sizing-settings.json"
 cmp "$temporary/sizing-settings.json" "$temporary/sizing-home/settings.json"
 
@@ -86,7 +94,7 @@ cp "$temporary/repeat-home/settings.json" "$temporary/repeat-settings.json"
 sh "$temporary/$repeat_bundle/check-install-targets.sh" "$temporary/repeat-home"
 mkdir "$temporary/repeat-home/mods"
 cp -R "$temporary/$repeat_bundle/mods/muxcle-repeat" "$temporary/repeat-home/mods/"
-HERDR_APP_HOME="$temporary/repeat-home" herdr-app check "$temporary/repeat-home/mods/muxcle-repeat"
+check_mod muxcle-repeat "$temporary/repeat-home" "$temporary/repeat-home/mods/muxcle-repeat"
 cmp "$temporary/repeat-settings.json" "$temporary/repeat-home/settings.json"
 
 project_popup_bundle="muxcle-project-popup-v$version"
@@ -97,7 +105,7 @@ cp "$temporary/project-popup-home/settings.json" "$temporary/project-popup-setti
 sh "$temporary/$project_popup_bundle/check-install-targets.sh" "$temporary/project-popup-home"
 mkdir "$temporary/project-popup-home/mods"
 cp -R "$temporary/$project_popup_bundle/mods/muxcle-project-popup" "$temporary/project-popup-home/mods/"
-HERDR_APP_HOME="$temporary/project-popup-home" herdr-app check "$temporary/project-popup-home/mods/muxcle-project-popup"
+check_mod muxcle-project-popup "$temporary/project-popup-home" "$temporary/project-popup-home/mods/muxcle-project-popup"
 cmp "$temporary/project-popup-settings.json" "$temporary/project-popup-home/settings.json"
 
 copy_mode_bundle="muxcle-copy-mode-v$version"
@@ -108,7 +116,7 @@ cp "$temporary/copy-mode-home/settings.json" "$temporary/copy-mode-settings.json
 sh "$temporary/$copy_mode_bundle/check-install-targets.sh" "$temporary/copy-mode-home"
 mkdir "$temporary/copy-mode-home/mods"
 cp -R "$temporary/$copy_mode_bundle/mods/muxcle-copy-mode" "$temporary/copy-mode-home/mods/"
-HERDR_APP_HOME="$temporary/copy-mode-home" herdr-app check "$temporary/copy-mode-home/mods/muxcle-copy-mode"
+check_mod muxcle-copy-mode "$temporary/copy-mode-home" "$temporary/copy-mode-home/mods/muxcle-copy-mode"
 cmp "$temporary/copy-mode-settings.json" "$temporary/copy-mode-home/settings.json"
 
 tab_tools_bundle="muxcle-tab-tools-v$version"
@@ -119,18 +127,18 @@ cp "$temporary/tab-tools-home/settings.json" "$temporary/tab-tools-settings.json
 sh "$temporary/$tab_tools_bundle/check-install-targets.sh" "$temporary/tab-tools-home"
 mkdir "$temporary/tab-tools-home/mods"
 cp -R "$temporary/$tab_tools_bundle/mods/muxcle-tab-tools" "$temporary/tab-tools-home/mods/"
-HERDR_APP_HOME="$temporary/tab-tools-home" herdr-app check "$temporary/tab-tools-home/mods/muxcle-tab-tools"
+check_mod muxcle-tab-tools "$temporary/tab-tools-home" "$temporary/tab-tools-home/mods/muxcle-tab-tools"
 cmp "$temporary/tab-tools-settings.json" "$temporary/tab-tools-home/settings.json"
 
 funzzy_status_bundle="muxcle-funzzy-status-v$version"
 mkdir "$temporary/funzzy-status-home"
+tar -xzf "dist/$funzzy_status_bundle.tar.gz" -C "$temporary"
 printf '%s\n' '{"unrelated":"keep"}' > "$temporary/funzzy-status-home/shared.json"
 cp "$temporary/funzzy-status-home/shared.json" "$temporary/funzzy-status-shared.json"
 sh "$temporary/$funzzy_status_bundle/check-install-targets.sh" "$temporary/funzzy-status-home"
 mkdir "$temporary/funzzy-status-home/mods"
 cp -R "$temporary/$funzzy_status_bundle/mods/muxcle-funzzy-status" "$temporary/funzzy-status-home/mods/"
-HC_SESSION="muxcle-funzzy-status-check-$$" HERDR_APP_HOME="$temporary/funzzy-status-home" \
-  herdr-app check "$temporary/funzzy-status-home/mods/muxcle-funzzy-status"
+check_mod muxcle-funzzy-status "$temporary/funzzy-status-home" "$temporary/funzzy-status-home/mods/muxcle-funzzy-status"
 cmp "$temporary/funzzy-status-shared.json" "$temporary/funzzy-status-home/shared.json"
 
 numbered_sidebars_bundle="muxcle-numbered-sidebars-v$version"
@@ -139,8 +147,7 @@ tar -xzf "dist/$numbered_sidebars_bundle.tar.gz" -C "$temporary"
 sh "$temporary/$numbered_sidebars_bundle/check-install-targets.sh" "$temporary/numbered-sidebars-home"
 mkdir "$temporary/numbered-sidebars-home/mods"
 cp -R "$temporary/$numbered_sidebars_bundle/mods/muxcle-numbered-sidebars" "$temporary/numbered-sidebars-home/mods/"
-HC_SESSION="muxcle-numbered-sidebars-install-$$" HERDR_APP_HOME="$temporary/numbered-sidebars-home" \
-  herdr-app check "$temporary/numbered-sidebars-home/mods/muxcle-numbered-sidebars"
+check_mod muxcle-numbered-sidebars "$temporary/numbered-sidebars-home" "$temporary/numbered-sidebars-home/mods/muxcle-numbered-sidebars"
 sh ./scripts/check-numbered-sidebars-load.sh \
   "$temporary/$numbered_sidebars_bundle/mods/muxcle-numbered-sidebars"
 
@@ -152,8 +159,7 @@ tar -xzf "dist/$workspace_chrome_bundle.tar.gz" -C "$temporary"
 sh "$temporary/$workspace_chrome_bundle/check-install-targets.sh" "$temporary/workspace-chrome-home"
 mkdir "$temporary/workspace-chrome-home/mods"
 cp -R "$temporary/$workspace_chrome_bundle/mods/muxcle-workspace-chrome" "$temporary/workspace-chrome-home/mods/"
-HC_SESSION="muxcle-workspace-chrome-install-$$" HERDR_APP_HOME="$temporary/workspace-chrome-home" \
-  herdr-app check "$temporary/workspace-chrome-home/mods/muxcle-workspace-chrome"
+check_mod muxcle-workspace-chrome "$temporary/workspace-chrome-home" "$temporary/workspace-chrome-home/mods/muxcle-workspace-chrome"
 sh ./scripts/check-workspace-chrome-load.sh \
   "$temporary/$workspace_chrome_bundle/mods/muxcle-workspace-chrome"
 cmp "$temporary/workspace-chrome-settings.json" "$temporary/workspace-chrome-home/settings.json"

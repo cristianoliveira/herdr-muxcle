@@ -20,11 +20,11 @@ Sessionizer is a standalone native Herdr mod. It works in an existing layout and
 
 ### Download and install
 
-Choose a published tag from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases), set `VERSION` to that tag, then download and verify its archive. If none is published, stop and ask whether a contributor should prepare a local build. The example uses `v0.1.0`; change it to the tag you selected:
+Choose a published tag from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases), set `MUXCLE_VERSION` to that exact tag including its leading `v`, then download and verify its archive. If none is published, stop and ask whether a contributor should prepare a local build. The local candidate's `v0.2.0` filename does not imply that a release exists:
 
 ```sh
 set -eu
-VERSION=v0.1.0
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to a published tag including leading v and containing Sessionizer}"
 RELEASE_URL="https://github.com/cristianoliveira/herdr-muxcle/releases/download/$VERSION"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT

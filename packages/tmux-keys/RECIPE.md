@@ -54,11 +54,11 @@ This optional package adds the explicit tmux-inspired key bindings documented in
 
 ### Download
 
-Choose a published tag from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases) and download its archive and checksum. The example below uses `v0.1.0`; use it only if that release exists, or replace it with your selected tag. If no release is published, stop and ask whether a contributor should prepare a local build. No Git, repository clone, Node.js, or npm is required to install a release.
+Choose a published tag from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases) and download its archive and checksum. Set `MUXCLE_VERSION` to the exact selected tag including its leading `v`; the local candidate's `v0.2.0` filename does not imply that a release exists. If no release is published, stop and ask whether a contributor should prepare a local build. No Git, repository clone, Node.js, or npm is required to install a release.
 
 ```sh
 set -eu
-VERSION=v0.1.0
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to a published tag including leading v and containing this package}"
 RELEASE_URL="https://github.com/cristianoliveira/herdr-muxcle/releases/download/$VERSION"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT

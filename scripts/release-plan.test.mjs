@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { RELEASE_CATALOG } from "./package.mjs";
@@ -113,6 +114,18 @@ test("CLI emits catalog assets for workflow use", () => {
   );
   const plan = createReleasePlan({ version: "0.1.0", repositoryUrl });
 
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim().split("\n"), formatReleaseAssets(plan));
+});
+
+test("release preview defaults to the shared package and lockfile version", async () => {
+  const packageMetadata = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+  const lockfile = JSON.parse(await readFile(new URL("../package-lock.json", import.meta.url), "utf8"));
+  const plan = createReleasePlan({ version: packageMetadata.version });
+  const result = spawnSync(process.execPath, [releasePlanScript, "--format", "assets"], { encoding: "utf8" });
+
+  assert.equal(lockfile.version, packageMetadata.version);
+  assert.equal(lockfile.packages[""].version, packageMetadata.version);
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(result.stdout.trim().split("\n"), formatReleaseAssets(plan));
 });

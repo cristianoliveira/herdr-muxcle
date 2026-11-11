@@ -27,8 +27,10 @@ Download `muxcle-picker-v<version>.tar.gz` and its `.sha256` from the [GitHub Re
 Verify the checksum before extraction. For a local package, run from the directory containing both files:
 
 ```sh
-shasum -a 256 -c muxcle-picker-v0.1.0.tar.gz.sha256
-tar -xzf muxcle-picker-v0.1.0.tar.gz
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0 for a local candidate only}"
+ARCHIVE="muxcle-picker-${VERSION}.tar.gz"
+shasum -a 256 -c "$ARCHIVE.sha256"
+tar -xzf "$ARCHIVE"
 ```
 
 ### Install through Herdr
@@ -39,7 +41,7 @@ For a manual installation, set `BUNDLE` to the extracted folder and run:
 
 ```sh
 set -eu
-BUNDLE="/path/to/muxcle-picker-v0.1.0"
+BUNDLE="/path/to/muxcle-picker-${MUXCLE_VERSION:?Set MUXCLE_VERSION to the extracted archive tag including leading v}"
 APP_HOME="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 sh "$BUNDLE/check-install-targets.sh" "$APP_HOME"
 mkdir -p "$APP_HOME/mods"

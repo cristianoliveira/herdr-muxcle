@@ -62,7 +62,7 @@ release-plan:
 	@node scripts/release-plan.mjs
 
 release-tag:
-	@test -n "$(TAG)" || { echo 'Set TAG, for example: make release-tag TAG=v0.1.0' >&2; exit 1; }
+	@test -n "$(TAG)" || { echo 'Set TAG, for example: make release-tag TAG=v0.2.0' >&2; exit 1; }
 	@node scripts/release-tag.mjs "$(TAG)"
 
 release-ci:

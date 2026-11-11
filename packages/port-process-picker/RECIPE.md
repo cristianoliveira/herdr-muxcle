@@ -19,7 +19,7 @@ Use a published versioned archive and matching checksum. A source folder is not 
 
 ```sh
 set -eu
-VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to a published tag containing this package}"
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to a published tag including leading v and containing this package}"
 RELEASE_URL="https://github.com/cristianoliveira/herdr-muxcle/releases/download/$VERSION"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT

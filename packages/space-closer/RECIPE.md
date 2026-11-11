@@ -12,11 +12,11 @@ Herdr's `run()` API does not acknowledge terminal termination. After dispatch, t
 
 ## Install
 
-For a published package, use its versioned archive and matching checksum. A GitHub source folder is an instruction entrypoint, not necessarily a compiled runtime payload. If a suitable release is unavailable, stop and ask whether a contributor should prepare a local build; do not build on the user's machine.
+For a published package, use its versioned archive and matching checksum. A GitHub source folder is an instruction entrypoint, not necessarily a compiled runtime payload. Set `MUXCLE_VERSION` to the exact published tag including its leading `v` and containing this package; the local candidate's `v0.2.0` filename does not imply a release exists. If a suitable release is unavailable, stop and ask whether a contributor should prepare a local build; do not build on the user's machine.
 
 ```sh
 set -eu
-VERSION=v0.1.0
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to a published tag including leading v and containing this package}"
 RELEASE_URL="https://github.com/cristianoliveira/herdr-muxcle/releases/download/$VERSION"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT

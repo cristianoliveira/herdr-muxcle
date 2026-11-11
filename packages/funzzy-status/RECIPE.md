@@ -24,7 +24,7 @@ Manual deployment, with `BUNDLE` pointing at the extracted archive:
 
 ```sh
 set -eu
-BUNDLE="/path/to/muxcle-funzzy-status-v0.1.0"
+BUNDLE="/path/to/muxcle-funzzy-status-${MUXCLE_VERSION:?Set MUXCLE_VERSION to the extracted archive tag including leading v}"
 APP_HOME="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 sh "$BUNDLE/check-install-targets.sh" "$APP_HOME"
 mkdir -p "$APP_HOME/mods"

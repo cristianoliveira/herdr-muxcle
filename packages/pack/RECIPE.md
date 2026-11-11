@@ -8,7 +8,7 @@ An optional complete Muxcle composition for a user-owned setup. Recreate the com
 
 Includes Tmux keys, Rotation, Sizing, History, Agent attention inbox, Funzzy status, Numbered sidebars, Workspace chrome, Picker, Navigation repeat, Project popup, Keyboard copy mode, Tab tools, Sessionizer, Space closer, and the optional original scaffold. The individual packages remain available; installing them first is not required.
 
-The combined keymap contains the component packages' existing bindings. It is a Muxcle preset, not a merge with your personal bindings. The `muxcle-pack` layout mounts one History observer and one command host each for Rotation, Sizing, and Tab tools, using Herdr's native Spaces/Tabs/pane views. Funzzy status is included as an optional component but is not mounted by the pack layout; add its 24 px observer block only when you want status polling. Workspace chrome is also included but not mounted: review its pane-header and separate clock-block fragments, leaving native workspace status unchanged. Remote monitoring remains off unless you deliberately set its `remote` prop to `true`. The Agent attention inbox remains an optional popup; add its observer block to your personal layout only when closed-popup capture is wanted. Navigation repeat, Project popup, and Keyboard copy mode open as native popups. Project popup is layout-free and waits for an explicit Run action; Keyboard copy mode captures the displayed terminal into a separate local viewer. The pack does not show the scaffold's static “no tmux bindings installed” message.
+The combined keymap contains the component packages' existing bindings. It is a Muxcle preset, not a merge with your personal bindings. The `muxcle-pack` layout mounts one History observer and one command host each for Rotation, Sizing, and Tab tools, using Herdr's native Spaces/Tabs/pane views. Funzzy status is included as an optional component but is not mounted by the pack layout; add its 24 px observer block only when you want status polling. Workspace chrome is also included but not mounted: its bundled snippets cover pane headers, custom tabs/panels bars, a native combined bar, and axis-specific row/column clocks. See the snippet guide below and keep native workspace status unchanged. Remote monitoring remains off unless you deliberately set its `remote` prop to `true`. The Agent attention inbox remains an optional popup; add its observer block to your personal layout only when closed-popup capture is wanted. Navigation repeat, Project popup, and Keyboard copy mode open as native popups. Project popup is layout-free and waits for an explicit Run action; Keyboard copy mode captures the displayed terminal into a separate local viewer. The pack does not show the scaffold's static “no tmux bindings installed” message.
 
 Requires Herdr 0.1.13, Python 3, and `hc` with versioned document support available on Herdr's PATH. Sessionizer project roots remain your choice. Project popup additionally needs POSIX `test` and `/bin/sh`, plus a user-provided executable `.tmp/popup` with a valid interpreter line in the focused project; that script is optional and is never started automatically. Keyboard copy mode additionally requires Herdr's shipped `peek` mod for its viewer header (do not copy or install `peek` separately), plus Neovim with its built-in OSC 52 clipboard helper. These helpers are required only when their feature is used; the standalone Tmux keys package remains helper-free. No Node.js, npm, compiler, Git, or repository checkout is required to use the released files.
 
@@ -22,7 +22,7 @@ Requires Herdr 0.1.13, Python 3, and `hc` with versioned document support availa
 - **Tab tools:** Ctrl-a Alt-h/l moves the active tab left/right without wrapping; Alt-m prompts for a checked, zero-based position and revalidates the captured tab/space before converting to Herdr's one-based index. Escape cancels. Alt-r names the focused tab from its focused terminal's known cwd, including machine-qualified tabs, without local filesystem lookup. These use native `tab.move`/`tab.rename`; the existing manual `tab.rename` shortcut remains in the Tmux keys snippet. Herdr trims leading/trailing whitespace from native rename names.
 - **Sessionizer:** Ctrl-a Ctrl-p searches immediate non-hidden directories under configured absolute roots. Local-only remains the default. Optional `remoteRoots` use exact configured Herdr machine names and native `hc exec` transport; the bundled scanner arrives over isolated stdin, and selection reuses or creates a space only on the same Core identity. Remote scan failures never fall back to local execution. Python is required locally and on opted-in remote machines; `hc` is needed only for remote roots. Results cache per permanent machine identity for 60 seconds and stale disconnected results cannot be opened. No project files or configuration are written.
 - **Numbered sidebars:** The optional `muxcle-numbered-sidebars` component is included but not mounted by the pack layout. Its `components/muxcle-numbered-sidebars/layout-snippets.json` contains separate 40 px `spaces` and `agents` blocks; add either or both as siblings in your existing layout. Keep the native expanded `spaces` and `agents` blocks mounted for full management. Labels follow native snapshot order, not expanded priority/pin or next/prev navigation order; this component never calls `setAgentOrder`, changes sidebar width, adds keys, or writes settings.
-- **Workspace chrome:** The optional `muxcle-workspace-chrome` component is included but not mounted by the pack layout. Its `components/muxcle-workspace-chrome/layout-snippets.json` provides a bottom pane-header fragment for branch context and a separate 24 px local-clock block for a column parent only. Review and merge either fragment into your existing layout; keep the native workspace-status block mounted and unchanged. The component adds no shortcut or observer and does not replace native pane controls.
+- **Workspace chrome:** The optional `muxcle-workspace-chrome` component is included but not mounted. Its bundled `components/muxcle-workspace-chrome/layout-snippets.json` provides a pane-header branch fragment, custom `tabs-only-row` and `panels-only-row` bars, a `combined-native-tabs-row`, a custom combined bar that omits window controls, and local-clock row/column fragments. The native combined bar uses Herdr's standard panel IDs (`panel`, `panel-body`, `files`, `changes`) and leaves panel-preference persistence with Herdr's native `tabs` mod. Custom bars support configured panel IDs and add no second restoration controller; they follow `window().buttons` by default unless the custom combined fragment explicitly omits controls. The clock's 24 px size is height only under a column parent; the row fragment's weight is width only under a row parent. Preserve existing IDs, settings, native workspace status, and unrelated content. When reusing a node, back up its original fields and restore them on removal; merge only the selected snippet fields. The component adds no shortcut or observer and does not replace native pane controls.
 - **Space closer:** Opens a review dialog for selected local or remote spaces. It freezes exact space, machine/Core, tab, and pane details, revalidates them before dispatch, and refuses stale or unavailable targets. Only the explicit confirmation button dispatches native `space.close`; terminal shutdown is asynchronous and completion remains unknown. It sends no automatic retry or rollback and installs no shortcut by default.
 - **History:** Ctrl-a Shift-L toggles last space; Ctrl-a Ctrl-r or Tab toggles last tab per space. The shown observer tracks toggles and a separate bounded MRU of up to 256 live tab targets. It stores IDs under `muxcle-history.v1` and `muxcle-history.recent-tabs.v1`; the MRU is only consumed when Picker recency is explicitly enabled. It prunes missing targets and does not launch programs or access the network.
 - **Agent attention inbox:** Ctrl-a Shift-I opens the popup. It keeps up to 100 unread done/blocked events and 1,000 bounded status/label records under its separate `muxcle-agent-intray.state.v1` key. Search and status filters do not read events. Enter queues focus to an exact live address and keeps the event unread; Ctrl-D dismisses one, while bulk dismissal requires a reviewed-ID confirmation. The pack layout does not mount its optional observer. Its bundle asset is `components/muxcle-agent-intray/observer.json`; add that one-pixel block to a personal layout for closed-popup capture. Without it, events are observed only while the popup is open; earlier transitions are not replayed. It does not read terminal contents, infer errors, or use tmux behavior.
@@ -64,13 +64,13 @@ No Git, Node.js, npm, or compiler is required to use the archive. A dotfiles rep
 
 ### 1. Download and keep your own copy
 
-Choose a published tag from [GitHub Releases](https://github.com/cristianoliveira/herdr-muxcle/releases). Download `muxcle-pack-<tag>.tar.gz` and its matching `.sha256`. If no release exists yet, contributors can build with `make package` and use the archive in `dist/`.
+Choose a published tag from [GitHub Releases](https://github.com/cristianoliveira/herdr-muxcle/releases). A tag includes its leading `v`; for example, `v0.2.0` is only the local candidate name and is downloadable only if that exact tag is published. Download `muxcle-pack-<tag>.tar.gz` and its matching `.sha256`. If no release exists yet, contributors can build with `make package` and use the archive in `dist/`.
 
-The public `v0.1.0` release predates the whole pack. For example, after a newer `v0.1.1` release includes it, place both files in the current directory:
+The public `v0.1.0` release predates the whole pack. For example, after a newer `v0.2.0` release includes it, place both files in the current directory:
 
 ```sh
-shasum -a 256 -c muxcle-pack-v0.1.1.tar.gz.sha256
-tar -xzf muxcle-pack-v0.1.1.tar.gz
+shasum -a 256 -c muxcle-pack-v0.2.0.tar.gz.sha256
+tar -xzf muxcle-pack-v0.2.0.tar.gz
 ```
 
 Stop if verification fails. Linux users can use `sha256sum -c` instead. Extract into a scratch directory, not over your live Herdr app home.
@@ -125,7 +125,41 @@ Do not edit Herdr's shipped layouts. `muxcle-pack.json` is a separate personal c
 1. Deploy the chosen mod folders and configuration through your dotfiles.
 2. Configure absolute project roots in `data/muxcle-sessionizer/config.json`, using the bundled example. Local roots are optional when remote roots are configured. Add a `remoteRoots` object only if you opt in; keys must be exact names from `hc machine ls`, and paths are interpreted on that remote machine. The pack assumes no personal project paths.
 3. Optionally copy `components/muxcle-picker/config.example.json` to `data/muxcle-picker/config.json` if you want recent ordering; this is never enabled automatically. The History observer must remain shown to collect new visits. Picker checks the active layout's visible block, not whether the observer process is healthy. Management is a separate opt-in. Remote mutations also require `remoteSpaces: true` and a unique native machine `id`/`name` match in a fresh listing; only connected, non-temporary document-backed peers are supported. Herdr 0.1.13's native document commands omit temporary machines and reject them rather than creating a document. Missing, ambiguous, changed, disconnected, or newly temporary identity blocks dispatch. A native close of the last tab also removes its parent space and may show Herdr's own confirmation; the Picker does not bypass it.
-4. Check initial loading with `HERDR_APP_HOME="$APP_HOME" herdr-app check "$APP_HOME/mods/<mod-name>"` for each deployed mod. Set `APP_HOME` explicitly first. For read-only deployments, check a writable scratch copy; Herdr's check can generate local helper files.
+4. Optionally check initial loading from private copies of the pack's runtime mods. This example iterates only the actual directories under `mods/`; the original scaffold under `scaffold/mods/` is intentionally excluded. It never reads or checks a mod from the installed app home or mutates the vendor copy:
+
+   ```sh
+   set -eu
+   umask 077
+   : "${BUNDLE:?Set BUNDLE to the extracted muxcle-pack directory}"
+
+   for source_mod in "$BUNDLE"/mods/muxcle-*; do
+     [ -d "$source_mod" ] || continue
+     mod_name=${source_mod##*/}
+     scratch_home=$(mktemp -d)
+     trap 'rm -rf "$scratch_home"' EXIT HUP INT TERM
+     mkdir -p "$scratch_home/mods" "$scratch_home/home" "$scratch_home/tmp" \
+       "$scratch_home/xdg/config" "$scratch_home/xdg/data" \
+       "$scratch_home/xdg/cache" "$scratch_home/xdg/state" "$scratch_home/xdg/runtime"
+     chmod 700 "$scratch_home/xdg/runtime"
+     cp -R "$source_mod" "$scratch_home/mods/"
+
+     HC_SESSION="muxcle-load-check-${mod_name}-${scratch_home##*/}" \
+       HOME="$scratch_home/home" \
+       HERDR_APP_HOME="$scratch_home" \
+       TMPDIR="$scratch_home/tmp" \
+       XDG_CONFIG_HOME="$scratch_home/xdg/config" \
+       XDG_DATA_HOME="$scratch_home/xdg/data" \
+       XDG_CACHE_HOME="$scratch_home/xdg/cache" \
+       XDG_STATE_HOME="$scratch_home/xdg/state" \
+       XDG_RUNTIME_DIR="$scratch_home/xdg/runtime" \
+       herdr-app check "$scratch_home/mods/$mod_name"
+
+     rm -rf "$scratch_home"
+   done
+   trap - EXIT HUP INT TERM
+   ```
+
+   Each target mod, app home, user home, temporary directory, XDG path, and session is private to that iteration. This limits those targets; it is not a claim that the native checker cannot affect shared Core state. Do not use a caller/default session. Initial-load checks do not prove keyboard dispatch or feature completion.
 5. Select the **`muxcle-pack`** layout through Herdr's layout picker when you want the complete composition. Merely deploying the file does not select it.
 6. Try selected shortcuts with harmless terminals. Visit two tabs/spaces before testing History; configure roots before using Sessionizer. Confirm the intended core and focused tab before Rotation, Sizing, Navigation repeat, or Tab tools.
 

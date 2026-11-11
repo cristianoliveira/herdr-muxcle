@@ -6,17 +6,17 @@ This guide is for maintainers. Installing a capability? Choose [a recipe](../REA
 
 ## What ships
 
-One shared stable `X.Y.Z` version from `package.json` produces **nine individual capability archives, one whole-pack archive, and ten SHA-256 files**. This process currently supports stable tags such as `v0.1.0`, not prerelease tags. `private: true` is intentional: these are native Herdr packages, not npm publications.
+One shared stable `X.Y.Z` version from `package.json` is applied to every entry in `RELEASE_CATALOG`. The catalog drives archive construction and the release plan; each entry produces one archive and one matching SHA-256 file. Use `make release-plan` to review the current exact package and asset list instead of maintaining a separate count. This process supports stable tags only, not prerelease tags. `private: true` is intentional: these are native Herdr packages, not npm publications.
 
 The package catalog in `scripts/package.mjs` drives both archive construction and the release plan. Do not maintain a separate hand-written release asset list. Each archive includes one root `RECIPE.md` covering behavior, use of the supplied implementation, setup, updates, and removal. There is no separate installation guide.
 
-`muxcle-pack` is the optional complete distribution for user-managed dotfiles. The nine individual packages remain available. `herdr-muxcle` is only the original scaffold, not the complete pack.
+`muxcle-pack` is the optional curated distribution for user-managed dotfiles. Individual packages remain available; Broadcast prototype and Port/process picker stay separate and are not included in the pack. `herdr-muxcle` is the original scaffold, not the complete pack.
 
 ## 1. Prepare a version
 
 Work from the intended release commit on `main`. Review `git status --short`; do not accidentally include someone else's uncommitted changes.
 
-`v0.1.0` is already published and predates the whole pack. Prepare a new version, such as `0.1.1`, for that addition; do not replace existing tags or assets. Update `package.json` and `package-lock.json` together, review the change, and commit it. For example, `npm version patch --no-git-tag-version --ignore-scripts` prepares a patch version without creating a Git tag. This bumps the shared package version, not just one capability.
+`v0.1.0` is already published and predates the whole pack. Prepare a new shared version, such as `0.2.0`, for that addition; do not replace existing tags or assets. Update `package.json` and `package-lock.json` together, review the version-only changes, and commit them. For example, `npm version 0.2.0 --no-git-tag-version --ignore-scripts` prepares the candidate without creating a Git tag. This bumps the shared package version, not just one capability.
 
 Install locked development tools and preview the release:
 
@@ -31,7 +31,7 @@ For the CLI options or a machine-readable list of upload paths:
 
 ```sh
 node scripts/release-plan.mjs --help
-node scripts/release-plan.mjs --version 0.1.0 --format assets
+node scripts/release-plan.mjs --version 0.2.0 --format assets
 ```
 
 These commands only print the plan; they do not upload the listed files.
@@ -56,10 +56,10 @@ This checks packaged initial mod loading in a temporary app home, not your live 
 
 ## 3. Commit, tag, and push deliberately
 
-Commit the intended changes first. The following example assumes you have deliberately updated the shared version to `0.1.1`; always match `package.json`:
+Commit the intended changes first. The following example assumes you have deliberately updated the shared version to `0.2.0`; always match `package.json`:
 
 ```sh
-TAG=v0.1.1
+TAG=v0.2.0
 make release-tag TAG="$TAG"
 git status --short
 git log -1 --oneline
@@ -88,7 +88,7 @@ gh release view "$TAG" --repo cristianoliveira/herdr-muxcle
 Check:
 
 - The tag points to the intended commit and matches the version.
-- All nine individual capability archive/checksum pairs and the whole-pack archive/checksum pair are attached; no developer files are included.
+- Every archive/checksum pair generated from `RELEASE_CATALOG` is attached; no developer files are included. Reconcile the draft against the current `make release-plan` output rather than a hand-maintained count.
 - Each archive has a complete standalone recipe suitable for Herdr's agent-assisted flow. Source links explain how to obtain compiled files; they must not imply TypeScript source folders are ready runtime payloads.
 - Download, checksum, and tagged guide links use this release version.
 - Notes describe changed behavior, prerequisites, compatibility limits, and any validation gaps. Add a short human summary of changes; generated installation notes are not a changelog.

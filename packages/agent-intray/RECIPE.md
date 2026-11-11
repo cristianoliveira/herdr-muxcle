@@ -18,8 +18,10 @@ Requires Herdr 0.1.13 or newer, whose native `agents()` API supplies status, seq
 For a published package, download `muxcle-agent-intray-v<version>.tar.gz` and its matching `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). If no suitable release exists, stop and ask a contributor to prepare a local build. Verify and extract the archive:
 
 ```sh
-shasum -a 256 -c muxcle-agent-intray-v0.1.0.tar.gz.sha256
-tar -xzf muxcle-agent-intray-v0.1.0.tar.gz
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0 for a local candidate only}"
+ARCHIVE="muxcle-agent-intray-${VERSION}.tar.gz"
+shasum -a 256 -c "$ARCHIVE.sha256"
+tar -xzf "$ARCHIVE"
 ```
 
 Ask your Herdr agent to install the package, optionally mount exactly one `observer.json` block in your existing personal layout, and review/merge the optional shortcut. Preserve unrelated files. Do not switch layouts or overwrite an existing binding without asking.
@@ -28,7 +30,7 @@ Manual deployment, with `BUNDLE` pointing at the extracted package:
 
 ```sh
 set -eu
-BUNDLE="/path/to/muxcle-agent-intray-v0.1.0"
+BUNDLE="/path/to/muxcle-agent-intray-${MUXCLE_VERSION:?Set MUXCLE_VERSION to the extracted archive tag including leading v}"
 APP_HOME="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 sh "$BUNDLE/check-install-targets.sh" "$APP_HOME"
 mkdir -p "$APP_HOME/mods"

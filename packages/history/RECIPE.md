@@ -23,8 +23,10 @@ This optional package requires Herdr 0.1.13 and **one mounted observer block in 
 Download `muxcle-history-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). Choose a published tag; if none exists, stop and ask whether a contributor should prepare a local build. For local archives, verify and extract from the directory containing both files:
 
 ```sh
-shasum -a 256 -c muxcle-history-v0.1.0.tar.gz.sha256
-tar -xzf muxcle-history-v0.1.0.tar.gz
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0 for a local candidate only}"
+ARCHIVE="muxcle-history-${VERSION}.tar.gz"
+shasum -a 256 -c "$ARCHIVE.sha256"
+tar -xzf "$ARCHIVE"
 ```
 
 Read the recipe and mod files before installing. The mod observes native focus state and writes only its own shared-state key. It does not run programs or make network requests.
@@ -37,7 +39,7 @@ Manual file deployment, with `BUNDLE` pointing at the extracted folder:
 
 ```sh
 set -eu
-BUNDLE="/path/to/muxcle-history-v0.1.0"
+BUNDLE="/path/to/muxcle-history-${MUXCLE_VERSION:?Set MUXCLE_VERSION to the extracted archive tag including leading v}"
 APP_HOME="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 sh "$BUNDLE/check-install-targets.sh" "$APP_HOME"
 mkdir -p "$APP_HOME/mods"

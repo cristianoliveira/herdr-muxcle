@@ -2,32 +2,36 @@ import { View, type AsyncContext } from "gpui-kit";
 import { focused, spaces, panes, nextCommand, run, notify, exec, appHome } from "herdr";
 import { RotationController } from "./controller.js";
 import { executeDocumentRotation } from "./adapter.js";
+import { nativePairRotationEnabled } from "./model.js";
 
 export default class MuxcleRotation extends View {
   private closed = false;
   private controller!: RotationController;
 
-  init(_props: Record<string, unknown> | undefined, cx: AsyncContext): void {
-    this.controller = new RotationController({
-      snapshot: () => {
-        const focus = focused();
-        const space = spaces().find((item) => item.id === focus?.space);
-        return {
-          focus,
-          tab: space?.tabs.find((item) => item.id === focus?.tab),
-          panes: panes(),
-          machine: space?.machine ?? null,
-        };
+  init(props: Record<string, unknown> | undefined, cx: AsyncContext): void {
+    this.controller = new RotationController(
+      {
+        snapshot: () => {
+          const focus = focused();
+          const space = spaces().find((item) => item.id === focus?.space);
+          return {
+            focus,
+            tab: space?.tabs.find((item) => item.id === focus?.tab),
+            panes: panes(),
+            machine: space?.machine ?? null,
+          };
+        },
+        document: (context) =>
+          executeDocumentRotation(exec, `${appHome().replace(/[\\/]+$/, "")}/mods/muxcle-rotation`, context),
+        run: (action) => {
+          run(action.command, action.args);
+        },
+        notice: (message, level) => {
+          notify({ title: "Pane rotation", body: message, level });
+        },
       },
-      document: (context) =>
-        executeDocumentRotation(exec, `${appHome().replace(/[\\/]+$/, "")}/mods/muxcle-rotation`, context),
-      run: (action) => {
-        run(action.command, action.args);
-      },
-      notice: (message, level) => {
-        notify({ title: "Pane rotation", body: message, level });
-      },
-    });
+      nativePairRotationEnabled(props),
+    );
     cx.spawn(async (taskCx) => {
       while (!this.closed) {
         const command = await nextCommand();

@@ -25,14 +25,17 @@ export class RotationController {
   private busy = false;
   private closed = false;
 
-  constructor(private readonly adapter: RotationAdapter) {}
+  constructor(
+    private readonly adapter: RotationAdapter,
+    private readonly nativePairRotation = true,
+  ) {}
 
   async rotate(): Promise<boolean> {
     if (this.busy || this.closed) return false;
     this.busy = true;
     try {
       const before = this.adapter.snapshot();
-      const plan = rotationPlan(before.focus, before.tab, before.panes, before.machine);
+      const plan = rotationPlan(before.focus, before.tab, before.panes, before.machine, this.nativePairRotation);
       if (plan.kind === "noop") return false;
       if (plan.kind === "unsupported") {
         this.adapter.notice(plan.message, "info");

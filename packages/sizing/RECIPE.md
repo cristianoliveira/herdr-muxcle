@@ -79,6 +79,8 @@ A single pane, a missing split axis, and a resize beyond native numeric/progress
 
 Grow/shrink requires the entire selected sibling group to be flexible and unconstrained. A constrained nearest split is refused; the command does not jump to a more distant ancestor. Ambiguous sizing in affected groups, hidden or unsupported trees, mod panes, zoomed/replaced terminals for equalize/grow/shrink, and inconsistent snapshots are also refused. Trees are bounded to 64 panes, 32 nested levels and 512 nodes; the core document must fit its 1 MiB limit.
 
+Mixed-strip parity also remains blocked. The pinned source `shrink_document` shares a validator that accepts terminal or mod leaves and preserves leaf payloads while restacking, but its tests do not exercise a mod through this strip path. Herdr has an existing isolated native `window::tests` harness; no case verifies a nonfocused mod's copy/resources and pane-header identity survive strip sizing alongside a focused terminal. Muxcle intentionally rejects mod panes. Keep that guard until an authorized test in the existing harness covers this exact mixed-strip lifecycle and focus behavior.
+
 The helper validates the original tab's pane order and terminal identities, then makes at most one version-checked write. Conflicts are not retried. Repeated sizing commands are ignored while an update is pending. A timeout or lost acknowledgement can leave the write outcome uncertain: inspect pane shares before repeating.
 
 Navigation away or closing/unmounting the host does not cancel an already-started helper; the originally selected tab may still change. No focus command is issued, so completion does not pull focus back.

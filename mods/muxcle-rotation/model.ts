@@ -20,6 +20,12 @@ export interface RotationTab {
   zoomed: boolean;
 }
 
+export function nativePairRotationEnabled(props: unknown): boolean {
+  if (props === null || typeof props !== "object" || Array.isArray(props)) return true;
+  const values = props as Record<string, unknown>;
+  return (values.native_rotation ?? values.native_pair_rotation) !== false;
+}
+
 export type RotationAction =
   | { command: "pane.swap"; args: { direction: "left" | "right" | "up" | "down" } }
   | { command: "pane.focus"; args: { pane: string } };
@@ -44,6 +50,7 @@ export function rotationPlan(
   tab: RotationTab | undefined,
   allPanes: readonly RotationPane[],
   machine: string | null = null,
+  nativePairRotation = true,
 ): RotationPlan {
   if (!focus?.pane || !focus.terminal || focus.shown !== null) {
     return { kind: "unsupported", message: "Focus an ordinary terminal pane before rotating." };
@@ -65,7 +72,7 @@ export function rotationPlan(
   if (panes.length > 64) {
     return { kind: "unsupported", message: "Rotation supports at most 64 panes in one tab." };
   }
-  if (panes.length > 2) {
+  if (panes.length > 2 || !nativePairRotation) {
     return {
       kind: "document",
       context: {

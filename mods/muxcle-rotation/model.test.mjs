@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { rotationPlan } from "../../.build/mods/muxcle-rotation/model.js";
+import { nativePairRotationEnabled, rotationPlan } from "../../.build/mods/muxcle-rotation/model.js";
 
 const panes = [
   { pane: "a", terminal: "terminal-a", tab: "tab", zoomed: false },
@@ -27,6 +27,35 @@ function applyToSlots(plan, axis, initialFocus) {
   }
   return { slots, focused };
 }
+
+test("native pair rotation defaults on and only literal false opts out", () => {
+  for (const props of [undefined, null, [], "false", 0, {}, { native_rotation: "false" }, { native_rotation: 0 }]) {
+    assert.equal(nativePairRotationEnabled(props), true);
+  }
+
+  assert.equal(nativePairRotationEnabled({ native_rotation: false }), false);
+  assert.equal(nativePairRotationEnabled({ native_pair_rotation: false }), false);
+  assert.equal(nativePairRotationEnabled({ native_rotation: null, native_pair_rotation: false }), false);
+  assert.equal(nativePairRotationEnabled({ native_rotation: true, native_pair_rotation: false }), true);
+  assert.equal(nativePairRotationEnabled({ native_rotation: "invalid", native_pair_rotation: false }), true);
+});
+
+test("the native pair opt-out selects scoped CAS without changing the default", () => {
+  assert.equal(rotationPlan(focus("b"), tab, panes).kind, "rotate");
+  assert.equal(rotationPlan(focus("b"), tab, panes, null, true).kind, "rotate");
+
+  const plan = rotationPlan(focus("b"), tab, panes, null, false);
+  assert.equal(plan.kind, "document");
+  assert.deepEqual(plan.context, {
+    space: "space",
+    tab: "tab",
+    pane: "b",
+    panes: ["a", "b"],
+    terminals: ["terminal-a", "terminal-b"],
+    machine: null,
+  });
+  assert.equal(plan.focusTarget, "a");
+});
 
 test("swaps either split axis and keeps focus at the original screen position", () => {
   for (const axis of ["row", "column"]) {

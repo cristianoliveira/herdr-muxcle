@@ -38,6 +38,25 @@ def context(machine=None):
             "terminals": [prefix + "t-" + name for name in ["a", "b", "c"]], "machine": machine}
 
 
+def two_terminal_context(machine=None):
+    scope = context(machine)
+    scope["panes"] = scope["panes"][:2]
+    scope["terminals"] = scope["terminals"][:2]
+    return scope
+
+
+def two_terminal_document():
+    value = document()
+    first = leaf("a", 0.7)
+    first.update({"min": 60, "max": 900, "resizable": False, "unknown": "left"})
+    second = leaf("b", 0.3)
+    second.update({"min": 30, "unknown": "right"})
+    value["spaces"][0]["tabs"][0]["root"] = {
+        "type": "row", "id": "root", "children": [first, second],
+    }
+    return value
+
+
 class RotationDocumentTests(unittest.TestCase):
     def test_nested_rotation_preserves_slots_containers_other_tabs_and_input(self):
         original = document()
@@ -104,6 +123,62 @@ class RotationDocumentTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     rotation.rotate_document(original, rotation.normalize_context(scope))
                 self.assertEqual(original, before)
+
+    def test_two_terminal_cas_rotates_once_and_preserves_slot_geometry_and_qualified_scope(self):
+        original = two_terminal_document()
+        calls = []
+
+        def request(method, params):
+            calls.append((method, params))
+            return {"version": 12, "value": original} if method == "doc.get" else {"version": 13}
+
+        result = rotation.rotate(two_terminal_context("server"), request)
+
+        self.assertEqual(result, {"changed": True, "pane": "server/a"})
+        self.assertEqual([method for method, _ in calls], ["doc.get", "doc.set"])
+        self.assertEqual(calls[0][1], {"name": "herdr-app", "on": "server"})
+        self.assertEqual(calls[1][1]["version"], 12)
+        self.assertEqual(calls[1][1]["on"], "server")
+        children = calls[1][1]["value"]["spaces"][0]["tabs"][0]["root"]["children"]
+        self.assertEqual([node["id"] for node in children], ["b", "a"])
+        self.assertEqual([node["content"]["terminal"] for node in children], ["t-b", "t-a"])
+        self.assertEqual(children[0]["size"], {"weight": 0.7})
+        self.assertEqual(children[0]["min"], 60)
+        self.assertEqual(children[0]["max"], 900)
+        self.assertFalse(children[0]["resizable"])
+        self.assertEqual(children[0]["unknown"], "right")
+        self.assertEqual(children[1]["size"], {"weight": 0.3})
+        self.assertEqual(children[1]["min"], 30)
+        self.assertEqual(children[1]["unknown"], "left")
+
+    def test_two_terminal_cas_rejects_stale_order_and_never_retries_conflict_or_uncertain_ack(self):
+        original = two_terminal_document()
+        stale = two_terminal_context()
+        stale["panes"].reverse()
+        calls = []
+
+        def read_stale(method, _params):
+            calls.append(method)
+            return {"version": 12, "value": original}
+
+        with self.assertRaisesRegex(ValueError, "Pane order"):
+            rotation.rotate(stale, read_stale)
+        self.assertEqual(calls, ["doc.get"])
+
+        for response, message in [(RuntimeError("conflict"), "conflict"), ({"version": 12}, "uncertain")]:
+            calls = []
+
+            def fail_once(method, _params):
+                calls.append(method)
+                if method == "doc.get":
+                    return {"version": 12, "value": original}
+                if isinstance(response, Exception):
+                    raise response
+                return response
+
+            with self.subTest(message=message), self.assertRaisesRegex(RuntimeError, message):
+                rotation.rotate(two_terminal_context(), fail_once)
+            self.assertEqual(calls, ["doc.get", "doc.set"])
 
     def test_remote_write_is_versioned_and_scoped_once(self):
         calls = []

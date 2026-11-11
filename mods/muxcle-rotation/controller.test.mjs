@@ -11,18 +11,21 @@ function snapshot() {
   };
 }
 
-function harness(document = async () => '{"changed":true,"pane":"a"}') {
+function harness(document = async () => '{"changed":true,"pane":"a"}', nativePairRotation = true) {
   let current = snapshot();
   const calls = { commands: [], documents: [], notices: [] };
-  const controller = new RotationController({
-    snapshot: () => current,
-    document: async (context) => {
-      calls.documents.push(context);
-      return document(context);
+  const controller = new RotationController(
+    {
+      snapshot: () => current,
+      document: async (context) => {
+        calls.documents.push(context);
+        return document(context);
+      },
+      run: (action) => calls.commands.push(action),
+      notice: (message) => calls.notices.push(message),
     },
-    run: (action) => calls.commands.push(action),
-    notice: (message) => calls.notices.push(message),
-  });
+    nativePairRotation,
+  );
   return {
     controller,
     calls,
@@ -140,6 +143,49 @@ test("single-pane and unsupported contexts never invoke the helper", async () =>
   assert.deepEqual(unsupported.calls.documents, []);
   assert.deepEqual(unsupported.calls.commands, []);
   assert.equal(unsupported.calls.notices.length, 1);
+});
+
+test("disabling native pair rotation uses one helper and keeps the terminal-only focus path", async () => {
+  const h = harness(undefined, false);
+  const before = snapshot();
+  h.setSnapshot({ ...before, tab: { ...before.tab, panes: 2 }, panes: before.panes.slice(0, 2) });
+
+  assert.equal(await h.controller.rotate(), true);
+  assert.equal(h.calls.documents.length, 1);
+  assert.deepEqual(h.calls.documents[0].panes, ["a", "b"]);
+  assert.deepEqual(h.calls.documents[0].terminals, ["ta", "tb"]);
+  assert.equal(
+    h.calls.commands.some(({ command }) => command === "pane.swap"),
+    false,
+  );
+  assert.deepEqual(h.calls.commands, [{ command: "pane.focus", args: { pane: "a" } }]);
+});
+
+test("a failed CAS opt-out never retries or falls back to native swaps", async () => {
+  const h = harness(async () => {
+    throw new Error("Layout conflict");
+  }, false);
+  const before = snapshot();
+  h.setSnapshot({ ...before, tab: { ...before.tab, panes: 2 }, panes: before.panes.slice(0, 2) });
+
+  assert.equal(await h.controller.rotate(), false);
+  assert.equal(h.calls.documents.length, 1);
+  assert.deepEqual(h.calls.commands, []);
+  assert.equal(h.calls.notices.length, 1);
+});
+
+test("a fresh focus change cancels only focus restoration after two-pane CAS", async () => {
+  const h = harness(async () => {
+    const current = snapshot();
+    h.setSnapshot({ ...current, focus: { ...current.focus, pane: "a", terminal: "ta" } });
+    return '{"changed":true,"pane":"a"}';
+  }, false);
+  const before = snapshot();
+  h.setSnapshot({ ...before, tab: { ...before.tab, panes: 2 }, panes: before.panes.slice(0, 2) });
+
+  assert.equal(await h.controller.rotate(), true);
+  assert.equal(h.calls.documents.length, 1);
+  assert.deepEqual(h.calls.commands, []);
 });
 
 test("two-pane native rotation does not invoke the document helper", async () => {

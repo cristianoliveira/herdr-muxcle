@@ -16,20 +16,20 @@ Grow/shrink selects the nearest ancestor row for width or column for height with
 
 Equalize and proportional grow/shrink require ordinary, unzoomed terminal layouts. The separate strip-height command also accepts a zoomed tab so the strip can be revealed after resizing. It requests native unzoom only after rechecking that the original pane is still focused and the tab is still zoomed; if focus or zoom changed, it leaves the tab alone. Hidden/mod panes, replaced terminal views, ambiguous sizing, custom strip constraints, and stale identities refuse. Every change uses at most one version-checked document write for the original tab and machine. Conflicts and uncertain acknowledgements are not retried. Repeated sizing commands are ignored while an operation is pending. Navigation or host removal does not cancel an already-started helper; the original tab may still change, but no focus command is issued. Inspect pane shares before repeating an uncertain operation.
 
-Requires Herdr 0.1.13, Python 3 and hc with versioned doc.get/doc.set support on Herdr's PATH. The CLI must address the same core/session as the app; keep HC_SESSION consistent for isolated or custom sessions. No rotation or other Muxcle package, repository checkout, Node.js, Git, project-file access, new terminals, or persistent feature state is required. Recreation must preserve unrelated layouts, settings, bindings, and runtime state.
+Requires Herdr 0.1.13, Python 3 and hc with versioned doc.get/doc.set support on Herdr's PATH. The CLI must address the same core/session as the app; keep HC_SESSION consistent for isolated or custom sessions. No rotation or other Herdr Term package, repository checkout, Node.js, Git, project-file access, new terminals, or persistent feature state is required. Recreation must preserve unrelated layouts, settings, bindings, and runtime state.
 
 ## Add this package to Herdr
 
 For a published package, use its versioned archive and matching checksum; no source rebuild or development tooling is required. A GitHub source folder is an instruction entrypoint, not necessarily a compiled runtime payload. If a suitable release is unavailable, stop and explain what is missing rather than silently inventing a download or compiling on the user's machine.
 
-Requires Herdr 0.1.13, Python 3 and `hc` on Herdr's `PATH`, with versioned `doc.get` / `doc.set` support. The CLI must reach the same core/session as the app: keep `HC_SESSION` consistent for isolated or custom sessions. No rotation package, other Muxcle capability, Node.js, Git, or repository checkout is required.
+Requires Herdr 0.1.13, Python 3 and `hc` on Herdr's `PATH`, with versioned `doc.get` / `doc.set` support. The CLI must reach the same core/session as the app: keep `HC_SESSION` consistent for isolated or custom sessions. No rotation package, other Herdr Term capability, Node.js, Git, or repository checkout is required.
 
 ### Get the package
 
-Download `muxcle-sizing-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). Choose a published tag; if none exists, stop and ask whether a contributor should prepare a local build. For a local archive, verify and extract in the directory containing both files:
+Download `muxcle-sizing-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-term/releases). Choose a published tag; if none exists, stop and ask whether a contributor should prepare a local build. For a local archive, verify and extract in the directory containing both files:
 
 ```sh
-VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0 for a local candidate only}"
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0}"
 ARCHIVE="muxcle-sizing-${VERSION}.tar.gz"
 shasum -a 256 -c "$ARCHIVE.sha256"
 tar -xzf "$ARCHIVE"
@@ -81,7 +81,7 @@ A single pane, a missing split axis, and a resize beyond native numeric/progress
 
 Grow/shrink requires the entire selected sibling group to be flexible and unconstrained. A constrained nearest split is refused; the command does not jump to a more distant ancestor. Ambiguous sizing in affected groups, hidden or unsupported trees, mod panes, zoomed/replaced terminals for equalize/grow/shrink, and inconsistent snapshots are also refused. Trees are bounded to 64 panes, 32 nested levels and 512 nodes; the core document must fit its 1 MiB limit.
 
-Mixed-strip parity also remains blocked. The pinned source `shrink_document` shares a validator that accepts terminal or mod leaves and preserves leaf payloads while restacking, but its tests do not exercise a mod through this strip path. Herdr has an existing isolated native `window::tests` harness; no case verifies a nonfocused mod's copy/resources and pane-header identity survive strip sizing alongside a focused terminal. Muxcle intentionally rejects mod panes. Keep that guard until an authorized test in the existing harness covers this exact mixed-strip lifecycle and focus behavior.
+Mixed-strip parity also remains blocked. The pinned source `shrink_document` shares a validator that accepts terminal or mod leaves and preserves leaf payloads while restacking, but its tests do not exercise a mod through this strip path. Herdr has an existing isolated native `window::tests` harness; no case verifies a nonfocused mod's copy/resources and pane-header identity survive strip sizing alongside a focused terminal. Herdr Term intentionally rejects mod panes. Keep that guard until an authorized test in the existing harness covers this exact mixed-strip lifecycle and focus behavior.
 
 The helper validates the original tab's pane order and terminal identities, then makes at most one version-checked write. Conflicts are not retried. Repeated sizing commands are ignored while an update is pending. A timeout or lost acknowledgement can leave the write outcome uncertain: inspect pane shares before repeating.
 

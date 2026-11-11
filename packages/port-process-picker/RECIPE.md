@@ -1,6 +1,6 @@
 # Recipe: Listening process picker for Herdr
 
-This optional native mod reviews local TCP listeners and signals only the exact processes you select. It is independently installable and does not require the assembly layout, a mounted host, or another Muxcle package.
+This optional native mod reviews local TCP listeners and signals only the exact processes you select. It is independently installable and does not require the assembly layout, a mounted host, or another Herdr Term package.
 
 ## Safety and limits
 
@@ -20,7 +20,7 @@ Use a published versioned archive and matching checksum. A source folder is not 
 ```sh
 set -eu
 VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to a published tag including leading v and containing this package}"
-RELEASE_URL="https://github.com/cristianoliveira/herdr-muxcle/releases/download/$VERSION"
+RELEASE_URL="https://github.com/cristianoliveira/herdr-term/releases/download/$VERSION"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 ARCHIVE="muxcle-port-process-picker-${VERSION}.tar.gz"

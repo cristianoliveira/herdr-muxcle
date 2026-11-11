@@ -26,7 +26,7 @@ LIMITATIONS = [
 
 def parser():
     result = argparse.ArgumentParser(
-        description="Verify packaged Muxcle features in a separate native Herdr window and private core.",
+        description="Verify packaged Herdr Term features in a separate native Herdr window and private core.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Prerequisites:
   macOS GUI login, herdr-app matching the packages' tested version,

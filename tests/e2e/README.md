@@ -1,6 +1,6 @@
 # Native E2E checks
 
-Run packaged Muxcle features through real Herdr IPC, a private core, real terminal programs, and full-window screenshots. This is not keyboard/click automation.
+Run packaged Herdr Term features through real Herdr IPC, a private core, real terminal programs, and full-window screenshots. This is not keyboard/click automation.
 
 ## Run
 

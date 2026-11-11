@@ -1,4 +1,4 @@
-"""Owned, isolated macOS session for interactive Muxcle tests.
+"""Owned, isolated macOS session for interactive Herdr Term tests.
 
 The harness starts only a scratch core and a copied Herdr.app bundle. It never
 uses the installed bundle as the GUI process, and keeps run artifacts separate

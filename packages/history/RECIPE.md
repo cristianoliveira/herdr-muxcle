@@ -10,20 +10,20 @@ The design requires exactly one observer block in the active personal layout. Hi
 
 Optional shortcuts: Ctrl-a Shift-L for the last space; Ctrl-a Ctrl-R or Ctrl-a Tab for the last tab. With no previous target, no navigation occurs and a notice is posted.
 
-The mod persists only space/tab IDs under two separate shared-state keys: `muxcle-history.v1` for the unchanged last-two toggles and `muxcle-history.recent-tabs.v1` for the bounded full MRU. Recency tracking occurs only while this observer is mounted. The optional Picker reads that MRU only when Herdr's current layout snapshot contains a visible History block; that snapshot proves configured visibility, not observer health. History does not open or depend on Picker. The mod does not create, close, or reorder anything; run programs; scan files; or access the network. Requires Herdr 0.1.13, but no other Muxcle package, Python, or Node.js.
+The mod persists only space/tab IDs under two separate shared-state keys: `muxcle-history.v1` for the unchanged last-two toggles and `muxcle-history.recent-tabs.v1` for the bounded full MRU. Recency tracking occurs only while this observer is mounted. The optional Picker reads that MRU only when Herdr's current layout snapshot contains a visible History block; that snapshot proves configured visibility, not observer health. History does not open or depend on Picker. The mod does not create, close, or reorder anything; run programs; scan files; or access the network. Requires Herdr 0.1.13, but no other Herdr Term package, Python, or Node.js.
 
 ## Add this package to Herdr
 
 For a published package, use its versioned archive and matching checksum; no source rebuild or development tooling is required. A GitHub source folder is an instruction entrypoint, not necessarily a compiled runtime payload. If a suitable release is unavailable, stop and explain what is missing rather than silently inventing a download or compiling on the user's machine.
 
-This optional package requires Herdr 0.1.13 and **one mounted observer block in a personal layout**. It does not require a particular layout or another Muxcle package, Python, Node.js, Git, or a repository checkout.
+This optional package requires Herdr 0.1.13 and **one mounted observer block in a personal layout**. It does not require a particular layout or another Herdr Term package, Python, Node.js, Git, or a repository checkout.
 
 ### Get and inspect the package
 
-Download `muxcle-history-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). Choose a published tag; if none exists, stop and ask whether a contributor should prepare a local build. For local archives, verify and extract from the directory containing both files:
+Download `muxcle-history-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-term/releases). Choose a published tag; if none exists, stop and ask whether a contributor should prepare a local build. For local archives, verify and extract from the directory containing both files:
 
 ```sh
-VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0 for a local candidate only}"
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0}"
 ARCHIVE="muxcle-history-${VERSION}.tar.gz"
 shasum -a 256 -c "$ARCHIVE.sha256"
 tar -xzf "$ARCHIVE"

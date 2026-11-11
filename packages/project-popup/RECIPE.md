@@ -21,7 +21,7 @@ Use a published versioned archive and its matching checksum. No Git, repository 
 ```sh
 set -eu
 VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to a published tag including leading v and containing this package}"
-RELEASE_URL="https://github.com/cristianoliveira/herdr-muxcle/releases/download/$VERSION"
+RELEASE_URL="https://github.com/cristianoliveira/herdr-term/releases/download/$VERSION"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 ARCHIVE="muxcle-project-popup-${VERSION}.tar.gz"

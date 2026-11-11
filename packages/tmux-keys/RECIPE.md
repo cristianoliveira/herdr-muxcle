@@ -44,7 +44,7 @@ The source dotfiles' Alt-number space bindings are not automatically imported on
 
 Choose different unused chords if these conflict; the native actions remain the same.
 
-Native space creation, settings, sidebar, font and OS/window/terminal-editing shortcuts remain the person's choice. No personal Cmd bindings, editing sequences or reserved recovery/reset shortcuts are imported. Other Muxcle packages supply their own optional feature keys; those are not prerequisites for this key-only package.
+Native space creation, settings, sidebar, font and OS/window/terminal-editing shortcuts remain the person's choice. No personal Cmd bindings, editing sequences or reserved recovery/reset shortcuts are imported. Other Herdr Term packages supply their own optional feature keys; those are not prerequisites for this key-only package.
 
 ## Add this package to Herdr
 
@@ -54,12 +54,12 @@ This optional package adds the explicit tmux-inspired key bindings documented in
 
 ### Download
 
-Choose a published tag from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases) and download its archive and checksum. Set `MUXCLE_VERSION` to the exact selected tag including its leading `v`; the local candidate's `v0.2.0` filename does not imply that a release exists. If no release is published, stop and ask whether a contributor should prepare a local build. No Git, repository clone, Node.js, or npm is required to install a release.
+Choose a published tag from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-term/releases) and download its archive and checksum. Set `MUXCLE_VERSION` to the exact selected tag including its leading `v`; `v0.2.0` is published and includes this package. If no release is published, stop and ask whether a contributor should prepare a local build. No Git, repository clone, Node.js, or npm is required to install a release.
 
 ```sh
 set -eu
 VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to a published tag including leading v and containing this package}"
-RELEASE_URL="https://github.com/cristianoliveira/herdr-muxcle/releases/download/$VERSION"
+RELEASE_URL="https://github.com/cristianoliveira/herdr-term/releases/download/$VERSION"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 ARCHIVE="muxcle-tmux-keys-${VERSION}.tar.gz"

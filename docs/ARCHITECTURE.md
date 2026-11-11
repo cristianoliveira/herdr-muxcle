@@ -1,6 +1,6 @@
 # Architecture
 
-Muxcle supplies independent native Herdr capabilities and an optional whole-pack composition. Runtime modules are not a package manager. End users receive compiled files; Node.js and TypeScript belong only to development.
+Herdr Term supplies independent native Herdr capabilities and an optional whole-pack composition. Runtime modules are not a package manager. End users receive compiled files; Node.js and TypeScript belong only to development.
 
 ## Runtime
 

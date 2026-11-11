@@ -12,11 +12,11 @@ Local monitoring is enabled by default. Remote monitoring is **off by default**.
 
 Local pane hints use an optional read-only `hc get <terminal> --json` metadata read through Herdr's native `exec` API; if it is unavailable, status monitoring continues without a pane hint. Discovery checks at most 32 local pane targets per refresh; if that limit truncates the scan, unique pane focus is disabled. A pane location is only a hint. The mod compares exact local foreground cwd, terminal address, and argv metadata. It never treats a title as proof or renames tabs. Multiple matches show a count and do not focus an arbitrary pane. Remote watcher status has no pane hint.
 
-Requires Herdr 0.1.13 and an existing Funzzy watcher exposing control schema 1 with the `status` method. Missing/unreachable commands show offline; older or insufficient capabilities show unsupported; malformed status shows invalid. This package is independent of the Muxcle layout, tmux compatibility, and sessionizer.
+Requires Herdr 0.1.13 and an existing Funzzy watcher exposing control schema 1 with the `status` method. Missing/unreachable commands show offline; older or insufficient capabilities show unsupported; malformed status shows invalid. This package is independent of the `muxcle` layout, tmux compatibility, and sessionizer.
 
 ## Install through Herdr
 
-Use the versioned archive and matching checksum from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). A source folder is not a compiled release. If no suitable published archive exists, stop and ask whether a contributor should prepare a local build.
+Use the versioned archive and matching checksum from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-term/releases). A source folder is not a compiled release. If no suitable published archive exists, stop and ask whether a contributor should prepare a local build.
 
 Ask your Herdr agent to install this package and add exactly one bundled `observer.json` block to your existing personal layout. The block occupies 24 px. Do not replace the whole layout or switch layouts automatically. Resolve any existing node ID collision first. The default snippet keeps remote monitoring disabled; review the installation context before opting in to remote access.
 

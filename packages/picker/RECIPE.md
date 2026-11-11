@@ -12,22 +12,22 @@ Creation and close actions are separately opt-in with `management: true`. They a
 
 Remote-space actions use a second opt-in, `remoteSpaces: true`, which requires `management: true`. Only then does the picker call `hc machine ls --json`. Each machine record must have a unique `id`, `name`, and `state`; temporary metadata is retained, but temporary peers are never mutation targets. Herdr 0.1.13's native document-backed commands omit temporary machines from document slots and require a document, so a Core ID alone does not make a temporary peer usable. The picker offers remote actions only for connected, non-temporary peers and rechecks that eligibility plus the captured ID and name against a fresh listing before dispatch. Missing, conflicting, disconnected, changed identity, or a peer newly marked temporary fails closed. The close review also shows the captured Core ID and rechecks peer identity with the exact tab/pane scope. The picker never discovers/connects machines or creates a document to work around this native limit. With both options off by default, there is no machine-list query and no creation or close action.
 
-On open, the picker reads only its optional config file under the Herdr app home. In recency mode it checks the current layout snapshot for a visible History block before reading the History MRU shared-state key; a missing/hidden block or missing/invalid data leaves results in native order. This is configuration evidence, not proof that the observer is healthy: a visible but non-running observer can leave valid persisted visits stale. The picker does not scan files or launch programs. It requires Herdr 0.1.13; default native-order use needs no Python, Node.js, custom layout, or other Muxcle package. New recency data requires the optional History observer. The optional shortcut is Ctrl-a Ctrl-b.
+On open, the picker reads only its optional config file under the Herdr app home. In recency mode it checks the current layout snapshot for a visible History block before reading the History MRU shared-state key; a missing/hidden block or missing/invalid data leaves results in native order. This is configuration evidence, not proof that the observer is healthy: a visible but non-running observer can leave valid persisted visits stale. The picker does not scan files or launch programs. It requires Herdr 0.1.13; default native-order use needs no Python, Node.js, custom layout, or other Herdr Term package. New recency data requires the optional History observer. The optional shortcut is Ctrl-a Ctrl-b.
 
 ## Add this package to Herdr
 
 For a published package, use its versioned archive and matching checksum; no source rebuild or development tooling is required. A GitHub source folder is an instruction entrypoint, not necessarily a compiled runtime payload. If a suitable release is unavailable, stop and explain what is missing rather than silently inventing a download or compiling on the user's machine.
 
-This package requires Herdr 0.1.13. Native-order use needs no clone, Git, Node.js, Python, custom layout, or other Muxcle package. Recency ordering is optional and uses the independently installable History observer when installed and mounted.
+This package requires Herdr 0.1.13. Native-order use needs no clone, Git, Node.js, Python, custom layout, or other Herdr Term package. Recency ordering is optional and uses the independently installable History observer when installed and mounted.
 
 ### Get the package
 
-Download `muxcle-picker-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). Choose a published tag; if none exists, stop and ask whether a contributor should prepare a local build.
+Download `muxcle-picker-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-term/releases). Choose a published tag; if none exists, stop and ask whether a contributor should prepare a local build.
 
 Verify the checksum before extraction. For a local package, run from the directory containing both files:
 
 ```sh
-VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0 for a local candidate only}"
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0}"
 ARCHIVE="muxcle-picker-${VERSION}.tar.gz"
 shasum -a 256 -c "$ARCHIVE.sha256"
 tar -xzf "$ARCHIVE"

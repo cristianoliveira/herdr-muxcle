@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { RELEASE_CATALOG } from "./package.mjs";
 
-const defaultRepositoryUrl = "https://github.com/cristianoliveira/herdr-muxcle";
+const defaultRepositoryUrl = "https://github.com/cristianoliveira/herdr-term";
 const scriptPath = fileURLToPath(import.meta.url);
 
 export function createReleasePlan({ version, repositoryUrl = defaultRepositoryUrl }) {
@@ -41,7 +41,7 @@ export function formatReleaseNotes(plan) {
     return `| ${entry.title} (${packageName}) | ${entry.summary} | ${recipe} | ${archive} | ${checksum} |`;
   });
   return [
-    `# Herdr Muxcle ${plan.tag}`,
+    `# Herdr Term ${plan.tag}`,
     "",
     `Choose only the capabilities you need. The [package overview](${overview}) compares the available packages. The scaffold is an optional static starter, not an all-in-one bundle. Each package is a separate archive; check its recipe for implementation, setup, and maintenance guidance.`,
     "",

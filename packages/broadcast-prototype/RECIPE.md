@@ -1,6 +1,6 @@
 # Recipe: Broadcast input prototype for Herdr
 
-This optional prototype relays supported keys to a reviewed, frozen set of 2–8 live local ordinary terminal panes. It is not transparent synchronization or finished tmux compatibility. It needs no assembly layout, mounted observer, sessionizer, or other Muxcle package.
+This optional prototype relays supported keys to a reviewed, frozen set of 2–8 live local ordinary terminal panes. It is not transparent synchronization or finished tmux compatibility. It needs no assembly layout, mounted observer, sessionizer, or other Herdr Term package.
 
 ## Limits and safety
 
@@ -20,7 +20,7 @@ Use a published versioned archive and matching checksum. A repository checkout o
 ```sh
 set -eu
 VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to a published tag including leading v and containing this package}"
-RELEASE_URL="https://github.com/cristianoliveira/herdr-muxcle/releases/download/$VERSION"
+RELEASE_URL="https://github.com/cristianoliveira/herdr-term/releases/download/$VERSION"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 ARCHIVE="muxcle-broadcast-prototype-${VERSION}.tar.gz"

@@ -16,22 +16,22 @@ Mixed-mod rotation remains blocked, not shipped. Herdr's pinned source shows tha
 
 The native-pair opt-out is independent of mixed-mod lifecycle proof. Add `"props": {"native_rotation": false}` to this mod's existing `content` object to use the helper for exactly two terminal panes; merge the property without replacing the layout or other mod props.
 
-Requires Herdr 0.1.13. Larger rotations also need Python 3 and hc with versioned document API support on Herdr's PATH. The mod creates no terminals or persistent feature state and accesses no project files. The helper communicates only with the selected core, including its configured machine route when applicable. No other Muxcle package, Node.js, Git, or repository checkout is required.
+Requires Herdr 0.1.13. Larger rotations also need Python 3 and hc with versioned document API support on Herdr's PATH. The mod creates no terminals or persistent feature state and accesses no project files. The helper communicates only with the selected core, including its configured machine route when applicable. No other Herdr Term package, Node.js, Git, or repository checkout is required.
 
 ## Add this package to Herdr
 
 For a published package, use its versioned archive and matching checksum; no source rebuild or development tooling is required. A GitHub source folder is an instruction entrypoint, not necessarily a compiled runtime payload. If a suitable release is unavailable, stop and explain what is missing rather than silently inventing a download or compiling on the user's machine.
 
-Requires Herdr 0.1.13 and exactly one shown command-host block in a personal layout. No other Muxcle package, Node.js, Git, or repository checkout is required. Three or more panes require Python 3 and `hc` on Herdr's `PATH`, with core support for versioned `doc.get` / `doc.set`. Two-pane native rotation needs neither helper; the explicit two-pane opt-out requires both.
+Requires Herdr 0.1.13 and exactly one shown command-host block in a personal layout. No other Herdr Term package, Node.js, Git, or repository checkout is required. Three or more panes require Python 3 and `hc` on Herdr's `PATH`, with core support for versioned `doc.get` / `doc.set`. Two-pane native rotation needs neither helper; the explicit two-pane opt-out requires both.
 
 The `hc` CLI must reach the same core/session as Herdr. Keep `HC_SESSION` consistent for isolated or custom sessions; do not direct the helper at a different core.
 
 ### Get the package
 
-Download `muxcle-rotation-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). Choose a published tag; if none exists, stop and ask whether a contributor should prepare a local build. For a local archive, verify and extract in the directory containing both files:
+Download `muxcle-rotation-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-term/releases). Choose a published tag; if none exists, stop and ask whether a contributor should prepare a local build. For a local archive, verify and extract in the directory containing both files:
 
 ```sh
-VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0 for a local candidate only}"
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0}"
 ARCHIVE="muxcle-rotation-${VERSION}.tar.gz"
 shasum -a 256 -c "$ARCHIVE.sha256"
 tar -xzf "$ARCHIVE"

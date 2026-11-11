@@ -1,4 +1,4 @@
-# Release Muxcle packages
+# Release Herdr Term packages
 
 This guide is for maintainers. Installing a capability? Choose [a recipe](../README.md#choose-a-recipe).
 
@@ -16,7 +16,7 @@ The package catalog in `scripts/package.mjs` drives both archive construction an
 
 Work from the intended release commit on `main`. Review `git status --short`; do not accidentally include someone else's uncommitted changes.
 
-`v0.1.0` is already published and predates the whole pack. Prepare a new shared version, such as `0.2.0`, for that addition; do not replace existing tags or assets. Update `package.json` and `package-lock.json` together, review the version-only changes, and commit them. For example, `npm version 0.2.0 --no-git-tag-version --ignore-scripts` prepares the candidate without creating a Git tag. This bumps the shared package version, not just one capability.
+`v0.2.0` is already published and includes the whole pack. Prepare a new unused shared version, such as `0.3.0`; do not replace existing tags or assets. Update `package.json` and `package-lock.json` together, review the version-only changes, and commit them. For example, `npm version 0.3.0 --no-git-tag-version --ignore-scripts` prepares the candidate without creating a Git tag. This bumps the shared package version, not just one capability.
 
 Install locked development tools and preview the release:
 
@@ -31,7 +31,7 @@ For the CLI options or a machine-readable list of upload paths:
 
 ```sh
 node scripts/release-plan.mjs --help
-node scripts/release-plan.mjs --version 0.2.0 --format assets
+node scripts/release-plan.mjs --version 0.3.0 --format assets
 ```
 
 These commands only print the plan; they do not upload the listed files.
@@ -56,10 +56,10 @@ This checks packaged initial mod loading in a temporary app home, not your live 
 
 ## 3. Commit, tag, and push deliberately
 
-Commit the intended changes first. The following example assumes you have deliberately updated the shared version to `0.2.0`; always match `package.json`:
+Commit the intended changes first. The following example assumes you have deliberately updated the shared version to `0.3.0`; always match `package.json`:
 
 ```sh
-TAG=v0.2.0
+TAG=v0.3.0
 make release-tag TAG="$TAG"
 git status --short
 git log -1 --oneline
@@ -82,7 +82,7 @@ Inspect the run and draft using GitHub, or with `gh`:
 
 ```sh
 gh run list --workflow release.yml --limit 5
-gh release view "$TAG" --repo cristianoliveira/herdr-muxcle
+gh release view "$TAG" --repo cristianoliveira/herdr-term
 ```
 
 Check:
@@ -101,7 +101,7 @@ Do not announce draft download links as publicly available. Readers without repo
 After reviewing the draft, publish through GitHub's release editor, or run:
 
 ```sh
-gh release edit "$TAG" --repo cristianoliveira/herdr-muxcle --draft=false
+gh release edit "$TAG" --repo cristianoliveira/herdr-term --draft=false
 ```
 
 This is the publication step. No local preview, archive build, or tag-validation command publishes a release.

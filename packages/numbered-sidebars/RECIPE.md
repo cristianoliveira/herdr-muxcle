@@ -18,7 +18,7 @@ No shortcut, global agent order, settings/shared-state write, observer, polling,
 
 ## Add it to Herdr
 
-For a published package, use its versioned archive and matching checksum. If no suitable release exists, stop and ask a contributor to prepare a local build; do not invent a download or compile on the user's machine. Herdr 0.1.13 is required. No other Muxcle package, Node.js, npm, Git, or repository checkout is needed at runtime.
+For a published package, use its versioned archive and matching checksum. If no suitable release exists, stop and ask a contributor to prepare a local build; do not invent a download or compile on the user's machine. Herdr 0.1.13 is required. No other Herdr Term package, Node.js, npm, Git, or repository checkout is needed at runtime.
 
 Read `layout-snippets.json`. Copy the `spaces` block, the `agents` block, or both into an existing row's `children`; choose their order for left/right placement. The file contains block snippets, not a replacement layout. Review node-ID conflicts first. Preserve the existing native expanded views and all unrelated layout blocks. Do not mount the snippets by replacing the user's layout.
 

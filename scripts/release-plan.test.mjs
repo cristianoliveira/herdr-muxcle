@@ -9,7 +9,7 @@ import { createReleasePlan, formatReleaseAssets, formatReleaseNotes } from "./re
 
 const releasePlanScript = fileURLToPath(new URL("./release-plan.mjs", import.meta.url));
 
-const repositoryUrl = "https://github.com/cristianoliveira/herdr-muxcle";
+const repositoryUrl = "https://github.com/cristianoliveira/herdr-term";
 const packageNames = [
   "herdr-muxcle",
   "muxcle-tmux-keys",
@@ -95,8 +95,9 @@ test("release notes are deterministic and include every package recipe and artif
   const second = formatReleaseNotes(createReleasePlan({ version: "0.1.0", repositoryUrl }));
 
   assert.equal(first, second);
-  assert.match(first, /^# Herdr Muxcle v0\.1\.0\n/m);
+  assert.match(first, /^# Herdr Term v0\.1\.0\n/m);
   assert.ok(first.includes(`[package overview](${repositoryUrl}/blob/v0.1.0/README.md)`));
+  assert.ok(first.includes("| Herdr Term scaffold (`herdr-muxcle`) |"));
   assert.match(first, /optional static starter, not an all-in-one bundle/);
   assert.doesNotMatch(first, /all seven packages/i);
   for (const item of plan.packages) {
@@ -116,6 +117,13 @@ test("CLI emits catalog assets for workflow use", () => {
 
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(result.stdout.trim().split("\n"), formatReleaseAssets(plan));
+});
+
+test("release plan defaults to the canonical Herdr Term repository", () => {
+  const plan = createReleasePlan({ version: "0.1.0" });
+
+  assert.equal(plan.repositoryUrl, repositoryUrl);
+  assert.match(formatReleaseNotes(plan), /^# Herdr Term v0\.1\.0\n/m);
 });
 
 test("release preview defaults to the shared package and lockfile version", async () => {

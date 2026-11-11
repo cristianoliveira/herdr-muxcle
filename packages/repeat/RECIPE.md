@@ -10,7 +10,7 @@ Inside the popup, `n` moves to the previous tab, `p` to the next tab, and `h/j/k
 
 Escape, clicking Exit, timeout, or any unsupported key closes the mode. Unsupported keys do not run navigation actions; the popup consumes them, so terminal passthrough is not promised. Press a key again after the popup closes to type normally. Existing app-level shortcuts may still apply. This standalone popup needs no mounted host or layout change.
 
-The package requires Herdr 0.1.13. It does not require another Muxcle package, an observer, Python, external processes, filesystem access, network access, or persistent feature state. It does not repeat split, resize, create, close, or other commands.
+The package requires Herdr 0.1.13. It does not require another Herdr Term package, an observer, Python, external processes, filesystem access, network access, or persistent feature state. It does not repeat split, resize, create, close, or other commands.
 
 ## Add this package to Herdr
 
@@ -18,10 +18,10 @@ For a published package, use its versioned archive and matching checksum; no sou
 
 ### Get and inspect the package
 
-Download `muxcle-repeat-v<version>.tar.gz` and its `.sha256` file from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). Choose a published tag; if none exists, stop and ask whether a contributor should prepare a local build. For local archives, verify and extract both files:
+Download `muxcle-repeat-v<version>.tar.gz` and its `.sha256` file from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-term/releases). Choose a published tag; if none exists, stop and ask whether a contributor should prepare a local build. For local archives, verify and extract both files:
 
 ```sh
-VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0 for a local candidate only}"
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0}"
 ARCHIVE="muxcle-repeat-${VERSION}.tar.gz"
 shasum -a 256 -c "$ARCHIVE.sha256"
 tar -xzf "$ARCHIVE"

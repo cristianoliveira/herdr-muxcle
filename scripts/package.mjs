@@ -9,7 +9,7 @@ const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
 const appPackage = {
   name: "herdr-muxcle",
   release: {
-    title: "Herdr Muxcle scaffold",
+    title: "Herdr Term scaffold",
     summary: "Optional static starter layout and compatibility status; not an all-in-one bundle.",
     installationPath: "RECIPE.md",
   },
@@ -810,7 +810,7 @@ function createPackDefinition(definitions) {
     name: "muxcle-pack",
     release: {
       title: "Whole pack",
-      summary: "Optional vendor-managed Muxcle collection for dotfiles; no installer or automatic activation.",
+      summary: "Optional vendor-managed Herdr Term collection for dotfiles; no installer or automatic activation.",
       installationPath: "packages/pack/RECIPE.md",
     },
     files,

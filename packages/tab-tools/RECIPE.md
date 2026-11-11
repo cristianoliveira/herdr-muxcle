@@ -10,7 +10,7 @@ The position prompt captures the original space and tab IDs when opened. It vali
 
 Folder naming reads only `focused().cwd` from Herdr. It removes trailing `/` separators and uses the final path component, with `/` itself naming the root. It performs no local path resolution, so remote cwd values stay remote. The focused tab ID (including machine-qualified IDs) is passed unchanged. Herdr's native `tab.rename` trims leading and trailing whitespace in the requested name; other Unicode characters and normalization forms are passed through unchanged.
 
-Requires Herdr 0.1.13 or newer, with `focused().cwd`, the native `tab.move`/`tab.rename` commands, and mod overlays. Exactly one shown, non-focusable `host.json` block must be mounted in the active personal layout for key commands to reach the mod. The host is not a replacement for a layout and does not require the whole-pack layout or any other Muxcle package.
+Requires Herdr 0.1.13 or newer, with `focused().cwd`, the native `tab.move`/`tab.rename` commands, and mod overlays. Exactly one shown, non-focusable `host.json` block must be mounted in the active personal layout for key commands to reach the mod. The host is not a replacement for a layout and does not require the whole-pack layout or any other Herdr Term package.
 
 ## Add this package to Herdr
 
@@ -18,10 +18,10 @@ For a published package, use its versioned archive and matching checksum; no sou
 
 ### Get the package
 
-Download `muxcle-tab-tools-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). Choose a published tag; if none exists, stop and ask whether a contributor should prepare a local build. For a local archive, verify and extract in the directory containing both files:
+Download `muxcle-tab-tools-v<version>.tar.gz` and its `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-term/releases). Choose a published tag; if none exists, stop and ask whether a contributor should prepare a local build. For a local archive, verify and extract in the directory containing both files:
 
 ```sh
-VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0 for a local candidate only}"
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0}"
 ARCHIVE="muxcle-tab-tools-${VERSION}.tar.gz"
 shasum -a 256 -c "$ARCHIVE.sha256"
 tar -xzf "$ARCHIVE"

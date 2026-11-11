@@ -1,4 +1,4 @@
-# Herdr Muxcle scaffold
+# Herdr Term scaffold
 
 Use the supplied compiled implementation as your base. Read this recipe and the package files, then fit them to the person's Herdr version, layout, keys, and stated preferences. Preserve unrelated configuration and disclose helper execution, network access, and reads outside the mod folder. Ask before replacing files or bindings or activating a different layout. Rebuild from the design only if the supplied files cannot work or the person requests a different implementation.
 
@@ -8,7 +8,7 @@ A small personal layout with the shipped Spaces and Tabs modules and a custom st
 
 ## What you see
 
-A 240 px Spaces block on the left. The right side has the shipped Tabs strip, active tab with Herdr's shipped pane header, and a 28 px Muxcle status row at the bottom.
+A 240 px Spaces block on the left. The right side has the shipped Tabs strip, active tab with Herdr's shipped pane header, and a 28 px scaffold status row at the bottom.
 
 ## How it behaves
 
@@ -27,7 +27,7 @@ The layout is a complete window layout, not a patch to the current one. It does 
 ## Done when
 
 - The native initial-render check accepts the supplied or adapted `muxcle-compat` mod.
-- The Muxcle status row is visible when the `muxcle` layout is selected.
+- The scaffold status row is visible when the `muxcle` layout is selected.
 - Existing keys, settings, runtime state, and terminals remain untouched.
 
 ## Add this package to Herdr
@@ -38,14 +38,14 @@ This package is a starter layout and one static status mod. It does not implemen
 
 ### End-user download and install
 
-Choose a published tag from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). If none exists, ask a contributor to prepare a local archive; do not require end-user development tooling. Set `MUXCLE_VERSION` to the exact tag, including its leading `v`, that is actually published and includes this package. The local candidate's `v0.2.0` filename does not imply that a release exists. This is a manual app-home install; it does not require Git, Node.js, npm, or a repository clone.
+Choose a published tag from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-term/releases). If none exists, ask a contributor to prepare a local archive; do not require end-user development tooling. Set `MUXCLE_VERSION` to the exact tag, including its leading `v`, that is actually published and includes this package. `v0.2.0` is published and includes this package. This is a manual app-home install; it does not require Git, Node.js, npm, or a repository clone.
 
 After a release exists, set `MUXCLE_VERSION` to its exact tag including the leading `v` and run this from a shell. The install checker refuses existing package paths and symlinked app-home containers rather than overwriting or following them.
 
 ```sh
 set -eu
 VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to a published tag including leading v and containing this package}"
-RELEASE_URL="https://github.com/cristianoliveira/herdr-muxcle/releases/download/$VERSION"
+RELEASE_URL="https://github.com/cristianoliveira/herdr-term/releases/download/$VERSION"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 ARCHIVE="herdr-muxcle-${VERSION}.tar.gz"
@@ -123,6 +123,6 @@ make package
 
 ### Releasing this package
 
-Maintainer instructions live in the [release process](https://github.com/cristianoliveira/herdr-muxcle/blob/main/docs/RELEASING.md), alongside the other independently installable packages. Tag automation prepares a draft; publication is a separate maintainer decision.
+Maintainer instructions live in the [release process](https://github.com/cristianoliveira/herdr-term/blob/main/docs/RELEASING.md), alongside the other independently installable packages. Tag automation prepares a draft; publication is a separate maintainer decision.
 
 GitHub release publication does not submit a package to Herdr's public gallery. Gallery publication requires its own review and a genuine `preview.png`; no gallery submission is automated here.

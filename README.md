@@ -1,8 +1,8 @@
-# herdr-muxcle
+# Herdr Term
 
-You left tmux. Your fingers didn't.
+Built for your tmux muscle memory.
 
-Bring familiar tmux workflows to Herdr. Choose individual capabilities, or take the whole pack and manage it in your dotfiles. Reuse native Herdr commands where possible; keep control of your setup.
+Familiar terminal and multiplexer workflows, native to Herdr. Choose individual capabilities or assemble the optional pack in your dotfiles. Reuse native Herdr commands where possible; keep control of your setup.
 
 ## Add it to Herdr
 
@@ -10,7 +10,7 @@ Bring familiar tmux workflows to Herdr. Choose individual capabilities, or take 
 
 For the complete setup, tell your agent:
 
-> Add the Muxcle whole pack using https://github.com/cristianoliveira/herdr-muxcle/blob/main/packages/pack/RECIPE.md. Read the recipe and package files, use the compiled implementation from a suitable published release as the base, and fit it to my setup. Preserve unrelated configuration; explain helper execution and file access, and ask before replacing files, bindings, or switching layouts. If no matching release exists, stop and explain what is missing.
+> Add the Herdr Term whole pack using https://github.com/cristianoliveira/herdr-term/blob/main/packages/pack/RECIPE.md. Read the recipe and package files, use the compiled implementation from a suitable published release as the base, and fit it to my setup. Preserve unrelated configuration; explain helper execution and file access, and ask before replacing files, bindings, or switching layouts. If no matching release exists, stop and explain what is missing.
 
 For one capability, substitute its recipe URL below. No custom installer or native `herdr-app install` command is required.
 
@@ -38,6 +38,8 @@ For one capability, substitute its recipe URL below. No custom installer or nati
 | [Space closer](packages/space-closer/RECIPE.md) (`muxcle-space-closer`) | Review exact local or remote space, machine, tab, and pane identities before explicitly closing selected spaces | Native dialog; `hc` identity check only for remote selections; no custom layout or default shortcut |
 | [Scaffold](RECIPE.md) (`herdr-muxcle`) | Optional starter layout and static status row | Not an all-in-one bundle; select deliberately |
 
+Legacy compatibility: the scaffold archive/package ID (`herdr-muxcle`) and feature/mod IDs (`muxcle-*`) remain unchanged; the repository and product are named Herdr Term.
+
 The pack deliberately excludes Broadcast prototype and Port/process picker; install either separately after reviewing its safety limits. Pack inclusion does not activate optional observers, remote discovery or Picker management.
 
 Runtime packages target Herdr 0.1.13. Agent attention, Funzzy feedback and optional presentation are independently selectable inspired tools, not compatibility prerequisites. Sessionizer is optional project discovery, not a prerequisite for tmux workflows.
@@ -46,11 +48,11 @@ Start with **Tmux keys** if you only want shortcuts. Individual capabilities do 
 
 ## Ready-to-use files
 
-Download a package's archive and matching SHA-256 file from a published [GitHub Release](https://github.com/cristianoliveira/herdr-muxcle/releases), or ask your agent to do that. Each archive includes compiled runtime files and a root `RECIPE.md` containing the complete instructions. Repository package folders are instruction entrypoints, not compiled installation payloads.
+Download a package's archive and matching SHA-256 file from a published [GitHub Release](https://github.com/cristianoliveira/herdr-term/releases), or ask your agent to do that. Each archive includes compiled runtime files and a root `RECIPE.md` containing the complete instructions. Repository package folders are instruction entrypoints, not compiled installation payloads.
 
 End users do not need Git, Node.js, npm, TypeScript, or a repository clone. Manual copying and dotfile-manager deployment remain options. Keep runtime state outside the package and review key conflicts; never replace a complete personal key map or app home silently.
 
-The published `v0.1.0` release predates the whole pack. Use a newer release that includes it, or ask a contributor for a local archive; do not assume an absent release URL works.
+[Published `v0.2.0`](https://github.com/cristianoliveira/herdr-term/releases/tag/v0.2.0) includes the whole pack and independent packages. The older `v0.1.0` predates the pack. Use each published archive's matching checksum; a local build is not a published release.
 
 ## Delivery boundaries
 

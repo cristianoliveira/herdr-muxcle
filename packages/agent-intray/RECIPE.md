@@ -11,14 +11,14 @@ This optional native mod keeps a bounded inbox of observed agent `done` and `blo
 - **Dismiss all** opens a fixed-ID review. New arrivals remain unread. Escape or Cancel abandons review; only Ctrl-Enter or a pointer click on the explicit confirmation button confirms. Plain Enter does not.
 - Mounting the optional one-pixel observer captures transitions while the popup is closed. Without it, transitions are observed only while the popup is open. Neither mode replays transitions from before it began observing.
 
-Requires Herdr 0.1.13 or newer, whose native `agents()` API supplies status, sequence, title, space name, and tab name. The mod uses only native Herdr APIs; it requires no other Muxcle package, Python, Node.js, Git, or repository checkout.
+Requires Herdr 0.1.13 or newer, whose native `agents()` API supplies status, sequence, title, space name, and tab name. The mod uses only native Herdr APIs; it requires no other Herdr Term package, Python, Node.js, Git, or repository checkout.
 
 ## Install
 
-For a published package, download `muxcle-agent-intray-v<version>.tar.gz` and its matching `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-muxcle/releases). If no suitable release exists, stop and ask a contributor to prepare a local build. Verify and extract the archive:
+For a published package, download `muxcle-agent-intray-v<version>.tar.gz` and its matching `.sha256` from the [GitHub Releases page](https://github.com/cristianoliveira/herdr-term/releases). If no suitable release exists, stop and ask a contributor to prepare a local build. Verify and extract the archive:
 
 ```sh
-VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0 for a local candidate only}"
+VERSION="${MUXCLE_VERSION:?Set MUXCLE_VERSION to the exact archive tag including leading v, for example v0.2.0}"
 ARCHIVE="muxcle-agent-intray-${VERSION}.tar.gz"
 shasum -a 256 -c "$ARCHIVE.sha256"
 tar -xzf "$ARCHIVE"
@@ -58,4 +58,4 @@ To uninstall, remove only this mod's observer block and any shortcut that still 
 
 ## Limits
 
-The observer is required only for capture while the popup is closed, not for opening or using the inbox. UI state and unread events are shared between the popup and observer. The shared store has no compare-and-swap operation; both views always re-read before changing state, and no-op renders do not write. Native initial-load validation does not prove live status delivery, focus success, or persistence across an app restart. Verify interactive behavior in the intended Herdr setup. This package does not claim gallery availability until a release is published.
+The observer is required only for capture while the popup is closed, not for opening or using the inbox. UI state and unread events are shared between the popup and observer. The shared store has no compare-and-swap operation; both views always re-read before changing state, and no-op renders do not write. Native initial-load validation does not prove live status delivery, focus success, or persistence across an app restart. Verify interactive behavior in the intended Herdr setup. GitHub release publication does not imply a Herdr gallery listing; no gallery listing is claimed.

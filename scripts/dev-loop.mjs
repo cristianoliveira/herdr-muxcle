@@ -61,7 +61,7 @@ Examples:
   node scripts/dev-loop.mjs unlink --mod muxcle-picker --app-home /tmp/herdr-app-home
 
 Prerequisites:
-  Node.js 22.23.4, npm 10.9.9, locked TypeScript dependencies, and a Muxcle checkout.
+  Node.js 22.23.4, npm 10.9.9, locked TypeScript dependencies, and a Herdr Term checkout.
   Run: npm ci --ignore-scripts
   Build/link/watch require an individually packaged mod source. Python, hc, Neovim,
   clipboard permission, and mounted observers remain capability-specific runtime needs.

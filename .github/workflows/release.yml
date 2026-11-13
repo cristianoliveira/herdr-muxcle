@@ -1,0 +1,40 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.23.4
+      - run: make gate
+      - name: Assemble complete native entries
+        shell: bash
+        run: node scripts/package.mjs --version "${GITHUB_REF_NAME#v}" --out dist
+      - name: Create a draft release for review
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.tar.gz dist/*.sha256 \
+            --verify-tag \
+            --title "$GITHUB_REF_NAME" \
+            --notes "Original native mods, bundled helpers/assets and SHA-256 files. Read each recipe and review native checks before publication; CI validates source and archive structure, not live UI or gallery availability." \
+            --draft

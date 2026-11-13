@@ -56,8 +56,8 @@ opened. Nothing is uploaded to an external service.
 Run automated checks from the Herdr Term root:
 
 ```sh
-python3 -B -m unittest discover -s herdr/tests -p test_image_preview.py
-node --experimental-default-type=module --test herdr/tests/image-preview*.test.mjs
+python3 -B -m unittest discover -s tests -p test_image_preview.py
+node --experimental-default-type=module --test tests/image-preview*.test.mjs
 ```
 
 A separate manual native-load check is:

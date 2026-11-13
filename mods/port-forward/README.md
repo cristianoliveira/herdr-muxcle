@@ -124,8 +124,8 @@ Run automated checks from the Herdr Term root. The temporary path setting keeps
 mock SSH control sockets below platform path-length limits:
 
 ```sh
-TMPDIR=/tmp python3 -B -m unittest discover -s herdr/tests -p test_port_forward.py
-node --experimental-default-type=module --test herdr/tests/port-forward-*.test.mjs
+TMPDIR=/tmp python3 -B -m unittest discover -s tests -p test_port_forward.py
+node --experimental-default-type=module --test tests/port-forward-*.test.mjs
 ```
 
 Separate manual native checks are:

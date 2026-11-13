@@ -1,16 +1,18 @@
 SHELL := /bin/sh
 
+MODULE_DIRS := $(shell node scripts/mod-directories.mjs)
+
 .PHONY: gate lint test watch
 
 gate:
 	@./scripts/quality-gate.sh
 
 lint:
-	@set -e; find herdr scripts -type f \( -name '*.js' -o -name '*.mjs' \) -print | while IFS= read -r file; do node --experimental-default-type=module --check "$$file"; done
+	@set -eu; test -n "$(MODULE_DIRS)" || { echo 'No tracked mods/*/main.js entrypoints found.' >&2; exit 1; }; find scripts tests $(MODULE_DIRS) -type f \( -name '*.js' -o -name '*.mjs' \) -exec node --experimental-default-type=module --check {} \;
 
 test:
-	@set -e; files=$$(find herdr -type f -name '*.test.mjs' -print); node --experimental-default-type=module --test $$files
-	@set -e; for file in herdr/tests/test_*.py; do name=$$(basename "$$file"); if [ "$$name" = test_install.py ]; then continue; fi; TMPDIR=/tmp python3 -B -m unittest discover -s herdr/tests -p "$$name"; done
+	@set -eu; test -n "$(MODULE_DIRS)" || { echo 'No tracked mods/*/main.js entrypoints found.' >&2; exit 1; }; set --; for file in tests/*.test.mjs scripts/*.test.mjs; do [ -f "$$file" ] && set -- "$$@" "$$file"; done; for module in $(MODULE_DIRS); do for file in "$$module"/*.test.mjs; do [ -f "$$file" ] && set -- "$$@" "$$file"; done; done; node --experimental-default-type=module --test "$$@"
+	@set -eu; for file in tests/test_*.py; do [ -f "$$file" ] || continue; name=$$(basename "$$file"); if [ "$$name" = test_install.py ]; then continue; fi; TMPDIR=/tmp python3 -B -m unittest discover -s tests -p "$$name"; done
 
 watch:
 	@fzz --config .watch.yaml watch

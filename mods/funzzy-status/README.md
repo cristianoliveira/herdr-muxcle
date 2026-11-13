@@ -106,7 +106,7 @@ green (`ansi2`) for passed, red (`ansi1`) for failed, and muted for other states
 Run automated checks from the Herdr Term root:
 
 ```sh
-node --experimental-default-type=module --experimental-test-coverage --test herdr/mods/funzzy-status/*.test.mjs
+node --experimental-default-type=module --experimental-test-coverage --test mods/funzzy-status/*.test.mjs
 ```
 
 A separate manual native-load check is:
@@ -122,11 +122,11 @@ Herdr bounds each exec to 30 seconds and 8 MiB; polls for a project never overla
 
 ## Remove
 
-1. Remove the `funzzy-status` block from `herdr/layouts/tmux.json` in this checkout.
+1. Remove the `funzzy-status` block from `layouts/tmux.json` in this checkout.
 2. Remove the corresponding managed symlink from the dotfiles checkout at
    `stow/herdr/.config/herdr-app/mods/funzzy-status` and its installed
    `~/.config/herdr-app/mods/funzzy-status` symlink. Leave other links and data alone.
-3. Delete `herdr/mods/funzzy-status` only if you also want to remove its source,
+3. Delete `mods/funzzy-status` only if you also want to remove its source,
    then reload the layout.
 
 No other mod imports this module. No watcher lifecycle changes need to be undone.

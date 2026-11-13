@@ -1,7 +1,8 @@
 # Herdr setup and key bindings
 
-This guide describes `herdr/` in the Herdr Term checkout. Its JavaScript mods
-load directly; there is no TypeScript build or package installation. Runtime
+This guide describes the root `mods/`, `layouts/`, `themes/` and `keys.json`
+in the Herdr Term checkout. JavaScript loads directly; there is no TypeScript
+compilation or capability-package source layer. Runtime
 checks below run from the Herdr Term root. Dotfiles installation commands run
 from the separate dotfiles root, normally `~/.dotfiles`.
 
@@ -32,14 +33,17 @@ not overwritten. Mutable container directories must be real directories; the
 installer refuses unexpected linked containers rather than writing through
 them into another location.
 Keys reload live. Check `herdr-app status` and `~/.config/herdr-app/keys.error`
-if an edit does not take effect. Edit `herdr/keys.json` in the source checkout.
-Dotfiles links whole mod directories and individual config files from its pinned
-`herdr-term/herdr/` tree; no compiled generations are involved.
+if an edit does not take effect. Edit `keys.json` in the source checkout.
+A consuming dotfiles checkout links whole mod directories and individual config
+files from its pinned `herdr-term/` tree; no compiled generations are involved.
+Older pins may still use the nested `herdr/` tree. Update the consuming links and
+pin together in a reviewed migration before installing; flattening this source
+repository does not run Stow or migrate a live app home.
 
 ## Theme
 
 The `tmux` layout selects `solarized-dark` explicitly, independent of system
-light/dark appearance. Its palette lives in `herdr/themes/solarized-dark.json` and
+light/dark appearance. Its palette lives in `themes/solarized-dark.json` and
 Stow links it into Herdr. Restarts and repeated installs retain this choice;
 Herdr's theme picker can still change it intentionally.
 
@@ -202,8 +206,8 @@ machines are removed from the visible results after checking connectivity.
 Run automated checks from the Herdr Term root:
 
 ```sh
-TMPDIR=/tmp python3 -B -m unittest discover -s herdr/tests -p test_projects.py -v
-node --experimental-default-type=module --test herdr/tests/model.test.mjs
+TMPDIR=/tmp python3 -B -m unittest discover -s tests -p test_projects.py -v
+node --experimental-default-type=module --test tests/model.test.mjs
 ```
 
 These separate manual checks inspect or open native UI. Unit-test success does
@@ -300,7 +304,7 @@ receive upstream updates automatically.
 
 ## Tmux compatibility layer
 
-`herdr/mods/tmux-compat/` owns missing tmux behavior. It is independent of
+`mods/tmux-compat/` owns missing tmux behavior. It is independent of
 `project-picker`, which only discovers and opens projects. Native Herdr
 commands remain direct key bindings; do not wrap features that already exist.
 
@@ -565,7 +569,7 @@ mode to review a new target set. Test on harmless commands before real work.
 Run the JavaScript checks from the Herdr Term root:
 
 ```sh
-node --experimental-default-type=module --test herdr/tests/*.test.mjs
+node --experimental-default-type=module --test tests/*.test.mjs
 ```
 
 Manual native checks below open dialogs, start popups, or activate the broadcast

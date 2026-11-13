@@ -1,0 +1,95 @@
+{
+  "funzzy-status": {
+    "mods": [
+      "funzzy-status"
+    ],
+    "files": []
+  },
+  "image-preview": {
+    "mods": [
+      "image-preview"
+    ],
+    "files": []
+  },
+  "intray": {
+    "mods": [
+      "intray"
+    ],
+    "files": []
+  },
+  "number-agents": {
+    "mods": [
+      "number-agents"
+    ],
+    "files": []
+  },
+  "number-spaces": {
+    "mods": [
+      "number-spaces"
+    ],
+    "files": []
+  },
+  "pane-footer": {
+    "mods": [
+      "pane-footer"
+    ],
+    "files": []
+  },
+  "port-forward": {
+    "mods": [
+      "port-forward"
+    ],
+    "files": []
+  },
+  "project-picker": {
+    "mods": [
+      "project-picker"
+    ],
+    "files": []
+  },
+  "tmux-compat": {
+    "mods": [
+      "tmux-compat"
+    ],
+    "files": []
+  },
+  "tmux-picker": {
+    "mods": [
+      "tmux-picker"
+    ],
+    "files": []
+  },
+  "tmux-status": {
+    "mods": [
+      "tmux-status"
+    ],
+    "files": []
+  },
+  "tmux-tabs": {
+    "mods": [
+      "tmux-tabs"
+    ],
+    "files": []
+  },
+  "tmux": {
+    "mods": [
+      "funzzy-status",
+      "image-preview",
+      "intray",
+      "number-agents",
+      "number-spaces",
+      "pane-footer",
+      "port-forward",
+      "project-picker",
+      "tmux-compat",
+      "tmux-picker",
+      "tmux-status",
+      "tmux-tabs"
+    ],
+    "files": [
+      "keys.json",
+      "layouts/tmux.json",
+      "themes/solarized-dark.json"
+    ]
+  }
+}

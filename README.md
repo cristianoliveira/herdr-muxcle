@@ -27,6 +27,8 @@ For one capability, substitute its recipe URL below. No custom installer or nati
 | [Keyboard copy mode](packages/copy-mode/RECIPE.md) (`muxcle-copy-mode`) | Copy/search a bounded snapshot of the actually displayed local or remote terminal in an isolated local viewer | Python 3, `hc`, Neovim/OSC 52; optional shortcut; no custom layout |
 | [Broadcast prototype](packages/broadcast-prototype/RECIPE.md) (`muxcle-broadcast-prototype`) | Explicit bounded input relay to 2–8 captured local panes; not transparent tmux synchronization | Python 3, `hc`, local POSIX TTY; explicit reviewed scope/ON state; optional shortcut |
 | [Port/process picker](packages/port-process-picker/RECIPE.md) (`muxcle-port-process-picker`) | Review local TCP listener processes before TERM; force KILL is a separate choice | Python 3, POSIX `lsof`/`ps` and signal permissions; no remote fallback |
+| [Image Preview](packages/image-preview/RECIPE.md) (`muxcle-image-preview`) | Full-window preview of a copied or dropped image path; no terminal input | Python 3; optional local clipboard access and `hc`/remote Python for remote files |
+| [Port Forward](packages/port-forward/RECIPE.md) (`muxcle-port-forward`) | Review remote listeners and explicitly manage owned loopback-only SSH tunnels | Python 3, `hc`, OpenSSH and verified non-interactive SSH; remote `lsof`/`ss` for optional discovery |
 | [History](packages/history/RECIPE.md) (`muxcle-history`) | Last-tab/space toggles and optional bounded tab MRU | One mounted observer |
 | [Agent attention inbox](packages/agent-intray/RECIPE.md) (`muxcle-agent-intray`) | Bounded inbox of observed agent completions and requests for input | Popup mod; optional mounted observer for capture while closed; optional shortcut |
 | [Numbered sidebars](packages/numbered-sidebars/RECIPE.md) (`muxcle-numbered-sidebars`) | Optional status-colored Space/Agent rails; preserve native expanded controls | Add one or both optional layout blocks; no shortcuts or observer |
@@ -40,7 +42,7 @@ For one capability, substitute its recipe URL below. No custom installer or nati
 
 Legacy compatibility: the scaffold archive/package ID (`herdr-muxcle`) and feature/mod IDs (`muxcle-*`) remain unchanged; the repository and product are named Herdr Term.
 
-The pack deliberately excludes Broadcast prototype and Port/process picker; install either separately after reviewing its safety limits. Pack inclusion does not activate optional observers, remote discovery or Picker management.
+The pack deliberately excludes Broadcast prototype, Port/process picker, Image Preview and Port Forward; install them separately after reviewing their safety limits. Pack inclusion does not activate optional observers, remote discovery or Picker management.
 
 Runtime packages target Herdr 0.1.13. Agent attention, Funzzy feedback and optional presentation are independently selectable inspired tools, not compatibility prerequisites. Sessionizer is optional project discovery, not a prerequisite for tmux workflows.
 

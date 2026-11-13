@@ -21,6 +21,8 @@ test: build
 	@python3 -B -m unittest discover -s mods/muxcle-sizing -p 'test_*.py'
 	@python3 -B -m unittest discover -s mods/muxcle-broadcast-prototype -p 'test_*.py'
 	@python3 -B -m unittest discover -s mods/muxcle-port-process-picker -p 'test_*.py'
+	@python3 -B -m unittest discover -s mods/muxcle-image-preview -p 'test_*.py'
+	@python3 -B -m unittest discover -s mods/muxcle-port-forward -p 'test_*.py'
 	@python3 -B -m unittest discover -s tests/e2e -p 'test_*.py'
 
 watch:

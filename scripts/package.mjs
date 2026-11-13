@@ -535,6 +535,64 @@ const portProcessPickerPackage = {
     ["mods/muxcle-port-process-picker/port_processes.py", "mods/muxcle-port-process-picker/port_processes.py"],
   ],
 };
+const imagePreviewPackage = {
+  name: "muxcle-image-preview",
+  release: {
+    title: "Image Preview",
+    summary: "Preview bounded local or remote image files in a native full-window popup without terminal input.",
+    installationPath: "packages/image-preview/RECIPE.md",
+  },
+  files: [
+    "check-install-targets.sh",
+    "keys.json",
+    "RECIPE.md",
+    "mods/muxcle-image-preview/main.js",
+    "mods/muxcle-image-preview/model.js",
+    "mods/muxcle-image-preview/mod.json",
+    "mods/muxcle-image-preview/package-owner.json",
+    "mods/muxcle-image-preview/preview.py",
+  ],
+  directories: ["", "mods", "mods/muxcle-image-preview"],
+  sources: [
+    ["packages/image-preview/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/image-preview/keys.json", "keys.json"],
+    ["packages/image-preview/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-image-preview/main.js", "mods/muxcle-image-preview/main.js"],
+    [".build/mods/muxcle-image-preview/model.js", "mods/muxcle-image-preview/model.js"],
+    ["mods/muxcle-image-preview/mod.json", "mods/muxcle-image-preview/mod.json"],
+    ["mods/muxcle-image-preview/package-owner.json", "mods/muxcle-image-preview/package-owner.json"],
+    ["mods/muxcle-image-preview/preview.py", "mods/muxcle-image-preview/preview.py"],
+  ],
+};
+const portForwardPackage = {
+  name: "muxcle-port-forward",
+  release: {
+    title: "Port Forward",
+    summary: "Review remote TCP listeners and explicitly manage owned, loopback-only SSH tunnels.",
+    installationPath: "packages/port-forward/RECIPE.md",
+  },
+  files: [
+    "check-install-targets.sh",
+    "keys.json",
+    "RECIPE.md",
+    "mods/muxcle-port-forward/main.js",
+    "mods/muxcle-port-forward/model.js",
+    "mods/muxcle-port-forward/mod.json",
+    "mods/muxcle-port-forward/package-owner.json",
+    "mods/muxcle-port-forward/forward.py",
+  ],
+  directories: ["", "mods", "mods/muxcle-port-forward"],
+  sources: [
+    ["packages/port-forward/check-install-targets.sh", "check-install-targets.sh"],
+    ["packages/port-forward/keys.json", "keys.json"],
+    ["packages/port-forward/RECIPE.md", "RECIPE.md"],
+    [".build/mods/muxcle-port-forward/main.js", "mods/muxcle-port-forward/main.js"],
+    [".build/mods/muxcle-port-forward/model.js", "mods/muxcle-port-forward/model.js"],
+    ["mods/muxcle-port-forward/mod.json", "mods/muxcle-port-forward/mod.json"],
+    ["mods/muxcle-port-forward/package-owner.json", "mods/muxcle-port-forward/package-owner.json"],
+    ["mods/muxcle-port-forward/forward.py", "mods/muxcle-port-forward/forward.py"],
+  ],
+};
 const existingPackageDefinitions = [
   appPackage,
   tmuxKeysPackage,
@@ -554,11 +612,19 @@ const existingPackageDefinitions = [
   tabToolsPackage,
   spaceCloserPackage,
   portProcessPickerPackage,
+  imagePreviewPackage,
+  portForwardPackage,
 ];
 const trustedComponentNames = new Set(existingPackageDefinitions.filter(hasOwnedModSources).map(({ name }) => name));
 const packPackage = createPackDefinition(
   existingPackageDefinitions.filter(
-    ({ name }) => name !== "muxcle-broadcast-prototype" && name !== "muxcle-port-process-picker",
+    ({ name }) =>
+      ![
+        "muxcle-broadcast-prototype",
+        "muxcle-port-process-picker",
+        "muxcle-image-preview",
+        "muxcle-port-forward",
+      ].includes(name),
   ),
 );
 const packageDefinitions = [...existingPackageDefinitions, packPackage];
@@ -634,6 +700,14 @@ export async function createSpaceCloserPackage(options = {}) {
 
 export async function createPortProcessPickerPackage(options = {}) {
   return buildPackage(portProcessPickerPackage, options);
+}
+
+export async function createImagePreviewPackage(options = {}) {
+  return buildPackage(imagePreviewPackage, options);
+}
+
+export async function createPortForwardPackage(options = {}) {
+  return buildPackage(portForwardPackage, options);
 }
 
 export async function createPackPackage(options = {}) {

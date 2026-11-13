@@ -29,6 +29,8 @@ const packageNames = [
   "muxcle-tab-tools",
   "muxcle-space-closer",
   "muxcle-port-process-picker",
+  "muxcle-image-preview",
+  "muxcle-port-forward",
   "muxcle-pack",
 ];
 const recipePaths = [
@@ -50,6 +52,8 @@ const recipePaths = [
   "packages/tab-tools/RECIPE.md",
   "packages/space-closer/RECIPE.md",
   "packages/port-process-picker/RECIPE.md",
+  "packages/image-preview/RECIPE.md",
+  "packages/port-forward/RECIPE.md",
   "packages/pack/RECIPE.md",
 ];
 

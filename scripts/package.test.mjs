@@ -1530,6 +1530,8 @@ test("builds independent archives for the scaffold, keys, and capabilities", asy
         "muxcle-tab-tools",
         "muxcle-space-closer",
         "muxcle-port-process-picker",
+        "muxcle-image-preview",
+        "muxcle-port-forward",
         "muxcle-pack",
       ],
     );

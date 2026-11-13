@@ -8,9 +8,9 @@ The original dotfiles Herdr setup, copied without runtime changes into `herdr/`.
 
 There is no TypeScript compilation, capability packaging, generated runtime or npm installation. Herdr loads the JavaScript directly. Keep whole mod directories together; do not link individual JavaScript files outside their module folder.
 
-The snapshot is from dotfiles commit `b5417a09`, subtree `nix/shared/herdr` (`cbaf9a1d5ebf27f8aba3e3f99d13cd7b87d34242`). Module IDs, shortcuts, state keys, helper arguments and behavior remain unchanged. The original setup reference is [herdr/README.md](herdr/README.md), including existing system-tool and personal-path requirements.
+The runtime was copied from dotfiles commit `b5417a09`, subtree `nix/shared/herdr` (`cbaf9a1d5ebf27f8aba3e3f99d13cd7b87d34242`). Runtime files, module IDs, shortcuts, state keys and helper arguments remain unchanged; documentation uses the current repository paths. See the [setup and shortcut guide](herdr/README.md), including existing system-tool and personal-path requirements.
 
-Dotfiles pins this repository and links its files into Herdr. No build step is needed. Mutable settings and runtime data do not belong in this checkout and must not be replaced.
+Dotfiles pins this repository and links its files into Herdr. Run installation commands from the dotfiles checkout; run the development checks below from this checkout. No build step is needed. Mutable settings and runtime data do not belong in this checkout and must not be replaced.
 
 ## Development checks
 

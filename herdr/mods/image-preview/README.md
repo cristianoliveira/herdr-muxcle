@@ -53,8 +53,17 @@ opened. Nothing is uploaded to an external service.
 
 ## Verify
 
+Run automated checks from the Herdr Term root:
+
 ```sh
-python3 -m unittest discover -s nix/shared/herdr/tests -p test_image_preview.py
-node --experimental-default-type=module --test nix/shared/herdr/tests/image-preview*.test.mjs
+python3 -B -m unittest discover -s herdr/tests -p test_image_preview.py
+node --experimental-default-type=module --test herdr/tests/image-preview*.test.mjs
+```
+
+A separate manual native-load check is:
+
+```sh
 herdr-app check ~/.config/herdr-app/mods/image-preview
 ```
+
+The tests do not prove live clipboard, drop, remote-file or native rendering behavior.

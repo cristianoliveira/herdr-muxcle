@@ -1,4 +1,9 @@
-# Herdr key bindings
+# Herdr setup and key bindings
+
+This guide describes `herdr/` in the Herdr Term checkout. Its JavaScript mods
+load directly; there is no TypeScript build or package installation. Runtime
+checks below run from the Herdr Term root. Dotfiles installation commands run
+from the separate dotfiles root, normally `~/.dotfiles`.
 
 Nix installs `herdr-app` and `herdr-core`. Stow links `keys.json` and the
 personal mods, Solarized Dark theme, and `tmux` layout into
@@ -8,13 +13,13 @@ The install hook creates a real app directory so Stow cannot link the whole
 mutable directory into this repository.
 
 `make nix` runs Stow after a successful system rebuild. To install only Herdr
-without rebuilding or processing other Stow packages, run from the repository root:
+without rebuilding or processing other Stow configurations, run from the dotfiles root:
 
 ```sh
 bash stow/install.sh herdr
 ```
 
-Repository configs take precedence at the paths this package manages:
+Repository configs take precedence at the managed paths:
 `keys.json`, the personal mods, the `tmux` layout and the Solarized theme.
 The install hook preserves conflicting files, directories and symlinks under
 `~/.config/herdr-app.backup.*/`, then replaces them with repository links.
@@ -27,12 +32,14 @@ not overwritten. Mutable container directories must be real directories; the
 installer refuses unexpected linked containers rather than writing through
 them into another location.
 Keys reload live. Check `herdr-app status` and `~/.config/herdr-app/keys.error`
-if an edit does not take effect. Edit the source file in this directory.
+if an edit does not take effect. Edit `herdr/keys.json` in the source checkout.
+Dotfiles links whole mod directories and individual config files from its pinned
+`herdr-term/herdr/` tree; no compiled generations are involved.
 
 ## Theme
 
 The `tmux` layout selects `solarized-dark` explicitly, independent of system
-light/dark appearance. Its palette lives in `themes/solarized-dark.json` and
+light/dark appearance. Its palette lives in `herdr/themes/solarized-dark.json` and
 Stow links it into Herdr. Restarts and repeated installs retain this choice;
 Herdr's theme picker can still change it intentionally.
 
@@ -44,7 +51,12 @@ reload it after the palette is linked:
 ```sh
 herdr-app do layout.switch --name tmux
 herdr-app status
-python3 -m unittest discover -s nix/shared/herdr/tests -p test_install.py -v
+```
+
+Run installer checks separately; they do not open the app:
+
+```sh
+make -C "$HOME/.dotfiles" herdr-test
 ```
 
 ## Sidebar status
@@ -187,11 +199,17 @@ machine finishes. Failed refreshes keep cached projects with a warning. Machine
 order and the selected project stay stable as results arrive. Disconnected
 machines are removed from the visible results after checking connectivity.
 
-Verify changes with:
+Run automated checks from the Herdr Term root:
 
 ```sh
-python3 -m unittest discover -s nix/shared/herdr/tests -v
-node --experimental-default-type=module --test nix/shared/herdr/tests/model.test.mjs
+TMPDIR=/tmp python3 -B -m unittest discover -s herdr/tests -p test_projects.py -v
+node --experimental-default-type=module --test herdr/tests/model.test.mjs
+```
+
+These separate manual checks inspect or open native UI. Unit-test success does
+not prove those interactions:
+
+```sh
 herdr-app check ~/.config/herdr-app/mods/project-picker
 herdr-app do mod.open:project-picker
 herdr-app status
@@ -282,7 +300,7 @@ receive upstream updates automatically.
 
 ## Tmux compatibility layer
 
-`mods/tmux-compat` owns missing tmux behavior. It is independent of
+`herdr/mods/tmux-compat/` owns missing tmux behavior. It is independent of
 `project-picker`, which only discovers and opens projects. Native Herdr
 commands remain direct key bindings; do not wrap features that already exist.
 
@@ -469,7 +487,9 @@ Once a selection is confirmed, closing the overlay cannot undo the kill.
 ### Keyboard copy mode
 
 Press `Ctrl-a`, then `[` to open a read-only Neovim snapshot of the focused
-terminal's screen and up to 10,000 scrollback lines. Keeping Ctrl held for `[`
+terminal's screen and up to 10,000 scrollback lines. The shortcut opens the viewer
+directly; there is no separate launcher or second Enter confirmation.
+Keeping Ctrl held for `[`
 also works (`Ctrl-a Ctrl-[`). Use `hjkl`, `gg`/`G`,
 Ctrl-u/Ctrl-d and `/` search to navigate. Use `v` for character selection, `V`
 for whole lines, or Ctrl-v for a rectangle. Press `y` to copy to the local
@@ -542,10 +562,16 @@ delivery without retry. An in-flight batch can already have reached some panes;
 there is no rollback. Opening another dialog also stops delivery. Reopen the
 mode to review a new target set. Test on harmless commands before real work.
 
-Check it with:
+Run the JavaScript checks from the Herdr Term root:
 
 ```sh
-node --experimental-default-type=module --test nix/shared/herdr/tests/*.test.mjs
+node --experimental-default-type=module --test herdr/tests/*.test.mjs
+```
+
+Manual native checks below open dialogs, start popups, or activate the broadcast
+relay. Use harmless terminal fixtures; do not run them as an unattended test gate.
+
+```sh
 herdr-app check ~/.config/herdr-app/mods/tmux-compat
 herdr-app do tmux-compat.last-space
 herdr-app do tmux-compat.last-tab

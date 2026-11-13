@@ -66,11 +66,11 @@ python3 ~/.config/herdr-app/mods/port-forward/forward.py open --id ID_FROM_STATU
 
 Running the helper on Mac creates a listener on Mac, not on this desktop.
 Instead, invoke the desktop helper through an existing reverse Herdr route.
-The current Mac already knows this desktop as `nixos`:
+Substitute the registered desktop alias and its absolute helper path in this example:
 
 ```sh
-hc exec --on nixos -- python3 \
-  /home/cristianoliveira/.config/herdr-app/mods/port-forward/forward.py \
+hc exec --on DESKTOP_ALIAS -- python3 \
+  /absolute/desktop/home/.config/herdr-app/mods/port-forward/forward.py \
   start --machine mac --port 3000
 ```
 
@@ -120,9 +120,20 @@ eight-second launcher timeout, and local control operations at three seconds.
 
 ## Verify
 
+Run automated checks from the Herdr Term root. The temporary path setting keeps
+mock SSH control sockets below platform path-length limits:
+
 ```sh
-python3 -m unittest discover -s nix/shared/herdr/tests -p test_port_forward.py
-node --experimental-default-type=module --test nix/shared/herdr/tests/port-forward-*.test.mjs
+TMPDIR=/tmp python3 -B -m unittest discover -s herdr/tests -p test_port_forward.py
+node --experimental-default-type=module --test herdr/tests/port-forward-*.test.mjs
+```
+
+Separate manual native checks are:
+
+```sh
 herdr-app check ~/.config/herdr-app/mods/port-forward
 herdr-app do mod.open:port-forward
 ```
+
+Opening the popup queries registered machines and discovers remote ports. Unit
+tests use mocked transports; they do not prove a live tunnel or application is ready.

@@ -71,10 +71,15 @@ folder and machine as Herdr exec context, leaving config and socket discovery to
 the Funzzy installed there. It never starts a watcher. Custom config filenames or
 CLI-only socket overrides are not supported by this experiment.
 
-Install and reload the personal layout:
+Install from the dotfiles checkout, normally `~/.dotfiles`:
 
 ```sh
 bash stow/install.sh herdr
+```
+
+The following manual commands reload the running app's layout:
+
+```sh
 herdr-app do layout.switch --name main
 herdr-app do layout.switch --name tmux
 herdr-app status
@@ -98,21 +103,31 @@ green (`ansi2`) for passed, red (`ansi1`) for failed, and muted for other states
 
 ## Verify
 
+Run automated checks from the Herdr Term root:
+
 ```sh
-node --experimental-default-type=module --experimental-test-coverage --test nix/shared/herdr/mods/funzzy-status/*.test.mjs
-herdr-app check "$PWD/nix/shared/herdr/mods/funzzy-status"
+node --experimental-default-type=module --experimental-test-coverage --test herdr/mods/funzzy-status/*.test.mjs
+```
+
+A separate manual native-load check is:
+
+```sh
+herdr-app check ~/.config/herdr-app/mods/funzzy-status
 ```
 
 The transport/model and project monitoring logic use injected dependencies for
-unit tests. Herdr's real UI is checked with `herdr-app check` and live status.
+unit tests. These tests do not prove native UI, remote transport or notification
+behavior. Loading the mod starts its normal monitoring of open projects.
 Herdr bounds each exec to 30 seconds and 8 MiB; polls for a project never overlap.
 
 ## Remove
 
-1. Remove the `funzzy-status` block from `layouts/tmux.json`.
-2. Remove `stow/herdr/.config/herdr-app/mods/funzzy-status` and its installed
-   `~/.config/herdr-app/mods/funzzy-status` symlink.
-3. Delete this directory and reload the layout.
+1. Remove the `funzzy-status` block from `herdr/layouts/tmux.json` in this checkout.
+2. Remove the corresponding managed symlink from the dotfiles checkout at
+   `stow/herdr/.config/herdr-app/mods/funzzy-status` and its installed
+   `~/.config/herdr-app/mods/funzzy-status` symlink. Leave other links and data alone.
+3. Delete `herdr/mods/funzzy-status` only if you also want to remove its source,
+   then reload the layout.
 
 No other mod imports this module. No watcher lifecycle changes need to be undone.
 The `watcher` tab name persists in Herdr; clear it manually with

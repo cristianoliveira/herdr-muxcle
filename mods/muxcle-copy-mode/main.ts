@@ -59,8 +59,7 @@ export default class MuxcleCopyMode extends View {
 
     return v_flex()
       .id(MOD_NAME)
-      .w(520)
-      .h(220)
+      .size_full()
       .p(16)
       .gap(12)
       .bg(palette.popover ?? palette.background)
@@ -72,26 +71,45 @@ export default class MuxcleCopyMode extends View {
       .on_key_down((event, cx) => this.onKeyDown(event.keystroke, cx))
       .child(
         h_flex()
+          .flex_none()
           .items_center()
           .justify_between()
           .child(div().text_size(16).font_semibold().child("Keyboard copy mode"))
           .child(this.action("Close · Esc", palette.muted, () => this.closeLauncher())),
       )
-      .child(div().child("Captures Native's displayed terminal or visible focused-agent body as a read-only snapshot."))
       .child(
-        div()
-          .text_size(12)
-          .text_color(palette.muted)
-          .child("Nothing is read or launched until you choose Copy snapshot. Press Enter to capture · Esc to close."),
+        v_flex()
+          .id("muxcle-copy-mode-details")
+          .flex_1()
+          .min_h(0)
+          .overflow_y_scrollbar()
+          .gap(12)
+          .child(
+            div()
+              .flex_none()
+              .child("Captures Native's displayed terminal or visible focused-agent body as a read-only snapshot."),
+          )
+          .child(
+            div()
+              .flex_none()
+              .text_size(12)
+              .text_color(palette.muted)
+              .child(
+                "Nothing is read or launched until you choose Copy snapshot. Press Enter to capture · Esc to close.",
+              ),
+          )
+          .child(
+            div()
+              .flex_none()
+              .text_size(12)
+              .text_color(palette.dim ?? palette.muted)
+              .child(targetText),
+          )
+          .child(div().flex_none().text_size(12).text_color(palette.muted).child(this.status)),
       )
       .child(
-        div()
-          .text_size(12)
-          .text_color(palette.dim ?? palette.muted)
-          .child(targetText),
-      )
-      .child(div().text_size(12).text_color(palette.muted).child(this.status))
-      .child(this.action(this.starting ? "Capturing…" : "Copy snapshot", palette.accent, (cx) => this.start(cx)));
+        this.action(this.starting ? "Capturing…" : "Copy snapshot", palette.accent, (cx) => this.start(cx)).flex_none(),
+      );
   }
 
   close(): void {

@@ -1,6 +1,0 @@
-{
-  "global": {
-    "ctrl-a t": "mod.open:muxcle-port-forward",
-    "ctrl-a ctrl-t": "mod.open:muxcle-port-forward"
-  }
-}

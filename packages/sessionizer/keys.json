@@ -1,5 +1,0 @@
-{
-  "global": {
-    "ctrl-a ctrl-p": "mod.open:muxcle-sessionizer"
-  }
-}

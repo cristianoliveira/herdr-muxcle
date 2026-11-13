@@ -2,3 +2,6 @@ node_modules/
 .build/
 dist/
 __pycache__/
+**/gpui-kit.d.ts
+**/herdr.d.ts
+**/jsconfig.json

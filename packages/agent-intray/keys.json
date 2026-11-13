@@ -1,5 +1,0 @@
-{
-  "global": {
-    "ctrl-a shift-i": "mod.open:muxcle-agent-intray"
-  }
-}

@@ -1,5 +1,0 @@
-{
-  "global": {
-    "ctrl-a [": "mod.open:muxcle-copy-mode"
-  }
-}

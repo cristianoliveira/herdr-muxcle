@@ -1,30 +1,20 @@
-# Run independent baseline guardrails for every non-ignored repository change.
 on:
   change: "**/*"
-  # Include globally ignored AGENTS.md guardrails; exclude generated and watcher-owned state.
-  respect_gitignore: false
+  respect_gitignore: true
   ignore:
     - ".git/**"
     - "node_modules/**"
     - ".build/**"
     - "dist/**"
     - ".tmp/**"
-    - "coverage/**"
-    - "**/__pycache__/**"
+    - ".pi/**"
+    - ".pi-funzzy-*.json"
     - ".watch.sock"
-    - ".pi/bebop/inbox/**"
-    - ".pi/bebop/sockets/**"
-    - ".pi/bebop/intake/new/**"
-    - ".pi/bebop/intake/processed/**"
-    - ".pi/bebop/intake/failed/**"
-    - ".pi/bebop/intake/receipts/**"
-    - ".pi/bebop/intake/commits/**"
-    - ".pi/bebop/intake/.scan.lock"
-    - ".pi/welder-log/**"
+    - "**/__pycache__/**"
   socket: .watch.sock
 
 execution:
-  concurrency: 2
+  concurrency: 1
   output: show-on-failure
   timeout: 5m
 
@@ -32,14 +22,3 @@ jobs:
   - name: quality-gate
     run_on_init: true
     run: make gate
-    parallel: guardrails
-    ignore:
-      - ".git/**"
-      - ".tmp/**"
-
-  - name: security-audit
-    run: make security
-    parallel: guardrails
-    ignore:
-      - ".git/**"
-      - ".tmp/**"

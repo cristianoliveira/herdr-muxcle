@@ -1,6 +1,0 @@
-{
-  "global": {
-    "ctrl-shift-i": "mod.open:muxcle-image-preview",
-    "ctrl-a i": "mod.open:muxcle-image-preview"
-  }
-}

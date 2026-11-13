@@ -1,5 +1,0 @@
-{
-  "global": {
-    "ctrl-a ctrl-o": "muxcle-rotation.rotate"
-  }
-}

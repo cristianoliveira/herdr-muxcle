@@ -4,9 +4,9 @@ Use the supplied compiled implementation as your base. Read this recipe and the 
 
 ## Behavior and design
 
-Sessionizer is an optional native Herdr popup for choosing a project folder and opening it in a machine-scoped Herdr space. It discovers immediate, non-hidden child directories beneath roots you configure. Local discovery is the default; remote machines participate only when their exact Herdr machine names and roots are configured. It does not start an agent or create a terminal fleet.
+Sessionizer is an optional native Herdr popup for choosing a project folder and opening it in a machine-scoped Herdr space. It discovers immediate, non-hidden child directories beneath roots you explicitly configure. Discovery stays empty by default; Sessionizer does not infer project roots. `homeRoots` scans beneath this computer's home, while `connectedHomeRoots` opts into the same relative roots on connected, permanent Herdr machines. It does not start an agent or create a terminal fleet.
 
-The configuration contract is an absolute local `roots` array and optional `remoteRoots` object in `data/muxcle-sessionizer/config.json`. Remote keys are exact Herdr machine names; each value is an array of absolute paths as seen on that machine. Search matches machine, folder name fuzzily and paths by exact or substring matches. Use the arrow keys or Ctrl-J/Ctrl-K to move, Enter or a click to open, and Esc to cancel.
+The configuration lives in `data/muxcle-sessionizer/config.json`. Keep `roots` and `remoteRoots` for absolute local paths and exact remote machine names. Use `homeRoots` for safe paths beneath the local home and `connectedHomeRoots` for the same relative paths beneath every connected permanent machine's own home. Relative roots are limited to four path components; absolute paths, empty components, `.` and `..` are rejected. Configure at most 12 root entries total. At most 12 remote machines are scanned per open; when more are eligible, stable machine-name ordering picks the first 12 and Sessionizer shows a warning. Search matches machine and folder names fuzzily and paths by exact or substring matches. Use the arrow keys or Ctrl-J/Ctrl-K to move, Enter or a click to open, and Esc to cancel.
 
 When a project is selected, Sessionizer rechecks the live machine list and its permanent Core identity. It reuses a space only when machine identity and canonical folder both match; otherwise it requests one native space on that same machine. A remote failure never creates a local space. Herdr creates the space's initial native tab.
 
@@ -51,7 +51,7 @@ The install checker refuses an existing Sessionizer path and linked app-home, `m
 
 ### Configure roots
 
-The bundled `config.example.json` contains an empty local root list. Copy it only if a config does not already exist. Replace the empty list with absolute directories whose immediate child folders are projects. Remote roots are optional and are never inferred:
+The bundled `config.example.json` contains empty root lists. Copy it only if a config does not already exist. Choose one or more explicit root forms. Absolute roots scan those directories directly; home-relative roots resolve on the machine doing the scan:
 
 ```sh
 set -eu
@@ -70,19 +70,16 @@ Edit `config.json` in a text editor. Example:
 
 ```json
 {
-  "roots": [
-    "/absolute/path/to/projects",
-    "/another/absolute/project-root"
-  ],
+  "roots": ["/absolute/path/to/projects"],
   "remoteRoots": {
-    "exact-machine-name": [
-      "/absolute/path/on/that/machine/projects"
-    ]
-  }
+    "exact-machine-name": ["/absolute/path/on/that/machine/projects"]
+  },
+  "homeRoots": ["work", "other"],
+  "connectedHomeRoots": ["work", "other"]
 }
 ```
 
-The config accepts up to 12 absolute roots total and 12 remote machine names. Sessionizer scans only immediate, non-hidden child directories, follows directory symlinks, resolves canonical paths on the machine being scanned, and deduplicates aliases within that machine. Missing or unreadable roots appear as warnings. Each scan is bounded to 500 folders and 20,000 directory entries; remote scans have a six-second execution timeout and eight-second client timeout, with at most four in flight. A one-minute cache is persisted in Herdr shared state and bounded/validated when restored. Reopen the popup after editing the config. Check connected aliases with `hc machine ls`; Sessionizer does not connect machines automatically.
+The config accepts at most 12 absolute and home-relative root entries total and 12 exact remote machine names. Sessionizer scans only immediate, non-hidden child directories, follows directory symlinks, resolves canonical paths on the machine being scanned, and deduplicates aliases within that machine. `connectedHomeRoots` uses the home directory resolved by Python on each remote machine; it never substitutes this computer's home path. Temporary machines are excluded. Missing or unreadable roots appear as warnings. Each scan is bounded to 500 folders and 20,000 directory entries; remote scans have a six-second execution timeout and eight-second client timeout, with at most four in flight. A one-minute cache is persisted in Herdr shared state and bounded/validated when restored. Reopen the popup after editing the config. Check connected aliases with `hc machine ls`; Sessionizer does not connect machines automatically.
 
 ### Open the popup
 

@@ -23,11 +23,65 @@ test("config parsing distinguishes missing, empty, valid, and malformed roots", 
     kind: "ready",
     roots: ["/workspaces"],
     remoteRoots: {},
+    homeRoots: [],
+    connectedHomeRoots: [],
   });
+  assert.deepEqual(
+    parseSessionizerConfig(
+      '{"roots":[],"homeRoots":["work","other/client projects"],"connectedHomeRoots":["work","other"]}',
+    ),
+    {
+      kind: "ready",
+      roots: [],
+      remoteRoots: {},
+      homeRoots: ["work", "other/client projects"],
+      connectedHomeRoots: ["work", "other"],
+    },
+  );
+  assert.deepEqual(
+    parseSessionizerConfig('{"roots":[],"remoteRoots":{"build":["/remote"]},"connectedHomeRoots":["work"]}'),
+    {
+      kind: "ready",
+      roots: [],
+      remoteRoots: { build: ["/remote"] },
+      homeRoots: [],
+      connectedHomeRoots: ["work"],
+    },
+  );
+  for (const root of [
+    "/absolute",
+    "../outside",
+    "work/../../outside",
+    "work//projects",
+    "./work",
+    "~/work",
+    "work\\\\projects",
+    "one/two/three/four/five",
+  ]) {
+    assert.equal(parseSessionizerConfig(JSON.stringify({ roots: [], homeRoots: [root] })).kind, "invalid", root);
+    assert.equal(
+      parseSessionizerConfig(JSON.stringify({ roots: [], connectedHomeRoots: [root] })).kind,
+      "invalid",
+      root,
+    );
+  }
+  assert.equal(parseSessionizerConfig(JSON.stringify({ roots: [], homeRoots: ["x".repeat(2_049)] })).kind, "invalid");
+  assert.equal(
+    parseSessionizerConfig(
+      JSON.stringify({
+        roots: Array.from({ length: 11 }, (_, index) => `/root-${index}`),
+        homeRoots: ["local"],
+        connectedHomeRoots: ["remote"],
+      }),
+    ).kind,
+    "invalid",
+  );
   assert.deepEqual(parseSessionizerConfig('{"roots":[],"remoteRoots":{"build":["/work"]}}'), {
     kind: "ready",
     roots: [],
     remoteRoots: { build: ["/work"] },
+    homeRoots: [],
+    connectedHomeRoots: [],
   });
   assert.equal(parseSessionizerConfig('{"roots":[],"remoteRoots":{"local":["/work"]}}').kind, "ready");
   assert.equal(parseSessionizerConfig('{"roots":[],"remoteRoots":{"build":["relative"]}}').kind, "invalid");

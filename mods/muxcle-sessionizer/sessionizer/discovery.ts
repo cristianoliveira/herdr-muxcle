@@ -1,4 +1,4 @@
-import { projectKey, type Project } from "./model.js";
+import { isSafeHomeRelativeRoot, MAX_ROOT_PATH_CHARS, projectKey, type Project } from "./model.js";
 
 export const PROJECT_CACHE_TTL_MS = 60_000;
 export const MAX_PROJECT_CACHE_ENTRIES = 13;
@@ -259,13 +259,11 @@ function validProject(value: unknown): value is { name: string; path: string } {
 }
 
 function validRoot(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    value.length > 0 &&
-    value.length <= 2_048 &&
-    !value.includes("\0") &&
-    isAbsolutePath(value)
-  );
+  if (typeof value !== "string" || value.includes("\0")) return false;
+  if (value.startsWith("~/")) {
+    return value.length <= MAX_ROOT_PATH_CHARS + 2 && isSafeHomeRelativeRoot(value.slice(2));
+  }
+  return value.length > 0 && value.length <= MAX_ROOT_PATH_CHARS && isAbsolutePath(value);
 }
 
 function validMachine(value: unknown): value is string {

@@ -44,7 +44,10 @@ test("native adapter reads only explicit config and scans configured local roots
     "/app/mods/muxcle-sessionizer",
   );
   const updates = [];
-  await adapter.discover(["/workspaces/with spaces; echo unsafe"], {}, (state) => updates.push(state));
+  await adapter.discover(
+    { roots: ["/workspaces/with spaces; echo unsafe"], remoteRoots: {}, homeRoots: [], connectedHomeRoots: [] },
+    (state) => updates.push(state),
+  );
 
   assert.deepEqual(calls.execs, [
     {
@@ -73,7 +76,10 @@ test("remote roots are scanned only for connected exact aliases and cache retain
   });
   const adapter = createSessionizerAdapter(api, "/config.json", "/mods/sessionizer");
   const states = [];
-  await adapter.discover([], { build: ["/remote roots; $(data)"] }, (state) => states.push(state));
+  await adapter.discover(
+    { roots: [], remoteRoots: { build: ["/remote roots; $(data)"] }, homeRoots: [], connectedHomeRoots: [] },
+    (state) => states.push(state),
+  );
 
   assert.deepEqual(
     calls.execs.map(({ args }) => args),
@@ -87,6 +93,77 @@ test("remote roots are scanned only for connected exact aliases and cache retain
   assert.equal(calls.saved.at(-1).value.version, 2);
   assert.equal(calls.saved.at(-1).value.entries[0].machineId, "core-1");
   assert.deepEqual(calls.saved.at(-1).value.entries[0].roots, ["/remote roots; $(data)"]);
+});
+
+test("home-relative roots resolve inside local and connected machine Python environments", async () => {
+  const outputs = [
+    '{"machines":[{"id":"core-a","name":"build"},{"id":"core-b","name":"test"}]}',
+    '{"projects":[{"name":"local-app","path":"/users/tester/work/local-app"}],"warnings":[],"truncated":false}',
+    '{"projects":[{"name":"build-app","path":"/remote-build/home/work/build-app"}],"warnings":[],"truncated":false}',
+    '{"projects":[{"name":"test-app","path":"/remote-test/home/work/test-app"}],"warnings":[],"truncated":false}',
+  ];
+  const { api, calls } = createApi({
+    home: () => {
+      throw new Error("remote home must be resolved by remote Python");
+    },
+    exec: async (command, args, options) => {
+      calls.execs.push({ command, args, options });
+      return { code: 0, stdout: outputs.shift(), stderr: "" };
+    },
+  });
+  const adapter = createSessionizerAdapter(api, "/config.json", "/mods/sessionizer");
+  const states = [];
+  await adapter.discover(
+    { roots: [], remoteRoots: {}, homeRoots: ["work", "other"], connectedHomeRoots: ["work", "other"] },
+    (state) => states.push(state),
+  );
+
+  const scans = calls.execs
+    .slice(1)
+    .map(({ args }) => [args[2], args[2] === "remote" ? args[3] : null, JSON.parse(args.at(-1))]);
+  assert.deepEqual(scans, [
+    ["discover", null, ["~/work", "~/other"]],
+    ["remote", "build", ["~/work", "~/other"]],
+    ["remote", "test", ["~/work", "~/other"]],
+  ]);
+  assert.deepEqual(
+    states.at(-1).projects.map(({ name, machine, machineId }) => [name, machine, machineId]),
+    [
+      ["local-app", null, null],
+      ["build-app", "build", "core-a"],
+      ["test-app", "test", "core-b"],
+    ],
+  );
+  assert.deepEqual(
+    Object.fromEntries(calls.saved.map(({ value }) => [value.entries[0].machine ?? "local", value.entries[0].roots])),
+    { local: ["~/work", "~/other"], build: ["~/work", "~/other"], test: ["~/work", "~/other"] },
+  );
+});
+
+test("connected home scans are deterministic and bounded to twelve permanent machines", async () => {
+  const names = Array.from({ length: 13 }, (_, index) => `machine-${String(index).padStart(2, "0")}`);
+  const outputs = [
+    JSON.stringify({ machines: [...names].reverse().map((name) => ({ id: `core-${name}`, name })) }),
+    ...Array.from({ length: 12 }, () => '{"projects":[],"warnings":[],"truncated":false}'),
+  ];
+  const { api, calls } = createApi({
+    exec: async (command, args, options) => {
+      calls.execs.push({ command, args, options });
+      return { code: 0, stdout: outputs.shift(), stderr: "" };
+    },
+  });
+  const adapter = createSessionizerAdapter(api, "/config.json", "/mods/sessionizer");
+  const states = [];
+  await adapter.discover({ roots: [], remoteRoots: {}, homeRoots: [], connectedHomeRoots: ["work"] }, (state) =>
+    states.push(state),
+  );
+
+  assert.equal(calls.execs.length, 13);
+  assert.deepEqual(
+    calls.execs.slice(1).map(({ args }) => args[3]),
+    names.slice(0, 12),
+  );
+  assert.match(states.at(-1).warnings.join(" "), /12 remote machines/);
 });
 
 test("machine-list failure preserves local projects and never scans a remote alias locally", async () => {
@@ -106,7 +183,10 @@ test("machine-list failure preserves local projects and never scans a remote ali
   });
   const adapter = createSessionizerAdapter(api, "/config.json", "/mods/sessionizer");
   const states = [];
-  await adapter.discover(["/local"], { build: ["/remote"] }, (state) => states.push(state));
+  await adapter.discover(
+    { roots: ["/local"], remoteRoots: { build: ["/remote"] }, homeRoots: [], connectedHomeRoots: [] },
+    (state) => states.push(state),
+  );
 
   assert.deepEqual(
     calls.execs.map(({ args }) => args),
@@ -160,14 +240,19 @@ test("helper failures and oversized data fail closed without exposing stderr", a
   const oversized = createApi();
   const oversizedAdapter = createSessionizerAdapter(oversized.api, "/config.json", "/mods/sessionizer");
   const oversizedStates = [];
-  await oversizedAdapter.discover([`/${"x".repeat(96 * 1024)}`], {}, (state) => oversizedStates.push(state));
+  await oversizedAdapter.discover(
+    { roots: [`/${"x".repeat(96 * 1024)}`], remoteRoots: {}, homeRoots: [], connectedHomeRoots: [] },
+    (state) => oversizedStates.push(state),
+  );
   assert.match(oversizedStates.at(-1).warnings.join(" "), /local: refresh failed/);
   assert.deepEqual(oversized.calls.execs, []);
 
   const output = createApi({ exec: async () => ({ code: 0, stdout: "x".repeat(512 * 1024 + 1), stderr: "" }) });
   const outputAdapter = createSessionizerAdapter(output.api, "/config.json", "/mods/sessionizer");
   const outputStates = [];
-  await outputAdapter.discover(["/work"], {}, (state) => outputStates.push(state));
+  await outputAdapter.discover({ roots: ["/work"], remoteRoots: {}, homeRoots: [], connectedHomeRoots: [] }, (state) =>
+    outputStates.push(state),
+  );
   assert.match(outputStates.at(-1).warnings.join(" "), /local: refresh failed/);
 });
 

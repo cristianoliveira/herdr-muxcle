@@ -1,5 +1,13 @@
 import type { SessionizerAdapter } from "./controller.js";
-import { parseProjectDiscovery, projectKey, SessionizerError, type SpaceReference } from "./model.js";
+import {
+  isSafeHomeRelativeRoot,
+  MAX_MACHINES,
+  parseProjectDiscovery,
+  projectKey,
+  SessionizerError,
+  type SessionizerConfig,
+  type SpaceReference,
+} from "./model.js";
 import { refreshProjects, restoreProjectCache, type CachedProjectSet, type ConnectedMachine } from "./discovery.js";
 
 const MAX_HELPER_INPUT_BYTES = 96 * 1024;
@@ -33,23 +41,23 @@ export function createSessionizerAdapter(
 ): SessionizerAdapter {
   return {
     readConfig: () => api.readTextFile(configPath),
-    discover: async (roots, remoteRoots, publish) => {
+    discover: async (config, publish) => {
       const cache = restoreProjectCache(api.shared(CACHE_KEY));
+      const localRoots = combineRoots(config.roots, homeRootSpecs(config.homeRoots));
+      const compatibleCache = cache.filter((entry) => {
+        const configuredRoots = entry.machine === null ? localRoots : configuredRemoteRoots(config, entry.machine);
+        return configuredRoots !== undefined && sameRoots(configuredRoots, entry.roots);
+      });
       publish({
-        projects: cache
-          .filter((entry) => {
-            const configuredRoots = entry.machine === null ? roots : remoteRoots[entry.machine];
-            return configuredRoots !== undefined && sameRoots(configuredRoots, entry.roots);
-          })
-          .flatMap((entry) => parseCachedProjects(entry, true)),
+        projects: compatibleCache.flatMap((entry) => parseCachedProjects(entry, true)),
         warnings: ["Loading cached projects and checking configured roots…"],
-        truncated: cache.some((entry) => entry.truncated),
+        truncated: compatibleCache.some((entry) => entry.truncated),
         loading: true,
       });
 
       let connected: ConnectedMachine[] = [];
       let machineWarning: string | null = null;
-      if (Object.keys(remoteRoots).length > 0) {
+      if (Object.keys(config.remoteRoots).length > 0 || config.connectedHomeRoots.length > 0) {
         try {
           connected = await listConnectedMachines(api, helperDirectory);
         } catch {
@@ -57,9 +65,16 @@ export function createSessionizerAdapter(
             "Could not verify connected machines; check hc machine ls. Remote cache is stale and cannot be opened.";
         }
       }
+      const remote = buildRemoteRoots(config, connected, compatibleCache);
+      const machineWarnings = [
+        ...(machineWarning ? [machineWarning] : []),
+        ...(remote.omitted > 0
+          ? [`Only 12 remote machines are scanned; ${remote.omitted} additional machine(s) were omitted.`]
+          : []),
+      ];
       await refreshProjects({
-        cache,
-        roots: { "": roots, ...remoteRoots },
+        cache: compatibleCache,
+        roots: { "": localRoots, ...remote.roots },
         connectedMachines: connected,
         scan: async (machine, machineRoots) => {
           const mode = machine === null ? "discover" : "remote";
@@ -77,13 +92,15 @@ export function createSessionizerAdapter(
         },
         publish: (state) =>
           publish(
-            machineWarning
+            machineWarnings.length > 0
               ? {
                   ...state,
-                  warnings: [...state.warnings, machineWarning],
-                  projects: state.projects.map((project) =>
-                    project.machine === null ? project : { ...project, stale: true },
-                  ),
+                  warnings: [...state.warnings, ...machineWarnings],
+                  projects: machineWarning
+                    ? state.projects.map((project) =>
+                        project.machine === null ? project : { ...project, stale: true },
+                      )
+                    : state.projects,
                 }
               : state,
           ),
@@ -155,6 +172,40 @@ async function listConnectedMachines(api: NativeSessionizerApi, directory: strin
     throw new SessionizerError("Duplicate native machine identity in machine list.");
   }
   return machines;
+}
+
+function homeRootSpecs(roots: readonly string[]): string[] {
+  return roots.map((root) => {
+    if (!isSafeHomeRelativeRoot(root)) throw new SessionizerError("Invalid home-relative project root.");
+    return `~/${root}`;
+  });
+}
+
+function configuredRemoteRoots(config: SessionizerConfig, machine: string): string[] | undefined {
+  const roots = combineRoots(config.remoteRoots[machine] ?? [], homeRootSpecs(config.connectedHomeRoots));
+  return roots.length > 0 ? roots : undefined;
+}
+
+function buildRemoteRoots(
+  config: SessionizerConfig,
+  connected: readonly ConnectedMachine[],
+  cache: readonly CachedProjectSet[],
+): { roots: Record<string, string[]>; omitted: number } {
+  const configuredNames = Object.keys(config.remoteRoots).sort();
+  const connectedNames = config.connectedHomeRoots.length > 0 ? connected.map(({ name }) => name).sort() : [];
+  const cachedNames =
+    config.connectedHomeRoots.length > 0
+      ? cache.flatMap((entry) => (entry.machine === null ? [] : [entry.machine])).sort()
+      : [];
+  const requestedNames = [...new Set([...configuredNames, ...connectedNames, ...cachedNames])];
+  const selectedNames = requestedNames.slice(0, MAX_MACHINES);
+  const roots = Object.create(null) as Record<string, string[]>;
+  for (const name of selectedNames) roots[name] = configuredRemoteRoots(config, name) ?? [];
+  return { roots, omitted: requestedNames.length - selectedNames.length };
+}
+
+function combineRoots(...groups: readonly (readonly string[])[]): string[] {
+  return [...new Set(groups.flatMap((group) => [...group]))];
 }
 
 function sameRoots(left: readonly string[], right: readonly string[]): boolean {

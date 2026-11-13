@@ -6,17 +6,14 @@ import {
   sameMachineSpaceSnapshot,
   SessionizerError,
   type Project,
+  type SessionizerConfig,
   type SpaceReference,
 } from "./model.js";
 import type { ConnectedMachine, PublishedProjects } from "./discovery.js";
 
 export interface SessionizerAdapter {
   readConfig(): Promise<string | null>;
-  discover(
-    roots: readonly string[],
-    remoteRoots: Readonly<Record<string, readonly string[]>>,
-    publish: (state: PublishedProjects) => void,
-  ): Promise<void>;
+  discover(config: SessionizerConfig, publish: (state: PublishedProjects) => void): Promise<void>;
   spaces(): readonly SpaceReference[];
   connectedMachines(): Promise<readonly ConnectedMachine[]>;
   findSpace(folder: string, machine: string | null, spaces: readonly SpaceReference[]): Promise<string>;
@@ -107,7 +104,7 @@ export class SessionizerController {
         this.state = {
           ...this.state,
           status: "setup",
-          message: `Add one or more absolute project roots to ${this.configPath}, then reopen this picker.`,
+          message: `Add one or more roots to ${this.configPath}, then reopen this picker. Use roots and remoteRoots for absolute paths, or homeRoots and connectedHomeRoots for paths beneath machine homes.`,
         };
         return;
       }
@@ -120,7 +117,7 @@ export class SessionizerController {
         return;
       }
 
-      await this.adapter.discover(config.roots, config.remoteRoots, (result) => {
+      await this.adapter.discover(config, (result) => {
         if (this.cancelled) return;
         const selectedKey = this.state.selectedKey;
         const selectedProjectStillExists =

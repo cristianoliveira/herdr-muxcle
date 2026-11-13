@@ -242,6 +242,19 @@ test("cache entries are scoped to the exact configured roots and permanent core 
   );
 });
 
+test("cache restoration accepts safe home-root specs and rejects traversing specs", () => {
+  const base = {
+    machine: null,
+    machineId: null,
+    updatedAt: 10,
+    ...result("cached", "/users/tester/work/app"),
+  };
+
+  assert.equal(restoreProjectCache({ version: 2, entries: [{ ...base, roots: ["~/work"] }] }).length, 1);
+  assert.deepEqual(restoreProjectCache({ version: 2, entries: [{ ...base, roots: ["~/../outside"] }] }), []);
+  assert.deepEqual(restoreProjectCache({ version: 2, entries: [{ ...base, roots: ["~/work//projects"] }] }), []);
+});
+
 test("cache restoration rejects corrupt, duplicate, and oversized persisted data", () => {
   assert.deepEqual(restoreProjectCache({ version: 1, entries: [] }), []);
   const valid = {

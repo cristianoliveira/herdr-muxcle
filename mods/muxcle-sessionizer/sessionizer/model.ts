@@ -8,11 +8,18 @@ export const MAX_HELPER_OUTPUT_CHARS = 512 * 1024;
 
 export class SessionizerError extends Error {}
 
+export interface SessionizerConfig {
+  roots: string[];
+  remoteRoots: Record<string, string[]>;
+  homeRoots: string[];
+  connectedHomeRoots: string[];
+}
+
 export type SessionizerConfigResult =
   | { kind: "missing" }
   | { kind: "empty" }
   | { kind: "invalid"; message: string }
-  | { kind: "ready"; roots: string[]; remoteRoots: Record<string, string[]> };
+  | ({ kind: "ready" } & SessionizerConfig);
 
 export interface Project {
   key: string;
@@ -51,8 +58,14 @@ export function parseSessionizerConfig(raw: string | null): SessionizerConfigRes
     return { kind: "invalid", message: "The config is not valid JSON." };
   }
 
-  if (!isRecord(value) || Object.keys(value).some((key) => key !== "roots" && key !== "remoteRoots")) {
-    return { kind: "invalid", message: "The config must contain roots and optional remoteRoots." };
+  if (
+    !isRecord(value) ||
+    Object.keys(value).some((key) => !["roots", "remoteRoots", "homeRoots", "connectedHomeRoots"].includes(key))
+  ) {
+    return {
+      kind: "invalid",
+      message: "The config accepts roots, remoteRoots, homeRoots, and connectedHomeRoots only.",
+    };
   }
   if (!Array.isArray(value.roots)) {
     return { kind: "invalid", message: "Set roots to an array of absolute local paths." };
@@ -70,12 +83,24 @@ export function parseSessionizerConfig(raw: string | null): SessionizerConfigRes
     roots.push(root);
   }
 
+  const homeRoots = parseHomeRoots(value.homeRoots);
+  if (homeRoots === null) {
+    return { kind: "invalid", message: "homeRoots must contain safe relative paths beneath this computer's home." };
+  }
+  const connectedHomeRoots = parseHomeRoots(value.connectedHomeRoots);
+  if (connectedHomeRoots === null) {
+    return {
+      kind: "invalid",
+      message: "connectedHomeRoots must contain safe relative paths beneath connected machines' homes.",
+    };
+  }
+
   const remoteRoots: Record<string, string[]> = {};
   const configured = value.remoteRoots === undefined ? {} : value.remoteRoots;
   if (!isRecord(configured) || Object.keys(configured).length > MAX_MACHINES) {
     return { kind: "invalid", message: `remoteRoots must map at most ${MAX_MACHINES} machine names to root arrays.` };
   }
-  let totalRoots = roots.length;
+  let totalRoots = roots.length + homeRoots.length + connectedHomeRoots.length;
   for (const [machine, entries] of Object.entries(configured)) {
     if (!machine || machine.length > 256 || /[\u0000-\u001f\u007f]/.test(machine) || !Array.isArray(entries)) {
       return { kind: "invalid", message: "Each remoteRoots key must be a native machine name with an array of paths." };
@@ -98,9 +123,44 @@ export function parseSessionizerConfig(raw: string | null): SessionizerConfigRes
     return { kind: "invalid", message: `Configure at most ${MAX_ROOTS} total local and remote roots.` };
   }
 
-  return roots.length === 0 && Object.keys(remoteRoots).length === 0
+  return roots.length === 0 &&
+    homeRoots.length === 0 &&
+    connectedHomeRoots.length === 0 &&
+    Object.keys(remoteRoots).length === 0
     ? { kind: "empty" }
-    : { kind: "ready", roots, remoteRoots };
+    : { kind: "ready", roots, remoteRoots, homeRoots, connectedHomeRoots };
+}
+
+function parseHomeRoots(value: unknown): string[] | null {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) return null;
+  const roots: string[] = [];
+  for (const entry of value) {
+    if (typeof entry !== "string" || !isSafeHomeRelativeRoot(entry)) return null;
+    roots.push(entry);
+  }
+  return roots;
+}
+
+export function isSafeHomeRelativeRoot(value: unknown): value is string {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > MAX_ROOT_PATH_CHARS ||
+    value.startsWith("/") ||
+    value.startsWith("~") ||
+    value.includes("\\") ||
+    /[\u0000-\u001f\u007f]/.test(value)
+  ) {
+    return false;
+  }
+  const components = value.split("/");
+  return (
+    components.length <= 4 &&
+    components.every(
+      (component) => component.length > 0 && component.length <= 255 && component !== "." && component !== "..",
+    )
+  );
 }
 
 export function parseProjectDiscovery(

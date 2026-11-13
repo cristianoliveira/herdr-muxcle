@@ -19,10 +19,11 @@ function createHarness(options = {}) {
     readConfig: options.readConfig ?? (async () => config),
     discover:
       options.discover ??
-      (async (roots, remoteRoots, publish) => {
-        calls.discover.push({ roots: [...roots], remoteRoots });
+      (async (config, publish) => {
+        calls.discover.push(config);
         publish({ projects: options.projects ?? [localProject], warnings: [], truncated: false, loading: false });
       }),
+
     spaces: () => currentSpaces,
     connectedMachines: options.connectedMachines ?? (async () => []),
     findSpace:
@@ -52,7 +53,7 @@ async function loadReady(harness) {
 }
 
 test("missing and empty configs show setup without default roots or discovery", async () => {
-  for (const raw of [null, '{"roots":[]}']) {
+  for (const raw of [null, '{"roots":[]}', '{"roots":[],"remoteRoots":{},"homeRoots":[],"connectedHomeRoots":[]}']) {
     const harness = createHarness({ readConfig: async () => raw });
     await harness.controller.load();
     assert.equal(harness.controller.snapshot().status, "setup");
@@ -60,6 +61,28 @@ test("missing and empty configs show setup without default roots or discovery", 
     assert.deepEqual(harness.calls.discover, []);
     assert.deepEqual(harness.calls.created, []);
   }
+});
+
+test("explicit home-relative roots are passed to discovery without defaults", async () => {
+  const configured = {
+    roots: [],
+    remoteRoots: {},
+    homeRoots: ["work", "other"],
+    connectedHomeRoots: ["work", "other"],
+  };
+  const harness = createHarness({ readConfig: async () => JSON.stringify(configured) });
+
+  await loadReady(harness);
+
+  assert.deepEqual(harness.calls.discover, [
+    {
+      kind: "ready",
+      roots: [],
+      remoteRoots: {},
+      homeRoots: ["work", "other"],
+      connectedHomeRoots: ["work", "other"],
+    },
+  ]);
 });
 
 test("invalid config and discovery failures fail closed", async () => {
@@ -232,7 +255,7 @@ test("a removed remote selection stays non-actionable until explicit reselection
   let publishRefresh;
   const harness = createHarness({
     readConfig: async () => '{"roots":["/workspaces"],"remoteRoots":{"build":["/workspaces"]}}',
-    discover: async (_roots, _remoteRoots, publish) => {
+    discover: async (_config, publish) => {
       publishRefresh = publish;
       publish({ projects: [localProject, remoteProject], warnings: [], truncated: false, loading: true });
     },

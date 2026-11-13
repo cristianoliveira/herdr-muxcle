@@ -34,6 +34,26 @@ class DiscoveryTests(unittest.TestCase):
             self.assertFalse(result["truncated"])
             self.assertEqual(result["warnings"], [])
 
+    def test_expands_safe_home_relative_roots_using_the_scanning_machine_home(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary) / "remote-home"
+            root = home / "work"
+            project = root / "app"
+            project.mkdir(parents=True)
+
+            with patch.dict("os.environ", {"HOME": str(home)}):
+                result = discover_projects(["~/work"])
+
+            self.assertEqual(result["projects"], [{"name": "app", "path": str(project.resolve())}])
+            self.assertEqual(result["warnings"], [])
+
+    def test_rejects_unsafe_home_relative_root_traversal(self) -> None:
+        for root in ["~/../outside", "~/work/../../outside", "~/work//projects", "~/./work", "~/work\\\\projects"]:
+            with self.subTest(root=root), contextlib.redirect_stdout(io.StringIO()) as output:
+                status = main(["discover", json.dumps([root])])
+            self.assertEqual(status, 2)
+            self.assertEqual(output.getvalue(), "")
+
     def test_canonicalizes_and_deduplicates_roots(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "projects"
@@ -167,7 +187,6 @@ class DiscoveryTests(unittest.TestCase):
             ]})
             self.assertEqual(connected_machines(), [
                 {"id": "core-a", "name": "a"},
-                {"id": "core-c", "name": "c"},
             ])
             self.assertEqual(run.call_args.args[0], ["hc", "machine", "ls", "--json"])
             self.assertEqual(run.call_args.kwargs["timeout"], 3)
@@ -237,8 +256,8 @@ class DiscoveryTests(unittest.TestCase):
 
         with contextlib.redirect_stdout(output):
             status = main(["discover", json.dumps(["relative/path"])])
-        self.assertEqual(status, 0)
-        self.assertIn('"projects":[]', output.getvalue())
+        self.assertEqual(status, 2)
+        self.assertEqual(output.getvalue(), "")
 
 
 if __name__ == "__main__":

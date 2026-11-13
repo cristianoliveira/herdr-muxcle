@@ -15,6 +15,9 @@ from typing import Any
 MAX_INPUT_BYTES = 96 * 1024
 MAX_OUTPUT_BYTES = 512 * 1024
 MAX_ROOTS = 12
+MAX_ROOT_PATH_CHARS = 2_048
+MAX_HOME_ROOT_DEPTH = 4
+MAX_HOME_ROOT_COMPONENT_CHARS = 255
 MAX_PATH_CHARS = 4_096
 MAX_SPACES = 256
 MAX_PROJECTS = 500
@@ -30,7 +33,7 @@ def discover_projects(root_values: list[str]) -> dict[str, Any]:
     seen_roots: set[str] = set()
 
     for raw_root in root_values:
-        if not valid_path_text(raw_root):
+        if not valid_root_text(raw_root):
             warnings.append(warning("Invalid root", raw_root))
             continue
         root = Path(raw_root).expanduser()
@@ -190,6 +193,28 @@ def valid_path_text(value: object) -> bool:
     return isinstance(value, str) and 0 < len(value) <= MAX_PATH_CHARS and "\0" not in value
 
 
+def valid_root_text(value: object) -> bool:
+    if not valid_path_text(value) or len(value) > MAX_ROOT_PATH_CHARS:
+        return False
+    if value.startswith("~/"):
+        if "\\" in value:
+            return False
+        components = value[2:].split("/")
+        return (
+            len(components) <= MAX_HOME_ROOT_DEPTH
+            and all(
+                component
+                and len(component) <= MAX_HOME_ROOT_COMPONENT_CHARS
+                and component not in {".", ".."}
+                and not any(ord(character) < 32 or ord(character) == 127 for character in component)
+                for component in components
+            )
+        )
+    if value.startswith("~"):
+        return False
+    return Path(value).is_absolute()
+
+
 def warning(label: str, path: str) -> str:
     return f"{label}: {path[:1_900]}"
 
@@ -271,7 +296,7 @@ def connected_machines() -> list[dict[str, str]]:
     return [
         {"id": entry["id"], "name": entry["name"]}
         for entry in machines
-        if isinstance(entry, dict) and entry.get("state") == "connected"
+        if isinstance(entry, dict) and entry.get("state") == "connected" and not entry.get("temporary")
         and isinstance(entry.get("id"), str) and entry["id"]
         and isinstance(entry.get("name"), str) and entry["name"]
     ]
@@ -293,7 +318,7 @@ def main(arguments: list[str]) -> int:
             result = {"machines": connected_machines()}
         elif arguments[0] == "remote" and len(arguments) == 3:
             roots = read_payload(arguments[2])
-            if not isinstance(roots, list) or len(roots) > MAX_ROOTS or not all(valid_path_text(root) for root in roots):
+            if not isinstance(roots, list) or len(roots) > MAX_ROOTS or not all(valid_root_text(root) for root in roots):
                 raise ValueError("invalid roots")
             result = remote_projects(arguments[1], roots)
         elif arguments[0] == "remote-match" and len(arguments) == 3:
@@ -305,7 +330,7 @@ def main(arguments: list[str]) -> int:
             payload = read_payload(arguments[1])
             if arguments[0] == "discover":
                 if (not isinstance(payload, list) or len(payload) > MAX_ROOTS
-                        or not all(valid_path_text(root) for root in payload)):
+                        or not all(valid_root_text(root) for root in payload)):
                     raise ValueError("invalid roots")
                 result = discover_projects(payload)
             else:
